@@ -1,0 +1,25 @@
+<div id="app">
+  <header class="top">
+    <div class="brand">Galactic Trader</div>
+    <div class="topstat" id="topstat"></div>
+    <div class="topbtns">
+      <button class="tbtn" data-act="info" aria-label="How to play">?</button>
+      <button class="tbtn" id="btnTheme" data-act="theme" aria-label="Switch colour scheme">Theme</button>
+      <button class="tbtn" data-act="new">New game</button>
+    </div>
+  </header>
+  <nav class="tabs" aria-label="Panels">
+    <button class="tab on" data-act="tab" data-tab="c1">Ship</button>
+    <button class="tab" data-act="tab" data-tab="c2">Planet</button>
+    <button class="tab" data-act="tab" data-tab="c3">Map</button>
+    <button class="tab" data-act="tab" data-tab="c4">Log</button>
+  </nav>
+  <main class="cols">
+    <section class="col on" id="c1" aria-label="Ship and bank"></section>
+    <section class="col" id="c2" aria-label="Planet and market"></section>
+    <section class="col" id="c3" aria-label="Star map and leaderboard"></section>
+    <section class="col" id="c4" aria-label="Flight log"></section>
+  </main>
+</div>
+<div class="screen" id="start" hidden></div>
+<div class="modal" id="modal" hidden></div>

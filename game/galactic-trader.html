@@ -1,0 +1,1327 @@
+<title>Galactic Trader</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Unbounded:wght@700;800&display=swap">
+<style>
+/* Layout: a slim top bar, then four columns that are each exactly a quarter of the window (ship | planet | map | log).
+   Below 1000px they become tabs, because a quarter of a phone is too narrow to read. Both themes are space-like: deep indigo and pale nebula. */
+:root {
+  --bg: #eef1fb; --panel: #ffffff; --panel2: #e5eaf8; --line: #c6cee9; --fg: #141a3a; --dim: #5b6592;
+  --accent: #0a7ea4; --accent-fg: #ffffff; --amber: #b25a00; --good: #0f8a5f; --bad: #c42b45; --warn: #9a6b00;
+  --grey: #d5d9e8; --greytext: #8b93b4; --glow: rgba(10, 126, 164, .12);
+  --display: 'Unbounded', 'Arial Black', Impact, sans-serif; --ui: 'Chakra Petch', 'Segoe UI', system-ui, sans-serif; --mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #070914; --panel: #0d1124; --panel2: #141b38; --line: #242d58; --fg: #e6e9ff; --dim: #8d96c8;
+  --accent: #6fe7ff; --accent-fg: #04101a; --amber: #ffb347; --good: #3ddc97; --bad: #ff6b7d; --warn: #ffd166;
+  --grey: #1b2142; --greytext: #5a6391; --glow: rgba(111, 231, 255, .12); color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #070914; --panel: #0d1124; --panel2: #141b38; --line: #242d58; --fg: #e6e9ff; --dim: #8d96c8;
+  --accent: #6fe7ff; --accent-fg: #04101a; --amber: #ffb347; --good: #3ddc97; --bad: #ff6b7d; --warn: #ffd166;
+  --grey: #1b2142; --greytext: #5a6391; --glow: rgba(111, 231, 255, .12); color-scheme: dark; }
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 400 13px/1.45 var(--ui); overflow: hidden; }
+button, input { font: inherit; color: inherit; }
+b { font-weight: 600; }
+#app { height: 100%; display: flex; flex-direction: column; background: radial-gradient(1200px 500px at 20% -10%, var(--glow), transparent 70%), var(--bg); }
+
+.top { flex: none; height: 40px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px)); border-bottom: 1px solid var(--line); background: var(--panel); }
+.brand { font: 800 13px var(--display); letter-spacing: .14em; white-space: nowrap; }
+.topstat { color: var(--dim); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.topbtns { display: flex; gap: 6px; }
+.tbtn { height: 26px; min-width: 26px; padding: 0 9px; border: 1px solid var(--line); border-radius: 13px; background: transparent; cursor: pointer; font-size: 12px; }
+.tbtn:hover { border-color: var(--accent); color: var(--accent); }
+
+.tabs { display: none; flex: none; border-bottom: 1px solid var(--line); background: var(--panel); }
+.tab { flex: 1; padding: 9px 4px; border: 0; background: none; color: var(--dim); cursor: pointer; font-weight: 600; border-bottom: 2px solid transparent; }
+.tab.on { color: var(--accent); border-bottom-color: var(--accent); }
+
+.cols { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(4, 1fr); }
+.col { min-width: 0; overflow-y: auto; padding: 14px 16px 24px; border-right: 1px solid var(--line); display: flex; flex-direction: column; gap: 14px; }
+.col:last-child { border-right: 0; }
+.col > * { flex: none; }
+h3 { margin: 0; font: 700 11px var(--ui); letter-spacing: .16em; text-transform: uppercase; color: var(--dim); }
+.sec { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 0; flex-wrap: wrap; }
+.dim { color: var(--dim); } .num { font-variant-numeric: tabular-nums; } .good { color: var(--good); } .bad { color: var(--bad); } .warn { color: var(--warn); } .amber { color: var(--amber); }
+
+.btn { height: 28px; padding: 0 12px; border: 1px solid var(--accent); border-radius: 5px; background: var(--accent); color: var(--accent-fg); font-weight: 700; cursor: pointer; white-space: nowrap; }
+.btn:hover:not(:disabled) { filter: brightness(1.1); }
+.btn.alt { background: transparent; color: var(--accent); }
+.btn.go { height: 34px; font: 800 13px var(--display); letter-spacing: .1em; }
+.btn:disabled { background: var(--grey); border-color: var(--grey); color: var(--greytext); cursor: not-allowed; }
+.btn:focus-visible, .tbtn:focus-visible, .tab:focus-visible, input:focus-visible, .ship:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+input[type="number"], input[type="text"] { height: 28px; min-width: 0; border: 1px solid var(--line); border-radius: 5px; background: var(--panel2); padding: 0 6px; }
+.qty { width: 56px; text-align: center; }
+.val { width: 78px; }
+
+.pname { font: 800 20px var(--display); letter-spacing: .02em; overflow-wrap: anywhere; }
+.shipart { background: #04060f; border: 1px solid var(--line); border-radius: 8px; padding: 6px; }
+.shipart svg, .planetart canvas, .mapwrap svg { display: block; width: 100%; height: auto; }
+.stat { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; }
+.bar { grid-column: 1 / -1; height: 5px; border-radius: 3px; background: var(--grey); overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--accent); }
+.bar i.f { background: var(--amber); }
+.cargo { display: grid; grid-template-columns: 1fr auto auto; gap: 3px 10px; align-items: baseline; }
+.big { font: 700 22px var(--ui); font-variant-numeric: tabular-nums; }
+.upg { display: grid; grid-template-columns: 1fr auto; gap: 6px 8px; align-items: center; }
+
+.planetart { position: relative; background: #000; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.planetart .tag { position: absolute; left: 10px; bottom: 8px; right: 10px; color: #fff; text-shadow: 0 1px 6px #000; }
+.planetart .tag .pname { color: #fff; font-size: 19px; }
+.say { font: 400 12px var(--mono); color: #cdd3ff; }
+.acts { display: flex; flex-wrap: wrap; gap: 6px; }
+.offer { border-color: var(--amber); }
+.market { display: flex; flex-direction: column; gap: 6px; }
+.mrow { display: grid; grid-template-columns: 1fr auto auto auto; gap: 2px 10px; align-items: center; padding: 7px 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 7px; }
+.mrow .nm { font-weight: 700; }
+.mrow .ctl { grid-column: 1 / -1; display: flex; gap: 4px; align-items: center; justify-content: space-between; margin-top: 3px; }
+.mrow .ctl .btn { padding: 0 8px; flex: 1; }
+.mrow .ctl .qty { flex: none; }
+.up { color: var(--amber); } .dn { color: var(--accent); } .r { text-align: right; }
+
+.mapwrap { background: #000; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.mapwrap svg text { font-family: var(--ui); }
+.mapwrap .pl { cursor: pointer; }
+.trip p { margin: 4px 0; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { text-align: left; font-weight: 600; color: var(--dim); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; padding: 4px 4px; }
+td { padding: 5px 4px; border-top: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+td.r, th.r { text-align: right; }
+tr.me td { color: var(--accent); font-weight: 700; }
+
+.log { display: flex; flex-direction: column; gap: 6px; font-family: var(--mono); font-size: 12px; line-height: 1.5; }
+.le { padding: 6px 8px; border-left: 3px solid var(--line); background: var(--panel); border-radius: 0 5px 5px 0; overflow-wrap: anywhere; }
+.le.gain { border-left-color: var(--good); color: var(--good); } .le.loss { border-left-color: var(--bad); color: var(--bad); }
+.le.event { border-left-color: var(--warn); } .le.info { color: var(--fg); }
+.le .tn { color: var(--dim); font-weight: 600; margin-right: 4px; } .le.gain .tn, .le.loss .tn { color: inherit; opacity: .75; }
+.le b { font-weight: 700; } .le .fx { opacity: .9; }
+
+.screen { position: fixed; inset: 0; z-index: 20; overflow-y: auto; background: radial-gradient(900px 500px at 70% -10%, rgba(120, 80, 255, .28), transparent 70%), #04050d; color: #e6e9ff; padding: 28px max(16px, env(safe-area-inset-right, 0px)) 40px max(16px, env(safe-area-inset-left, 0px)); }
+.screen[hidden], .modal[hidden] { display: none; }
+.screen .in { max-width: 1080px; margin: 0 auto; display: flex; flex-direction: column; gap: 22px; }
+.title { font: 800 clamp(34px, 8.5vw, 92px)/1 var(--display); letter-spacing: .02em; text-transform: uppercase; background: linear-gradient(100deg, #ffffff 10%, #8be9ff 45%, #b08cff 75%, #ffb347); -webkit-background-clip: text; background-clip: text; color: transparent; text-wrap: balance; }
+.tag2 { color: #9aa3da; max-width: 60ch; font-size: 15px; }
+.ships { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+.ship { text-align: left; background: rgba(20, 27, 56, .75); border: 1px solid #2c3770; border-radius: 10px; padding: 10px; cursor: pointer; color: #e6e9ff; display: flex; flex-direction: column; gap: 6px; }
+.ship[aria-pressed="true"] { border-color: #6fe7ff; box-shadow: 0 0 0 2px rgba(111, 231, 255, .35), 0 0 22px rgba(111, 231, 255, .18); }
+.ship .sn { font: 800 15px var(--display); }
+.ship .sd { color: #9aa3da; font-size: 12px; }
+.mini { display: grid; grid-template-columns: auto 1fr auto; gap: 2px 8px; align-items: center; font-size: 11px; color: #9aa3da; }
+.mini .bar { grid-column: auto; background: #1b2142; } .mini .bar i { background: #6fe7ff; }
+.launch { display: flex; flex-wrap: wrap; align-items: end; gap: 14px; }
+.launch label { display: flex; flex-direction: column; gap: 4px; color: #9aa3da; font-size: 12px; }
+.launch input { width: 240px; max-width: 100%; height: 40px; background: #0d1124; border: 1px solid #2c3770; color: #fff; font-size: 16px; }
+.launch .btn { height: 44px; padding: 0 30px; font: 800 17px var(--display); letter-spacing: .18em; background: #6fe7ff; border-color: #6fe7ff; color: #04101a; }
+
+.modal { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: 16px; background: rgba(2, 3, 12, .72); }
+.sheet { width: min(640px, 100%); max-height: 90%; overflow-y: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 12px; }
+.sheet.wide { width: min(780px, 100%); }
+.sheet h2 { margin: 0; font: 800 18px var(--display); letter-spacing: .04em; }
+.sheet h4 { margin: 8px 0 2px; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+.sheet p, .sheet li { margin: 0; } .sheet ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; }
+.cols2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 4px 24px; }
+.win { color: var(--good); } .lose { color: var(--bad); }
+.toast { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 40; padding: 8px 14px; border-radius: 6px; background: var(--fg); color: var(--bg); font-weight: 600; max-width: 90%; }
+
+@media (max-width: 1000px) {
+  .tabs { display: flex; }
+  .cols { grid-template-columns: 1fr; }
+  .col { display: none; border-right: 0; }
+  .col.on { display: flex; }
+  .topstat { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+<div id="app">
+  <header class="top">
+    <div class="brand">Galactic Trader</div>
+    <div class="topstat" id="topstat"></div>
+    <div class="topbtns">
+      <button class="tbtn" data-act="info" aria-label="How to play">?</button>
+      <button class="tbtn" id="btnTheme" data-act="theme" aria-label="Switch colour scheme">Theme</button>
+      <button class="tbtn" data-act="new">New game</button>
+    </div>
+  </header>
+  <nav class="tabs" aria-label="Panels">
+    <button class="tab on" data-act="tab" data-tab="c1">Ship</button>
+    <button class="tab" data-act="tab" data-tab="c2">Planet</button>
+    <button class="tab" data-act="tab" data-tab="c3">Map</button>
+    <button class="tab" data-act="tab" data-tab="c4">Log</button>
+  </nav>
+  <main class="cols">
+    <section class="col on" id="c1" aria-label="Ship and bank"></section>
+    <section class="col" id="c2" aria-label="Planet and market"></section>
+    <section class="col" id="c3" aria-label="Star map and leaderboard"></section>
+    <section class="col" id="c4" aria-label="Flight log"></section>
+  </main>
+</div>
+<div class="screen" id="start" hidden></div>
+<div class="modal" id="modal" hidden></div>
+<script>
+/* Galactic Trader. Part 1: data tables. Parts are concatenated into one script by build.py. */
+var GT = {};
+
+GT.CFG = {
+  WIN: 150000, START_CREDITS: 2500, START_FUEL_FRAC: 0.8,
+  TRAVEL_EVENT: 0.30, EXPLORE: 0.25, ENCOUNTER: 0.30, FACILITY_OFFER: 0.20, COMP_EVENT: 0.20,
+  DEPOSIT_RATE: 0.03, LOAN_RATE: 0.05, INTEREST_EVERY: 4, LOAN_STEP: 1000, LOAN_CAP: 10000,
+  FUEL_K: 0.5, TOW_COST: 400, DAMAGE_TURNS: 6, FEE_CAP_TURNS: 12, LOG_SHOWN: 60,
+  ELASTICITY: 0.35, REVERT: 0.2, UPGRADE_MAX: 6
+};
+
+/* depth = typical stock a neutral planet holds; thin markets for pricey goods stop dumping */
+GT.ITEMS = [
+  { id: 'rations',  name: 'Rations',     base: 24,  depth: 400, vol: 0.035, blurb: 'Vacuum-sealed meals. Everyone eats.' },
+  { id: 'metals',   name: 'Metals',      base: 52,  depth: 260, vol: 0.040, blurb: 'Ingots and alloy plate for hulls and habitats.' },
+  { id: 'medical',  name: 'Medical',     base: 95,  depth: 160,  vol: 0.045, blurb: 'Meds, grafts and sterile field kits.' },
+  { id: 'spices',   name: 'Spices',      base: 160, depth: 100,  vol: 0.060, blurb: 'Flavour worth more than its weight in fuel.' },
+  { id: 'circuitry',name: 'Circuitry',   base: 260, depth: 72,  vol: 0.055, blurb: 'Logic cores and gate arrays.' },
+  { id: 'darkmatter',name:'Dark Matter', base: 460, depth: 40,  vol: 0.085, blurb: 'Contained in magnetic bottles. Do not shake.' },
+  { id: 'artifacts',name: 'Artifacts',   base: 780, depth: 20,  vol: 0.100, blurb: 'Relics of dead empires. Provenance optional.' }
+];
+
+/* mult order: rations, metals, medical, spices, circuitry, darkmatter, artifacts. Below 0.8 means the planet produces it. */
+GT.PLANETS = [
+  { id: 'meridoa', name: 'Meridoa', say: 'meh-RID-oh-ah', type: 'Agrarian', x: 8, y: 38, color: '#7ed957', ring: false,
+    tax: 0.03, fuel: 8, fuelSold: false, upgrades: ['cargo'], gambling: false,
+    mult: [0.55, 1.25, 0.90, 0.70, 1.35, 1.20, 1.10],
+    fac: { broker: 1, depot: 0.5, factory: 1, warehouse: 2, hotel: 1 },
+    desc: 'Terraced fields roll to every horizon under a soft green sun. Grain barges outnumber people. Rations and spices are plentiful and cheap, while anything with a circuit in it is treated like magic.' },
+  { id: 'karthosu', name: 'Karth-Osu', say: 'KARTH oh-SOO', type: 'Ruin', x: 22, y: 52, color: '#d9a35c', ring: false,
+    tax: 0.065, fuel: 9, fuelSold: false, upgrades: [], gambling: false,
+    mult: [1.30, 1.20, 1.40, 1.10, 1.30, 1.10, 0.50],
+    fac: { broker: 0.5, depot: 0.3, factory: 0.5, warehouse: 1, hotel: 2 },
+    desc: 'The bones of a vanished empire, half buried in ochre dust. Diggers sell relics from the tombs at fair prices. They have no clean water, no medicine and no patience for tourists.' },
+  { id: 'ferrox', name: 'Ferrox', say: 'FEH-rox', type: 'Mining', x: 30, y: 12, color: '#d9603b', ring: false,
+    tax: 0.04, fuel: 8, fuelSold: true, upgrades: ['cargo', 'fuel'], gambling: false,
+    mult: [1.35, 0.55, 1.30, 1.20, 1.20, 1.00, 1.00],
+    fac: { broker: 0.7, depot: 1.5, factory: 2, warehouse: 1.5, hotel: 0.5 },
+    desc: 'A red, pitted rock chewed hollow by a thousand drills. Metals pour out of Ferrox by the megaton and sell for next to nothing. The miners pay well for food and doctors, and Ferrox has a working fuel dock.' },
+  { id: 'kryndor', name: 'Kryndor Spire', say: 'KRIN-dor SPYR', type: 'Megacity', x: 50, y: 30, color: '#4fd2ff', ring: false,
+    tax: 0.07, fuel: 11, fuelSold: true, upgrades: ['cargo', 'speed', 'fuel'], gambling: false,
+    mult: [1.30, 1.10, 1.20, 1.35, 0.85, 1.25, 1.40],
+    fac: { broker: 2, depot: 0.7, factory: 0.7, warehouse: 1, hotel: 2 },
+    desc: 'One city that covers a whole moon, lit like a jewel box. Circuitry is cheap here. Spices, luxuries and relics sell at silly prices. The tax collectors are everywhere, and so is the best shipyard in the sector.' },
+  { id: 'nihil', name: 'Nihil Station', say: 'NY-hill', type: 'Void Station', x: 58, y: 52, color: '#b07cff', ring: false,
+    tax: 0.015, fuel: 14, fuelSold: true, upgrades: ['speed'], gambling: true,
+    mult: [1.45, 1.20, 1.10, 0.90, 1.00, 0.65, 1.30],
+    fac: { broker: 1.5, depot: 1, factory: 0.3, warehouse: 2, hotel: 2 },
+    desc: 'A free port hanging in the dark between stars, with almost no tax and almost no questions. Dark matter is cheap here. Hungry crews trade fortunes at the Parlour of Thin Hours, where the games are strange and nobody explains them.' },
+  { id: 'quellin', name: 'Quellin Reach', say: 'KWEL-in REECH', type: 'Science', x: 72, y: 14, color: '#ff7ad9', ring: false,
+    tax: 0.04, fuel: 10, fuelSold: false, upgrades: ['speed'], gambling: false,
+    mult: [1.15, 1.10, 0.60, 1.20, 0.65, 1.35, 1.20],
+    fac: { broker: 0.7, depot: 0.7, factory: 1, warehouse: 0.7, hotel: 1 },
+    desc: 'White domes and humming labs on a frozen pink moon. Medical supplies and circuitry are made here by the crate. The researchers pay anything for dark matter and for relics to puzzle over.' },
+  { id: 'halcyra', name: 'Halcyra', say: 'hal-SY-rah', type: 'Gas Giant', x: 90, y: 38, color: '#ffc24d', ring: true,
+    tax: 0.04, fuel: 6, fuelSold: true, upgrades: ['fuel'], gambling: false,
+    mult: [1.40, 1.30, 1.25, 1.00, 1.20, 0.55, 1.20],
+    fac: { broker: 0.7, depot: 2, factory: 1.5, warehouse: 1, hotel: 0.7 },
+    desc: 'A golden ringed giant. Skimmer platforms drift in its upper clouds and bottle dark matter from the storms. Fuel is cheap, but food, metal and medicine all have to be hauled in from far away.' }
+];
+
+GT.SHIPS = [
+  { id: 'wayfarer', name: 'Wayfarer', cargo: 45, speed: 1.4, fuel: 100, hue: '#4fd2ff',
+    desc: 'A sturdy all-rounder with a patched hull and a loyal crew of two. It does nothing brilliantly and nothing badly.' },
+  { id: 'gnat', name: 'Gnat', cargo: 28, speed: 2.2, fuel: 85, hue: '#ff7ad9',
+    desc: 'Tiny, quick and thrifty with fuel. You can carry a lot of value in a very small hold, if you stay lucky.' },
+  { id: 'barge', name: 'Behemoth Barge', cargo: 75, speed: 0.9, fuel: 130, hue: '#ffc24d',
+    desc: 'A flying warehouse. It crawls between worlds but hauls more cargo than anything else on the lanes.' },
+  { id: 'stargazer', name: 'Stargazer', cargo: 34, speed: 1.6, fuel: 190, hue: '#b07cff',
+    desc: 'A long-range survey hull with a huge tank. You can skip the fuel docks and go where the margins are.' },
+  { id: 'cutlass', name: 'Cutlass Runner', cargo: 38, speed: 2.0, fuel: 95, hue: '#d9603b',
+    desc: 'A smuggler\'s fast hull, with a hold that has some very good false floors. It is quick, quiet and thirsty.' }
+];
+
+GT.UPGRADES = {
+  cargo: { name: 'Cargo Bay', unit: 'units', step: 8, base: 1200, grow: 1.8, label: '+8 cargo' },
+  speed: { name: 'Warp Engine', unit: 'warp', step: 0.2, base: 1400, grow: 1.8, label: '+0.2 warp' },
+  fuel:  { name: 'Fuel Tank', unit: 'PC', step: 25, base: 900, grow: 1.7, label: '+25 PC tank (empty)' }
+};
+
+/* kind: trade = price edge; fuel = cheaper fuel; fee = income from rivals, collected when you visit */
+GT.FACILITIES = [
+  { id: 'broker', name: 'Trade Broker', kind: 'trade', pct: 0.015, blurb: 'Better quotes on every trade you make, and a lighter tax bill.' },
+  { id: 'depot', name: 'Fuel Depot', kind: 'fuel', pct: 0.06, blurb: 'Cheaper fuel at every refuelling dock you use, and a lighter tax bill.' },
+  { id: 'factory', name: 'Factory', kind: 'fee', feePct: 0.0045, blurb: 'Rival traders buy parts here. You collect a fee when you next visit.' },
+  { id: 'warehouse', name: 'Warehouse', kind: 'fee', feePct: 0.0040, blurb: 'Rivals rent storage space. Fees pile up until you visit.' },
+  { id: 'hotel', name: 'Hotel', kind: 'fee', feePct: 0.0050, blurb: 'Rival crews sleep here. You collect the bills when you visit.' }
+];
+
+GT.COMPETITORS = [
+  { name: 'Zara Vex', title: 'the Silk-Handed', rate: 0.046 },
+  { name: 'Old Brannock', title: 'of the Long Haul', rate: 0.041 },
+  { name: 'Captain Ilyx Orro', title: 'the Unlucky', rate: 0.050 },
+  { name: 'Mox Tallow', title: 'who Never Blinks', rate: 0.044 }
+];
+
+GT.MOODS = [
+  'in a foul mood, picking at a ration tin', 'whistling cheerfully and counting coin', 'looking tired and a little desperate',
+  'smug, with a fresh stack of credit chits', 'jumpy, glancing at every shadow', 'strangely calm, polishing a boarding hook',
+  'half asleep over a cold drink', 'bragging loudly to anyone who will listen'
+];
+
+/* Galactic Trader. Part 2: state, markets, tax and trading. No DOM access here. */
+(function () {
+  var rng = Math.random;
+  GT.setRng = function (f) { rng = f; };
+  GT.seeded = function (seed) { return function () { seed |= 0; seed = seed + 0x6D2B79F5 | 0; var t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; };
+  GT.rand = function () { return rng(); };
+  GT.R = function (a, b) { return a + rng() * (b - a); };
+  GT.RI = function (a, b) { return Math.floor(a + rng() * (b - a + 1)); };
+  GT.pick = function (arr) { return arr[Math.floor(rng() * arr.length)]; };
+  GT.clamp = function (v, a, b) { return Math.max(a, Math.min(b, v)); };
+  GT.gauss = function () { var u = 1 - rng(), v = rng(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+  GT.esc = function (t) { return String(t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+  GT.fmt = function (n) { return Math.round(n).toLocaleString('en-US'); };
+  var clamp = GT.clamp, R = GT.R;
+
+  /* ---------- state ---------- */
+  GT.newState = function (shipId, name) {
+    var sh = GT.SHIPS.filter(function (x) { return x.id === shipId; })[0] || GT.SHIPS[0];
+    var s = {
+      name: (name || 'Nameless').slice(0, 20), shipId: sh.id,
+      ship: { cargoMax: sh.cargo, speed: sh.speed, fuelMax: sh.fuel, fuel: Math.round(sh.fuel * GT.CFG.START_FUEL_FRAC), lv: { cargo: 0, speed: 0, fuel: 0 }, damage: [] },
+      credits: GT.CFG.START_CREDITS, bank: 0, loan: 0, rep: 0, turn: 1, loc: 3, dest: null,
+      cargo: GT.ITEMS.map(function () { return { qty: 0, avg: 0 }; }),
+      markets: [], fuelMult: [], mods: [], owned: {}, comps: [], log: [], over: null,
+      visit: { explored: false, encountered: false, offer: null, flags: {} }, pending: null, trendHidden: [],
+      stats: { jumps: 0, bought: [], spent: [], sold: [], earned: [], tax: 0, taxSavedRep: 0, taxSavedFac: 0, brokerEdge: 0,
+        eventGain: 0, eventLoss: 0, events: 0, explores: 0, encounters: 0, fuelBought: 0, fuelSpent: 0, interestEarned: 0, interestPaid: 0,
+        feeIncome: 0, facilitiesBought: 0, upgradesSpent: 0, sabotage: 0, sabotageWon: 0, assists: 0, gambleNet: 0, gambleRounds: 0,
+        peak: GT.CFG.START_CREDITS, repPeak: 0, repLow: 0, tows: 0 }
+    };
+    GT.ITEMS.forEach(function () { s.stats.bought.push(0); s.stats.spent.push(0); s.stats.sold.push(0); s.stats.earned.push(0); });
+    GT.PLANETS.forEach(function (p) {
+      s.fuelMult.push(1);
+      s.markets.push(GT.ITEMS.map(function (it, i) {
+        var target = it.depth * clamp(Math.pow(1 / p.mult[i], 2.5), 0.4, 3.5);
+        return { target: target, stock: Math.round(target * R(0.85, 1.15)), shock: 1 };
+      }));
+    });
+    GT.COMPETITORS.forEach(function (c, k) {
+      var w = GT.CFG.START_CREDITS * R(0.9, 1.15);
+      s.comps.push({ name: c.name, title: c.title, rate: c.rate, wealth: w, loc: (k * 2 + 1) % GT.PLANETS.length, cargo: 30, speed: 1.2, mood: 0 });
+    });
+    GT.refreshComps(s);
+    GT.rollTrends(s);
+    return s;
+  };
+  GT.log = function (s, text, kind, amount) { s.log.unshift({ turn: s.turn, text: text, kind: kind || 'info', amount: amount || 0 }); if (s.log.length > 600) s.log.length = 600; };
+  GT.networth = function (s) { return s.credits + s.bank - s.loan; };
+  GT.scale = function (s) { return clamp(GT.networth(s) * 0.05, 150, 6000); };
+  GT.cargoUsed = function (s) { return s.cargo.reduce(function (a, c) { return a + c.qty; }, 0); };
+  GT.cargoFree = function (s) { return s.ship.cargoMax - GT.cargoUsed(s); };
+  GT.effSpeed = function (s) { var d = s.ship.damage.reduce(function (a, x) { return a + x.amt; }, 0); return Math.max(0.5, s.ship.speed - d); };
+  GT.rollTrends = function (s) { s.trendHidden = GT.ITEMS.map(function () { return rng() < 0.25; }); };
+  GT.refreshComps = function (s) {
+    s.comps.forEach(function (c) {
+      var f = Math.min(1, c.wealth / GT.CFG.WIN);
+      c.cargo = Math.round(30 + 55 * f); c.speed = Math.round((1.2 + 1.2 * f) * 10) / 10;
+    });
+  };
+
+  /* ---------- facilities ---------- */
+  GT.facCount = function (s) { return Object.keys(s.owned).length; };
+  GT.facOfType = function (s, id) { return Object.keys(s.owned).filter(function (k) { return s.owned[k].type === id; }).length; };
+  GT.brokerEdge = function (s) { return Math.min(0.06, GT.facOfType(s, 'broker') * 0.015); };
+  GT.depotCut = function (s) { return Math.min(0.24, GT.facOfType(s, 'depot') * 0.06); };
+
+  /* ---------- prices ---------- */
+  GT.modMult = function (s, p, i) { var m = 1; s.mods.forEach(function (x) { if (x.p === p && x.i === i) m *= x.mult; }); return m; };
+  GT.priceAt = function (s, p, i, stock) {
+    var mk = s.markets[p][i], f = clamp(Math.pow(Math.max(stock, 0.5) / mk.target, -GT.CFG.ELASTICITY), 0.5, 2.0);
+    return Math.max(1, GT.ITEMS[i].base * GT.PLANETS[p].mult[i] * f * mk.shock * GT.modMult(s, p, i));
+  };
+  GT.price = function (s, p, i) { return GT.priceAt(s, p, i, s.markets[p][i].stock); };
+  GT.trend = function (s, p, i) { return GT.price(s, p, i) / GT.ITEMS[i].base - 1; };
+
+  GT.taxInfo = function (s, p) {
+    var base = GT.PLANETS[p].tax, here = s.owned[p] ? 0.12 : 0;
+    var facCut = base * Math.min(0.6, GT.facCount(s) * 0.05 + here);
+    var rep = clamp(s.rep, -50, 100), repCut = base * (rep >= 0 ? rep / 100 * 0.4 : rep / 50 * 0.25);
+    return { base: base, facCut: facCut, repCut: repCut, rate: Math.max(0.005, base - facCut - repCut) };
+  };
+
+  /* ---------- trading. quote* never mutate; buy/sell apply a quote ---------- */
+  GT.quoteBuy = function (s, i, qty) {
+    var p = s.loc, stock = s.markets[p][i].stock, edge = GT.brokerEdge(s), sub = 0, n = Math.min(qty, Math.floor(stock));
+    for (var k = 0; k < n; k++) sub += GT.priceAt(s, p, i, stock - k) * (1 - edge);
+    var t = GT.taxInfo(s, p), tax = sub * t.rate;
+    return { qty: n, sub: sub, tax: tax, total: sub + tax, avg: n ? sub / n : 0, t: t, edgeValue: sub * edge / (1 - edge) };
+  };
+  GT.quoteSell = function (s, i, qty) {
+    var p = s.loc, stock = s.markets[p][i].stock, edge = GT.brokerEdge(s), sub = 0, n = Math.min(qty, s.cargo[i].qty);
+    for (var k = 0; k < n; k++) sub += GT.priceAt(s, p, i, stock + k) * (1 + edge);
+    var t = GT.taxInfo(s, p), tax = sub * t.rate;
+    return { qty: n, sub: sub, tax: tax, total: sub - tax, avg: n ? sub / n : 0, t: t, edgeValue: sub * edge / (1 + edge) };
+  };
+  GT.maxBuy = function (s, i) {
+    var p = s.loc, stock = s.markets[p][i].stock, edge = GT.brokerEdge(s), rate = GT.taxInfo(s, p).rate;
+    var cap = Math.min(Math.floor(stock), GT.cargoFree(s)), sub = 0, n = 0;
+    for (var k = 0; k < cap; k++) {
+      var c = GT.priceAt(s, p, i, stock - k) * (1 - edge);
+      if ((sub + c) * (1 + rate) > s.credits) break;
+      sub += c; n++;
+    }
+    return n;
+  };
+  GT.canBuy = function (s, i, qty) { return qty > 0 && s.markets[s.loc][i].stock >= qty && GT.cargoFree(s) >= qty && GT.quoteBuy(s, i, qty).total <= s.credits; };
+  GT.canSell = function (s, i, qty) { return qty > 0 && s.cargo[i].qty >= qty; };
+
+  GT.buy = function (s, i, qty) {
+    if (!GT.canBuy(s, i, qty)) return null;
+    var q = GT.quoteBuy(s, i, qty), c = s.cargo[i], p = s.loc, st = s.stats, it = GT.ITEMS[i];
+    c.avg = (c.avg * c.qty + q.sub) / (c.qty + q.qty); c.qty += q.qty;
+    s.markets[p][i].stock -= q.qty; s.credits -= q.total;
+    st.bought[i] += q.qty; st.spent[i] += q.total; st.tax += q.tax;
+    st.taxSavedRep += q.sub * q.t.repCut; st.taxSavedFac += q.sub * q.t.facCut; st.brokerEdge += q.edgeValue;
+    GT.log(s, 'Bought <b>' + q.qty + ' ' + it.name + '</b> at an average of ' + q.avg.toFixed(1) + 'c: ' + GT.fmt(q.sub) + 'c, plus ' + GT.fmt(q.tax) + 'c tax (' + (q.t.rate * 100).toFixed(1) + '% after ' + GT.discText(q.t) + '). ' + GT.savedText(q) + 'Overall <b>-' + GT.fmt(q.total) + 'c</b>.', 'loss', -q.total);
+    return q;
+  };
+  GT.sell = function (s, i, qty) {
+    if (!GT.canSell(s, i, qty)) return null;
+    var q = GT.quoteSell(s, i, qty), c = s.cargo[i], p = s.loc, st = s.stats, it = GT.ITEMS[i];
+    var paid = c.avg * q.qty, profit = q.total - paid;
+    c.qty -= q.qty; if (c.qty === 0) c.avg = 0;
+    s.markets[p][i].stock += q.qty; s.credits += q.total;
+    st.sold[i] += q.qty; st.earned[i] += q.total; st.tax += q.tax;
+    st.taxSavedRep += q.sub * q.t.repCut; st.taxSavedFac += q.sub * q.t.facCut; st.brokerEdge += q.edgeValue;
+    GT.log(s, 'Sold <b>' + q.qty + ' ' + it.name + '</b> at an average of ' + q.avg.toFixed(1) + 'c: ' + GT.fmt(q.sub) + 'c, less ' + GT.fmt(q.tax) + 'c tax (' + (q.t.rate * 100).toFixed(1) + '% after ' + GT.discText(q.t) + '). ' + GT.savedText(q) + 'Overall <b>+' + GT.fmt(q.total) + 'c</b> (' + (profit >= 0 ? '+' : '') + GT.fmt(profit) + 'c against what you paid).', 'gain', q.total);
+    return q;
+  };
+  GT.savedText = function (q) {
+    var r = q.sub * q.t.repCut, f = q.sub * q.t.facCut, parts = [];
+    if (r >= 1) parts.push('your reputation saved you ' + GT.fmt(r) + 'c'); else if (r <= -1) parts.push('your poor reputation cost you ' + GT.fmt(-r) + 'c');
+    if (f >= 1) parts.push('your facilities saved you ' + GT.fmt(f) + 'c');
+    return parts.length ? 'Discounts: ' + parts.join(' and ') + '. ' : '';
+  };
+  GT.discText = function (t) {
+    var f = (t.facCut / t.base * 100), r = (t.repCut / t.base * 100);
+    return GT.fmt(t.base * 1000) / 10 + '% base, ' + (f ? '-' + f.toFixed(0) + '% from facilities' : 'no facility discount') + ', ' + (r >= 0 ? '-' + r.toFixed(0) + '% from reputation' : '+' + (-r).toFixed(0) + '% reputation penalty');
+  };
+
+  /* ---------- fuel ---------- */
+  GT.fuelPrice = function (s, p) { return Math.max(1, Math.round(GT.PLANETS[p].fuel * s.fuelMult[p] * (1 - GT.depotCut(s)))); };
+  GT.canRefuel = function (s) { return GT.PLANETS[s.loc].fuelSold; };
+  GT.refuel = function (s, qty) {
+    var room = s.ship.fuelMax - s.ship.fuel, price = GT.fuelPrice(s, s.loc);
+    var n = Math.min(qty, room, Math.floor(s.credits / price));
+    if (!GT.canRefuel(s) || n <= 0) return 0;
+    var cost = n * price; s.ship.fuel += n; s.credits -= cost; s.stats.fuelBought += n; s.stats.fuelSpent += cost;
+    GT.log(s, 'Refuelled <b>' + n + ' PC</b> at ' + price + 'c each. <b>-' + GT.fmt(cost) + 'c</b>.', 'loss', -cost);
+    return n;
+  };
+
+  /* ---------- per-jump market drift ---------- */
+  var MODS = [
+    { mult: 1.45, text: 'A shortage of {item} is driving prices up on {planet}.' },
+    { mult: 0.66, text: 'A glut of {item} has {planet} dumping stock cheaply.' },
+    { mult: 1.35, text: 'A festival on {planet} has everyone shopping for {item}.' },
+    { mult: 0.72, text: 'A rumour of a quality scandal has {item} sliding on {planet}.' }
+  ];
+  GT.tickMarkets = function (s) {
+    GT.PLANETS.forEach(function (pl, p) {
+      GT.ITEMS.forEach(function (it, i) {
+        var mk = s.markets[p][i];
+        mk.stock += (mk.target - mk.stock) * GT.CFG.REVERT + GT.gauss() * 0.03 * mk.target;
+        mk.stock = Math.max(1, Math.round(mk.stock));
+        mk.shock = Math.exp(Math.log(mk.shock) * 0.8 + GT.gauss() * it.vol);
+      });
+      s.fuelMult[p] = clamp(Math.exp(Math.log(s.fuelMult[p]) * 0.85 + GT.gauss() * 0.06), 0.8, 1.3);
+      if (rng() < 0.05 && !s.mods.some(function (x) { return x.p === p; })) {
+        var m = GT.pick(MODS), i2 = GT.RI(0, GT.ITEMS.length - 1);
+        s.mods.push({ p: p, i: i2, mult: m.mult, turns: GT.RI(4, 8), text: m.text.replace('{item}', GT.ITEMS[i2].name).replace('{planet}', pl.name) });
+      }
+    });
+    s.mods.forEach(function (x) { x.turns--; });
+    s.mods = s.mods.filter(function (x) { return x.turns > 0; });
+  };
+})();
+
+/* Galactic Trader. Part 3: effects, jumping, bank, upgrades, win and loss. */
+(function () {
+  var clamp = GT.clamp, R = GT.R, fmt = GT.fmt;
+
+  GT.luck = function (s) { return clamp(s.rep, -50, 100) / 100 * 0.5; };
+  GT.addRep = function (s, d) { s.rep = clamp(s.rep + d, -100, 100); s.stats.repPeak = Math.max(s.stats.repPeak, s.rep); s.stats.repLow = Math.min(s.stats.repLow, s.rep); };
+
+  /* Entries carry g: 1 good, -1 bad, 0 neutral. Reputation tilts the odds of good ones. */
+  GT.pickEntry = function (list, s) {
+    var luck = GT.luck(s), tot = 0, w = list.map(function (e) { var x = e.g > 0 ? 1 + luck : e.g < 0 ? 1 - luck : 1; tot += x; return x; });
+    var r = GT.rand() * tot;
+    for (var k = 0; k < list.length; k++) { r -= w[k]; if (r <= 0) return list[k]; }
+    return list[list.length - 1];
+  };
+
+  /* Applies cr (money, signed multiples of the scale), fuel, lose, gain, dmg and rep. Returns {money, kind, detail}. */
+  GT.applyEffect = function (s, e) {
+    var S = GT.scale(s), money = 0, parts = [], k;
+    if (e.cr) {
+      var lo = Math.min(e.cr[0], e.cr[1]), hi = Math.max(e.cr[0], e.cr[1]);
+      money = Math.round(S * R(lo, hi) / 5) * 5;
+      s.credits += money;
+      if (money >= 0) s.stats.eventGain += money; else s.stats.eventLoss -= money;
+      parts.push('<b>' + (money >= 0 ? '+' : '-') + fmt(Math.abs(money)) + 'c</b>');
+    }
+    if (e.fuel) {
+      var df = GT.RI(Math.min(e.fuel[0], e.fuel[1]), Math.max(e.fuel[0], e.fuel[1])), before = s.ship.fuel;
+      s.ship.fuel = clamp(s.ship.fuel + df, 0, s.ship.fuelMax);
+      parts.push((s.ship.fuel - before >= 0 ? '+' : '') + (s.ship.fuel - before) + ' PC fuel');
+    }
+    if (e.lose) {
+      var used = GT.cargoUsed(s), n = used ? Math.max(1, Math.ceil(used * R(e.lose[0], e.lose[1]))) : 0, gone = {};
+      for (k = 0; k < n; k++) {
+        var pool = s.cargo.map(function (c, i) { return c.qty > 0 ? i : -1; }).filter(function (i) { return i >= 0; });
+        if (!pool.length) break;
+        var pi = 0, r = GT.rand() * s.cargo.reduce(function (a, c) { return a + c.qty; }, 0);
+        for (var z = 0; z < s.cargo.length; z++) { r -= s.cargo[z].qty; if (r <= 0) { pi = z; break; } }
+        s.cargo[pi].qty--; if (!s.cargo[pi].qty) s.cargo[pi].avg = 0;
+        gone[pi] = (gone[pi] || 0) + 1;
+      }
+      var txt = Object.keys(gone).map(function (i) { return gone[i] + ' ' + GT.ITEMS[i].name; }).join(', ');
+      parts.push(txt ? 'lost cargo: ' + txt : 'your hold was empty, so nothing was lost');
+    }
+    if (e.gain) {
+      var ii = e.gain.item === 'any' ? GT.RI(0, 4) : GT.ITEMS.map(function (x) { return x.id; }).indexOf(e.gain.item);
+      if (ii < 0) ii = 0;
+      var want = Math.max(1, Math.round(S * R(e.gain.v[0], e.gain.v[1]) / GT.ITEMS[ii].base)), got = Math.min(want, GT.cargoFree(s));
+      if (got > 0) { var c = s.cargo[ii]; c.avg = c.avg * c.qty / (c.qty + got); c.qty += got; parts.push('gained ' + got + ' ' + GT.ITEMS[ii].name + (got < want ? ' (your hold was too full for the rest)' : '')); }
+      else parts.push('your hold was too full to take the ' + GT.ITEMS[ii].name);
+    }
+    if (e.dmg) { s.ship.damage.push({ amt: e.dmg[0], turns: e.dmg[1] }); parts.push('engine damaged: -' + e.dmg[0].toFixed(1) + ' warp for ' + e.dmg[1] + ' jumps'); }
+    if (e.rep) { GT.addRep(s, e.rep); parts.push((e.rep > 0 ? '+' : '') + e.rep + ' reputation'); }
+    return { money: money, kind: money > 0 ? 'gain' : money < 0 ? 'loss' : 'event', detail: parts.length ? ' <span class="fx">(' + parts.join('; ') + ')</span>' : '' };
+  };
+
+  /* ---------- travel ---------- */
+  GT.dist = function (a, b) { var A = GT.PLANETS[a], B = GT.PLANETS[b]; return Math.hypot(A.x - B.x, A.y - B.y); };
+  GT.jumpCost = function (s, to) { return Math.ceil(GT.dist(s.loc, to) * GT.CFG.FUEL_K / Math.sqrt(GT.effSpeed(s))); };
+  GT.minJump = function (s) { var m = 1e9; GT.PLANETS.forEach(function (p, i) { if (i !== s.loc) m = Math.min(m, GT.jumpCost(s, i)); }); return m; };
+  GT.stranded = function (s) { return s.ship.fuel < GT.minJump(s); };
+
+  GT.canJump = function (s, to) { return !s.over && !s.pending && to !== s.loc && to >= 0 && s.ship.fuel >= GT.jumpCost(s, to); };
+
+  GT.jump = function (s, to, towed) {
+    if (s.over || s.pending || to === s.loc) return false;
+    var from = s.loc, cost = towed ? 0 : GT.jumpCost(s, to);
+    if (!towed && s.ship.fuel < cost) return false;
+    var A = GT.PLANETS[from], B = GT.PLANETS[to];
+    s.ship.fuel -= cost; s.stats.jumps++;
+    GT.log(s, (towed ? 'A tanker tug hooks onto you and drags you out of <b>' + A.name + '</b>. ' : 'Departed <b>' + A.name + '</b>, bound for ' + B.name + '. ') + (cost ? 'Burned ' + cost + ' PC of fuel.' : ''), 'info');
+    if (towed) { s.credits -= GT.CFG.TOW_COST; s.stats.tows++; s.stats.eventLoss += GT.CFG.TOW_COST; GT.log(s, 'The tug crew bills you for the rescue: <b>-' + GT.CFG.TOW_COST + 'c</b>.', 'loss', -GT.CFG.TOW_COST); }
+    if (GT.rand() < GT.CFG.TRAVEL_EVENT && GT.TRAVEL) {
+      var ev = GT.pickEntry(GT.TRAVEL, s), fx = GT.applyEffect(s, ev);
+      s.stats.events++; GT.log(s, ev.t + fx.detail, fx.kind, fx.money);
+    }
+    s.turn++;
+    s.ship.damage.forEach(function (d) { d.turns--; });
+    s.ship.damage = s.ship.damage.filter(function (d) { return d.turns > 0; });
+    GT.tickMarkets(s); GT.tickComps(s);
+    if (s.stats.jumps % GT.CFG.INTEREST_EVERY === 0) GT.interest(s);
+    s.loc = to; s.dest = null; GT.rollTrends(s);
+    s.visit = { explored: false, encountered: false, offer: null, flags: {} };
+    GT.log(s, 'Arrived at <b>' + B.name + '</b> (' + B.type + ').', 'info');
+    s.mods.forEach(function (m) { if (m.p === to) GT.log(s, m.text, 'info'); });
+    if (s.owned[to]) GT.collectFees(s, to);
+    if (!s.owned[to] && GT.rand() < GT.CFG.FACILITY_OFFER) GT.makeOffer(s, to);
+    var here = s.comps.filter(function (c) { return c.loc === to; });
+    if (here.length && GT.rand() < GT.CFG.COMP_EVENT) { var c = GT.pick(here); s.pending = { type: 'comp', ci: s.comps.indexOf(c), mood: GT.pick(GT.MOODS) }; }
+    s.stats.peak = Math.max(s.stats.peak, GT.networth(s));
+    GT.checkEnd(s);
+    return true;
+  };
+
+  /* Emergency tow to the nearest fuel dock. It costs a jump and a fee, so it can sink a broke player. */
+  GT.towTarget = function (s) {
+    var best = -1, bd = 1e9;
+    GT.PLANETS.forEach(function (p, i) { if (i !== s.loc && p.fuelSold) { var d = GT.dist(s.loc, i); if (d < bd) { bd = d; best = i; } } });
+    return best;
+  };
+  GT.tow = function (s) { if (!GT.stranded(s) || s.over || s.pending) return false; return GT.jump(s, GT.towTarget(s), true); };
+
+  GT.interest = function (s) {
+    if (s.bank > 0) { var g = Math.round(s.bank * GT.CFG.DEPOSIT_RATE); s.bank += g; s.stats.interestEarned += g; GT.log(s, 'The bank pays <b>' + (GT.CFG.DEPOSIT_RATE * 100) + '%</b> interest on your deposit: <b>+' + fmt(g) + 'c</b> added to your account.', 'gain', g); }
+    if (s.loan > 0) { var l = Math.round(s.loan * GT.CFG.LOAN_RATE); s.loan += l; s.stats.interestPaid += l; GT.log(s, 'Your loan accrues <b>' + (GT.CFG.LOAN_RATE * 100) + '%</b> interest: <b>-' + fmt(l) + 'c</b> added to the debt.', 'loss', -l); }
+  };
+
+  GT.checkEnd = function (s) {
+    var nw = GT.networth(s);
+    if (nw >= GT.CFG.WIN) s.over = { won: true, turn: s.turn, why: 'Your fortune has reached ' + fmt(nw) + ' credits.' };
+    else if (s.credits <= 0 && GT.cargoUsed(s) === 0) s.over = { won: false, turn: s.turn, why: 'You have ' + fmt(s.credits) + ' credits and an empty hold. There is nothing left to trade with.' };
+    return s.over;
+  };
+
+  /* ---------- bank ---------- */
+  GT.deposit = function (s, n) { n = Math.floor(n); if (n <= 0 || n > s.credits) return false; s.credits -= n; s.bank += n; GT.log(s, 'Deposited <b>' + fmt(n) + 'c</b> in the bank.', 'info'); return true; };
+  GT.withdraw = function (s, n) { n = Math.floor(n); if (n <= 0 || n > s.bank) return false; s.bank -= n; s.credits += n; GT.log(s, 'Withdrew <b>' + fmt(n) + 'c</b> from the bank.', 'info'); return true; };
+  GT.canLoan = function (s) { return s.loan + GT.CFG.LOAN_STEP <= GT.CFG.LOAN_CAP; };
+  GT.takeLoan = function (s) { if (!GT.canLoan(s)) return false; s.loan += GT.CFG.LOAN_STEP; s.credits += GT.CFG.LOAN_STEP; GT.log(s, 'Took out a loan of <b>' + fmt(GT.CFG.LOAN_STEP) + 'c</b> at ' + (GT.CFG.LOAN_RATE * 100) + '% interest. You now owe ' + fmt(s.loan) + 'c.', 'info'); return true; };
+  GT.repay = function (s, n) { n = Math.floor(Math.min(n, s.loan, s.credits)); if (n <= 0) return false; s.credits -= n; s.loan -= n; GT.log(s, 'Repaid <b>' + fmt(n) + 'c</b> of your loan. You now owe ' + fmt(s.loan) + 'c.', 'info'); return true; };
+
+  /* ---------- upgrades ---------- */
+  GT.upgradeAvail = function (s, key) { return GT.PLANETS[s.loc].upgrades.indexOf(key) >= 0 && s.ship.lv[key] < GT.CFG.UPGRADE_MAX; };
+  GT.upgradeCost = function (s, key) { var u = GT.UPGRADES[key]; return Math.round(u.base * Math.pow(u.grow, s.ship.lv[key]) / 10) * 10; };
+  GT.upgrade = function (s, key) {
+    if (!GT.upgradeAvail(s, key)) return false;
+    var cost = GT.upgradeCost(s, key), u = GT.UPGRADES[key];
+    if (cost > s.credits) return false;
+    s.credits -= cost; s.stats.upgradesSpent += cost; s.ship.lv[key]++;
+    if (key === 'cargo') s.ship.cargoMax += u.step; else if (key === 'speed') s.ship.speed = Math.round((s.ship.speed + u.step) * 10) / 10; else s.ship.fuelMax += u.step;
+    GT.log(s, 'Upgraded your <b>' + u.name + '</b> (' + u.label + ') to level ' + s.ship.lv[key] + '. <b>-' + fmt(cost) + 'c</b>.', 'loss', -cost);
+    return true;
+  };
+})();
+
+/* Galactic Trader. Part 4: facilities, rival traders, exploring, encounters and the parlour. */
+(function () {
+  var clamp = GT.clamp, R = GT.R, fmt = GT.fmt;
+
+  /* ---------- facilities: price is about 20 times the benefit it brings per jump ---------- */
+  GT.facDef = function (id) { return GT.FACILITIES.filter(function (f) { return f.id === id; })[0]; };
+  GT.facBenefit = function (s, id, p) {
+    var f = GT.facDef(id), S = clamp(GT.networth(s), 2500, 150000);
+    if (f.kind === 'trade') return f.pct * S * 0.6;
+    if (f.kind === 'fuel') return f.pct * (150 + S * 0.006);
+    return f.feePct * S * GT.PLANETS[p].fac[id];
+  };
+  GT.facBenefitText = function (id, B) {
+    var f = GT.facDef(id);
+    if (f.kind === 'trade') return '+' + (f.pct * 100).toFixed(1) + '% better prices on all trades and a lower tax bill (worth about ' + fmt(B) + 'c per jump)';
+    if (f.kind === 'fuel') return '-' + (f.pct * 100).toFixed(0) + '% on fuel at every dock and a lower tax bill (worth about ' + fmt(B) + 'c per jump)';
+    return 'about ' + fmt(B) + 'c in rival fees for every jump you are away, collected when you return';
+  };
+  GT.makeOffer = function (s, p) {
+    var pl = GT.PLANETS[p], tot = 0, ids = GT.FACILITIES.map(function (f) { tot += pl.fac[f.id]; return f.id; }), r = GT.rand() * tot, id = ids[0];
+    for (var k = 0; k < ids.length; k++) { r -= pl.fac[ids[k]]; if (r <= 0) { id = ids[k]; break; } }
+    var B = GT.facBenefit(s, id, p), price = Math.max(200, Math.round(20 * B / 10) * 10);
+    s.visit.offer = { type: id, B: B, price: price };
+    GT.log(s, 'A local agent offers you a <b>' + GT.facDef(id).name + '</b> on ' + pl.name + ' for <b>' + fmt(price) + 'c</b>: ' + GT.facBenefitText(id, B) + '. The offer stands while you are docked here.', 'info');
+  };
+  GT.buyFacility = function (s) {
+    var o = s.visit.offer, p = s.loc;
+    if (!o || o.price > s.credits || s.owned[p]) return false;
+    s.credits -= o.price; s.owned[p] = { type: o.type, since: s.turn, fee: GT.facDef(o.type).kind === 'fee' ? o.B : 0 };
+    s.stats.facilitiesBought++; GT.addRep(s, 4);
+    GT.log(s, 'You bought the <b>' + GT.facDef(o.type).name + '</b> on ' + GT.PLANETS[p].name + '. <b>-' + fmt(o.price) + 'c</b>. Word gets around (+4 reputation).', 'loss', -o.price);
+    s.visit.offer = null; return true;
+  };
+  GT.collectFees = function (s, p) {
+    var o = s.owned[p]; if (!o || !o.fee) { if (o) o.since = s.turn; return; }
+    var turns = Math.min(GT.CFG.FEE_CAP_TURNS, s.turn - o.since); o.since = s.turn;
+    if (turns <= 0) return;
+    var inc = Math.round(o.fee * turns * R(0.8, 1.2) / 5) * 5; s.credits += inc; s.stats.feeIncome += inc;
+    GT.log(s, 'Your <b>' + GT.facDef(o.type).name + '</b> here has earned rival-trader fees over ' + turns + ' jumps: <b>+' + fmt(inc) + 'c</b>.', 'gain', inc);
+  };
+
+  /* ---------- rival traders ---------- */
+  GT.tickComps = function (s) {
+    var nw = GT.networth(s);
+    s.comps.forEach(function (c) {
+      var rate = c.rate * R(0.35, 1.65);
+      if (nw > c.wealth * 1.5) rate *= 1.12; else if (c.wealth > nw * 1.6) rate *= 0.85;
+      c.wealth *= 1 + rate;
+      if (GT.rand() < 0.06) c.wealth *= R(0.9, 0.96);
+      c.wealth = Math.min(c.wealth, GT.CFG.WIN * 0.97);
+      var to = GT.RI(0, GT.PLANETS.length - 2); c.loc = to >= c.loc ? to + 1 : to;
+    });
+    GT.refreshComps(s);
+  };
+  GT.canAssist = function (s) { return s.credits >= 150 && GT.compAssistCost(s) <= s.credits; };
+  GT.compAssistCost = function (s) { return Math.max(150, Math.round(GT.scale(s) * 0.8 / 10) * 10); };
+
+  GT.compAction = function (s, act) {
+    var pe = s.pending; if (!pe || pe.type !== 'comp') return false;
+    var c = s.comps[pe.ci], st = s.stats, luck = GT.luck(s), S = GT.scale(s), nm = '<b>' + c.name + '</b>';
+    s.pending = null;
+    if (act === 'assist' && !GT.canAssist(s)) { GT.log(s, 'You reach for your credit chit, find it far too light to help ' + nm + ', and quietly decide to ignore them instead.', 'info'); act = 'ignore'; }
+    if (act === 'sabotage') {
+      st.sabotage++;
+      var win = GT.rand() < 0.30 + luck * 0.4;
+      if (win) {
+        var hit = c.wealth * R(0.04, 0.09); c.wealth -= hit; st.sabotageWon++; GT.addRep(s, 4);
+        GT.log(s, 'You slip into ' + nm + '\'s hold and quietly dump a third of their fuel mix. By morning they have lost about <b>' + fmt(hit) + 'c</b> in delays and repairs, and nobody saw you. <span class="fx">(+4 reputation)</span>', 'event');
+      } else if (GT.rand() < 0.35 - luck * 0.2) {
+        var fine = Math.round(S * R(0.5, 1.2) / 5) * 5; s.credits -= fine; st.eventLoss += fine; GT.addRep(s, -8);
+        GT.log(s, 'Your sabotage goes badly wrong. ' + nm + '\'s crew catch you with a spanner in the fuel line, and dock security fine you <b>-' + fmt(fine) + 'c</b>. <span class="fx">(-8 reputation)</span>', 'loss', -fine);
+      } else {
+        GT.addRep(s, -2);
+        GT.log(s, 'You try to sabotage ' + nm + ' and fumble it. Nothing breaks, and nobody notices, but you feel foolish. <span class="fx">(-2 reputation)</span>', 'event');
+      }
+    } else if (act === 'assist') {
+      st.assists++;
+      var cost = GT.compAssistCost(s), fuelHelp = GT.rand() < 0.4 && s.ship.fuel > 40, r = GT.rand();
+      var what = fuelHelp ? 15 + ' PC of fuel' : fmt(cost) + 'c';
+      if (fuelHelp) s.ship.fuel -= 15; else s.credits -= cost;
+      var pay = 0.2 + luck * 0.3, thanks = 0.6 + luck * 0.1;
+      if (r < pay) {
+        var back = Math.round(cost * R(1.8, 2.8) / 5) * 5; s.credits += back; st.eventGain += back; GT.addRep(s, 3);
+        GT.log(s, 'You give ' + nm + ' ' + what + ' to get them off the dock. Within the hour a courier hands you a chit: they repaid <b>+' + fmt(back) + 'c</b>, "with interest, friend". <span class="fx">(+3 reputation)</span>', 'gain', back - (fuelHelp ? 0 : cost));
+        if (!fuelHelp) st.eventLoss += cost;
+      } else if (r < pay + thanks) {
+        if (!fuelHelp) st.eventLoss += cost;
+        var up = GT.rand() < 0.5; if (up) GT.addRep(s, 2);
+        GT.log(s, 'You give ' + nm + ' ' + what + '. They grip your hand. "Thank you. I won\'t forget this." <b>' + (fuelHelp ? '-15 PC' : '-' + fmt(cost) + 'c') + '</b>' + (up ? ' <span class="fx">(+2 reputation)</span>' : ''), fuelHelp ? 'event' : 'loss', fuelHelp ? 0 : -cost);
+      } else {
+        if (!fuelHelp) st.eventLoss += cost;
+        GT.log(s, 'You give ' + nm + ' ' + what + ' and they pocket it without a word, and snub you at the door. <b>' + (fuelHelp ? '-15 PC' : '-' + fmt(cost) + 'c') + '</b>', fuelHelp ? 'event' : 'loss', fuelHelp ? 0 : -cost);
+      }
+      c.wealth += fuelHelp ? 0 : cost * 0.5;
+    } else {
+      var snark = GT.rand() < 0.35, line = GT.pick(GT.SNARK || ['Nice ship. Did it come with the dents?']);
+      if (snark) {
+        var lose = GT.rand() < 0.4; if (lose) GT.addRep(s, -1);
+        GT.log(s, 'You ignore ' + nm + '. They call after you: "' + line + '"' + (lose ? ' <span class="fx">(-1 reputation)</span>' : ''), 'event');
+      } else GT.log(s, 'You ignore ' + nm + ' and they ignore you right back.', 'info');
+    }
+    GT.refreshComps(s);
+    return true;
+  };
+
+  /* ---------- exploring and seeking encounters (once each per visit) ---------- */
+  GT.NOTHING_X = ['You wander for an hour and find nothing but dust and sore feet.', 'You poke around the back streets. Nothing happens, though a stray dog follows you for a while.', 'A quiet walk. You see nothing worth writing down.', 'You search for anything unusual and find only the usual.'];
+  GT.NOTHING_E = ['{who} is nowhere to be found. You leave a message and nobody replies.', 'You wait around for {who}, who never shows. You drink something questionable instead.', '{who} is busy, or hiding. Either way, no meeting today.'];
+  function seek(s, kind) {
+    var key = kind === 'x' ? 'explored' : 'encountered', pl = GT.PLANETS[s.loc];
+    if (s.visit[key] || s.over || s.pending) return false;
+    s.visit[key] = true;
+    var pool = kind === 'x' ? (GT.EXPLORE || {})[pl.id] : ((GT.ENCOUNTER || {})[pl.id] || {}).list, who = ((GT.ENCOUNTER || {})[pl.id] || {}).who || 'a stranger';
+    if (kind === 'x') s.stats.explores++; else s.stats.encounters++;
+    if (GT.rand() < (kind === 'x' ? GT.CFG.EXPLORE : GT.CFG.ENCOUNTER) && pool && pool.length) {
+      var ev = GT.pickEntry(pool, s), fx = GT.applyEffect(s, ev);
+      s.stats.events++;
+      GT.log(s, (kind === 'x' ? '<b>Exploring ' + pl.name + ':</b> ' : '<b>' + who + ':</b> ') + ev.t + fx.detail, fx.kind, fx.money);
+    } else {
+      GT.log(s, (kind === 'x' ? '<b>Exploring ' + pl.name + ':</b> ' + GT.pick(GT.NOTHING_X) : '<b>' + who + ':</b> ' + GT.pick(GT.NOTHING_E).replace('{who}', who)), 'info');
+    }
+    return true;
+  }
+  GT.explore = function (s) { return seek(s, 'x'); };
+  GT.encounter = function (s) { return seek(s, 'e'); };
+
+  /* ---------- the Parlour of Thin Hours (Nihil Station). Odds are never shown as numbers. ---------- */
+  /* outcomes: [multiplier, probability, text]. The first two outcomes trade probability with the parlour's mood. */
+  GT.GAMES = [
+    { id: 'ledger', name: 'The Tidal Ledger', shift: 0.04, blurb: 'You pay the Ledger in a currency it will not name. It nods, or it does not. A high chance of a small return, a slim chance of being forgotten entirely.',
+      out: [[0, 0.22, 'The Ledger turns a page and your name is no longer on it.'], [0.7, 0.20, 'The Ledger sighs and returns most of what it owes.'], [1.2, 0.50, 'The Ledger hums and pays a little over what you laid down.'], [2, 0.08, 'The Ledger rings twice. You are paid double.']] },
+    { id: 'moth', name: 'Quiet Moth of Ssur', shift: 0.02, blurb: 'A pale moth lands on one of the lamps. Which lamp it prefers depends on the hour, the moon, and your sleeve. Mostly you lose, but sometimes you win a great deal.',
+      out: [[0, 0.67, 'The moth ignores your lamp and drifts away through the smoke.'], [1.5, 0.17, 'The moth circles your lamp twice. A modest bonus.'], [3, 0.10, 'The moth settles and does not leave. Triple.'], [6, 0.06, 'The moth glows. The Parlour goes silent. Sixfold.']] },
+    { id: 'orchard', name: 'The Glass Orchard', shift: 0.04, blurb: 'You pick a pane of glass and the Orchard decides if it ripens. A low chance of doubling, a high chance of a 20% return, and an odd chance of bruised fruit.',
+      out: [[0, 0.21, 'The glass shatters. The Orchard apologises in nine languages.'], [0.5, 0.16, 'Bruised fruit. Half your stake comes back, wrapped in leaves.'], [1.2, 0.52, 'The fruit ripens a little. A fifth more than you laid down.'], [2, 0.11, 'The whole tree blushes gold. You double your stake.']] },
+    { id: 'seven', name: 'Resonance of Seven', shift: 0.005, blurb: 'Seven bells, each tuned to a different regret. You will almost never hear all of them agree. Nearly always a total loss, and rarely a fortune.',
+      out: [[0, 0.92, 'The bells jangle and fall silent.'], [8, 0.065, 'Four bells chime together. Eight times your stake.'], [25, 0.015, 'All seven bells ring as one. The floor shakes. Twenty-five times your stake.']] }
+  ];
+  GT.STAKES = [50, 250, 1000, 5000];
+  GT.GAME_LUCK_NOTE = 'The Parlour\'s mood drifts between rounds. Nobody knows which way.';
+  GT.canGamble = function (s) { return GT.PLANETS[s.loc].gambling && !s.over && !s.pending; };
+  GT.gamble = function (s, gi, stake) {
+    if (!GT.canGamble(s) || stake > s.credits || stake <= 0) return null;
+    var g = GT.GAMES[gi], mood = s.gamble ? s.gamble.mood : 0, d = g.shift * (mood === 1 ? -1 : mood === 2 ? 1 : 0) + GT.luck(s) * g.shift;
+    var p = g.out.map(function (o) { return o[1]; });
+    var mv = clamp(d, -p[1] + 0.001, p[0] - 0.001); p[0] -= mv; p[1] += mv;
+    var r = GT.rand(), k = 0; for (; k < p.length - 1; k++) { r -= p[k]; if (r <= 0) break; }
+    var o = g.out[k], ret = Math.round(stake * o[0]), net = ret - stake;
+    s.credits += net; s.stats.gambleNet += net; s.stats.gambleRounds++;
+    s.gamble = { mood: GT.RI(0, 2) };
+    GT.log(s, '<b>' + g.name + ':</b> you wager ' + fmt(stake) + 'c. ' + o[2] + ' <b>' + (net >= 0 ? '+' : '-') + fmt(Math.abs(net)) + 'c</b>' + (net === 0 ? '' : '.'), net > 0 ? 'gain' : net < 0 ? 'loss' : 'event', net);
+    return { text: o[2], net: net, ret: ret };
+  };
+})();
+
+/* Galactic Trader. Part 5: travel events (26 kinds) and rival banter.
+   Shorthand: G good, B bad, N neutral. cr = money in multiples of the stage scale, fuel = PC, lose = share of cargo, gain = free goods, dmg = [warp lost, jumps]. */
+GT.mk = function (g, t, fx) { fx = fx || {}; fx.g = g; fx.t = t; return fx; };
+(function () {
+  var G = function (t, f) { return GT.mk(1, t, f); }, B = function (t, f) { return GT.mk(-1, t, f); }, N = function (t, f) { return GT.mk(0, t, f); };
+  GT.TRAVEL = [
+    G('You stumble on a derelict freighter drifting cold between stars. Her strongbox is still sealed, and so is her captain\'s sense of humour.', { cr: [0.7, 1.7] }),
+    G('A solar wind catches your sails at just the right angle and shoves you along like a gentle giant.', { fuel: [8, 18] }),
+    G('A lost cargo pod tumbles past your viewport, stamped with a dead company\'s logo. You hook it in with a grin.', { gain: { item: 'any', v: [0.6, 1.4] } }),
+    G('A tourist liner has lost its charter pilot and hails you with a bag of credits and a tragic story about the buffet.', { cr: [0.9, 1.8] }),
+    G('You skim a comet\'s tail and the scoops fill with clean, glittering ice.', { fuel: [10, 20] }),
+    G('A space whale sings beside your hull for an hour and sheds a lump of ambergris. The Spice Guild will weep with joy.', { cr: [0.8, 1.9], rep: 1 }),
+    G('A distress call from a stalled prospector. You tow them to safety, and their grateful crew press a purse into your hands.', { cr: [0.5, 1.3], rep: 3 }),
+    G('A gravity slingshot around a dead star saves you a tank\'s worth of burn. You pretend you planned it.', { fuel: [6, 12] }),
+    G('A pirate crew challenges you to cards. They are astonishingly bad at cards.', { cr: [0.6, 1.4] }),
+    G('A patrol convoy shares its route charts over the radio, and mentions your name to the next dock.', { cr: [0.2, 0.5], rep: 2 }),
+    G('A stowaway crawls out of the vents. She is a gifted engineer who repays her passage by tuning your coils.', { cr: [0.3, 0.8], rep: 1 }),
+    G('A drifting prospector sells you a "lucky rock" for pocket change. It is full of metal ore.', { gain: { item: 'metals', v: [0.7, 1.5] } }),
+    N('A green comet crosses your bow. The crew make wishes, and the cook insists it is a good omen.', { rep: 1 }),
+    B('A pirate cutter slides alongside and politely asks for a "docking tax". Their guns are less polite.', { cr: [-1.5, -0.6] }),
+    B('A micrometeor shower rattles the hull like gravel in a tin. One coil takes a pounding.', { dmg: [0.3, 6] }),
+    B('A hatch seal fails in the dark and a few crates tumble out into the void. You wave goodbye.', { lose: [0.05, 0.14] }),
+    B('A customs cruiser pings you in empty space and fines you for a "mislabelled manifest". It was not mislabelled.', { cr: [-1.1, -0.4] }),
+    B('The fuel line sneezes. By the time you find the leak the gauge has dropped a notch.', { fuel: [-14, -6] }),
+    B('A friendly voice on the radio offers "wholesale navigation insurance". It was not wholesale, and it was not insurance.', { cr: [-1.3, -0.5] }),
+    B('Half the crew come down with space-sickness. You pay their medical bills and bleach the corridors.', { cr: [-0.5, -0.2] }),
+    B('A gravity eddy spins the ship like a coin on a table, and the burn to straighten out costs you dearly.', { fuel: [-16, -8] }),
+    B('Smugglers dock alongside during your sleep cycle and "borrow" a handful of crates.', { lose: [0.1, 0.24] }),
+    B('An engine coil burns out with a sound like a dying cello. Your warp speed suffers for a few jumps.', { dmg: [0.4, 6] }),
+    B('The navigation computer sulks and plots the long way round. You notice only after burning the extra fuel.', { fuel: [-12, -5] }),
+    B('A quarantine buoy snags you for a "routine" inspection that takes three days and a bribe.', { cr: [-1.0, -0.4] }),
+    B('A rogue AI hails you from an abandoned relay and proposes a "mutually beneficial exchange". You lose the exchange.', { cr: [-0.9, -0.3], rep: -1 })
+  ];
+  GT.SNARK = [
+    'Nice ship. Did it come with the dents, or did you add those yourself?', 'Walk on, little merchant. The adults are talking to their money.',
+    'I\'d say good luck, but you seem to be using all of it up.', 'Don\'t strain yourself. Counting past ten is hard.',
+    'They let anyone have a trading licence these days.', 'Enjoy the scenery. It is the only thing you will profit from.',
+    'My cargo hold is bigger than your ambition.', 'Did your mother pack that lunch, or did you lose a bet?'
+  ];
+})();
+
+/* Galactic Trader. Part 6: exploration outcomes, ten per planet. Each is rolled only when the 25% chance fires. */
+(function () {
+  var G = function (t, f) { return GT.mk(1, t, f); }, B = function (t, f) { return GT.mk(-1, t, f); }, N = function (t, f) { return GT.mk(0, t, f); };
+  var gm = [0.6, 1.6], bm = [-1.4, -0.5];
+  GT.EXPLORE = {
+    meridoa: [
+      G('The village market is in full cry. A grain-wife presses a bag of coin into your hand for carrying her honey crates to the dock.', { cr: gm }),
+      G('You find an abandoned orchard where the spice-pods have gone wild. Your pockets are soon fragrant and full.', { gain: { item: 'spices', v: [0.6, 1.3] } }),
+      G('A harvest festival drags you into a dance. By dawn you are crowned Barley Lord, and presented with a purse.', { cr: [0.5, 1.3], rep: 2 }),
+      G('A rain-singer hears your tank rattle and tops you up with fuel from a hidden tank, no questions asked.', { fuel: [10, 20] }),
+      G('A farmer\'s boy shows you a shortcut through the terraces and a hidden stash of ration tins left by his grandfather.', { gain: { item: 'rations', v: [0.5, 1.1] } }),
+      B('A scarecrow-drone mistakes you for a crow and chases you through the maize, then bills you for damages.', { cr: bm }),
+      B('You wander into pollen season. It clogs your intakes and your lungs, and the repair shop sells you a filter at harvest prices.', { dmg: [0.3, 5], cr: [-0.4, -0.2] }),
+      B('You nap under a tree and wake to find a flock of goats have eaten the lid of your cargo crate and some of its contents.', { lose: [0.05, 0.13] }),
+      B('A friendly local sells you a "famous Meridoan hat". It dissolves in the first rain, and so does your pride.', { cr: [-0.5, -0.2], rep: -1 }),
+      N('You watch the three suns set over the fields. A farmer waves, and the crew stand a little taller for the rest of the day.', { rep: 1 })
+    ],
+    karthosu: [
+      G('Under a collapsed archway you find a sealed urn of tomb-silver that the diggers missed. You sell it quietly the same afternoon.', { cr: [0.8, 1.8] }),
+      G('A digger\'s widow sells you her late husband\'s whole stash of relics because she says the ghosts talk too loudly.', { gain: { item: 'artifacts', v: [0.7, 1.4] } }),
+      G('A tomb-guardian automaton wakes, bows, and hands you a coin from a dead empire. It is worth far more than it looks.', { cr: [0.6, 1.5] }),
+      G('You help a trapped surveyor out of a sinkhole. Her team grants you a share of their finds and a good word.', { cr: [0.3, 0.9], rep: 3 }),
+      G('The wind uncovers a buried fuel cache with an expired lock and a very forgiving seal. You take what you need.', { fuel: [8, 18] }),
+      B('A sandstorm rolls over the dig site and you spend an afternoon scrubbing grit from every vent and joint in your hull.', { dmg: [0.3, 5] }),
+      B('You pick up a pretty relic and a ghost-sickness hits. The healers charge by the hour.', { cr: bm }),
+      B('A rival digger "finds" your best cargo box and walks off with half of it.', { lose: [0.08, 0.2] }),
+      B('The floor of a chamber gives way. You climb out with a sprained ankle, a missing wallet and a story you do not tell.', { cr: [-0.8, -0.3], rep: -1 }),
+      N('You find a mural of a vanished merchant queen counting coin. You swear she winked at you.', { rep: 1 })
+    ],
+    ferrox: [
+      G('A foreman spots you eyeing a heap of slag and lets you haul away a few crates of high-grade ore for free.', { gain: { item: 'metals', v: [0.7, 1.5] } }),
+      G('A struck vein of platinum in Shaft Nine. You sell the finder\'s tip for a tidy sum to a man in a nice coat.', { cr: gm }),
+      G('You win a game of "drill roulette" in a miners\' bar. Don\'t ask what the rules were.', { cr: [0.5, 1.4] }),
+      G('A hoist driver is behind on his quota and begs you to help carry. He pays in fuel pellets from the company tank.', { fuel: [10, 20], rep: 1 }),
+      G('An old prospector hands you a map to a dead mine "for luck". The first crate in the dust is full of copper bars.', { gain: { item: 'metals', v: [0.5, 1.2] } }),
+      B('A slag cart rolls down the ramp and gets you square in the cargo bay. Your goods are fine. Your paint is not. The dock charges for the cleaning.', { cr: [-0.6, -0.2] }),
+      B('A tunnel collapse closes the road. You pay a hauler triple fare to dig you out and your hold is lighter by the time you reach the dock.', { cr: [-1.0, -0.4], lose: [0.03, 0.08] }),
+      B('Dust gets into your engine mounts and they grind for days. Nobody warns you about the dust.', { dmg: [0.3, 6] }),
+      B('A mining-union man shakes you down for "union dues", a rate he invents on the spot.', { cr: bm }),
+      N('You ride the ore lift to the bottom of the world and back. Your ears are still ringing, but the miners buy you a drink.', { rep: 1 })
+    ],
+    kryndor: [
+      G('A traffic warden mistakes your ship for a diplomatic one and waves you through three checkpoints. Down the line a clerk tips you for the courtesy.', { cr: [0.4, 1.1], rep: 1 }),
+      G('You catch a falling briefcase on the 400th floor. Inside is a bonus cheque and a thank-you from its terrified owner.', { cr: [0.8, 1.8] }),
+      G('A circuitry vendor is closing his stall and dumps his last crates on you for a song.', { gain: { item: 'circuitry', v: [0.7, 1.4] } }),
+      G('You turn out to be the one-millionth visitor to the Spire Tower observation deck. There are balloons and a cash prize.', { cr: [0.6, 1.5] }),
+      G('A skybus driver, grateful for a spare ticket, fills your tank from a company pump in the VIP lane.', { fuel: [10, 20] }),
+      B('A street-corner "tax adjuster" calculates you owe a lot of money, and sounds very official about it.', { cr: bm }),
+      B('You step into the wrong lift, wait twelve hours in a maintenance shaft, and miss a delivery deadline.', { cr: [-0.7, -0.3], rep: -1 }),
+      B('Pickpocket drones swarm through the market and strip a crate of your goods before the guards notice.', { lose: [0.06, 0.15] }),
+      B('A vending machine charges you "convenience fees" for the convenience of paying.', { cr: [-0.5, -0.2] }),
+      N('You dine in the Spire\'s revolving restaurant. The view is magnificent. The bill is enormous. The compliments are worth something.', { cr: [-0.3, -0.1], rep: 2 })
+    ],
+    nihil: [
+      G('You find a dropped credit chit in a dim corridor. The owner is nowhere in sight, and the station does not ask.', { cr: [0.5, 1.3] }),
+      G('A maintenance worker needs a hand with a stuck airlock. Her gratitude comes as spare dark-matter vials from the reactor bay.', { gain: { item: 'darkmatter', v: [0.6, 1.3] } }),
+      G('A card shark loses to your beginner\'s luck at a corridor table. He pays up with a sigh and a bow.', { cr: [0.7, 1.6] }),
+      G('An engineer vents the old fuel tank before refilling it. You are nearby with an empty tank and no shame.', { fuel: [10, 22] }),
+      G('A shy cartographer sells you a "map of places that do not exist". One of them does, and it pays a bounty for finding it.', { cr: [0.5, 1.2], rep: 1 }),
+      B('The gravity plates flip for a moment as you cross a corridor. Your bags are scattered over three decks.', { lose: [0.05, 0.12] }),
+      B('A dock droid misreads your parking tag and bills you for six days of "long stay".', { cr: bm }),
+      B('You are shushed out of the Quiet Deck for humming. A fine is levied for "disturbing the void".', { cr: [-0.5, -0.2], rep: -1 }),
+      B('An air-scrubber malfunction leaves a film on your engine intake that takes days to burn off.', { dmg: [0.3, 5] }),
+      N('You spend an hour at the viewing port, watching the black. For a moment you are not sure which of you is looking.', { rep: 1 })
+    ],
+    quellin: [
+      G('A lab assistant needs a courier and you are standing in the right corridor. She pays upfront for a box she will not discuss.', { cr: gm }),
+      G('You volunteer for a "harmless" sensory study. The only effect is a free lunch, a stipend and a cryptic compliment.', { cr: [0.4, 1.1], rep: 1 }),
+      G('A discarded prototype rolls out of a dumpster. It is broken, but its circuit core is worth a small fortune.', { gain: { item: 'circuitry', v: [0.7, 1.4] } }),
+      G('The lab\'s medical stores are throwing out surplus kits that are still two years from expiry. You carry off an armful.', { gain: { item: 'medical', v: [0.6, 1.3] } }),
+      G('An absent-minded botanist leaves her coolant tank unattended. You know where fuel goes, and so does she.', { fuel: [9, 18] }),
+      B('A quantum fault makes your wallet briefly exist in two places. The wrong one is chosen.', { cr: bm }),
+      B('Your ship goes through the lab\'s "decontamination gate" and comes out with its warp coil rearranged. Not in a good way.', { dmg: [0.4, 6] }),
+      B('A research cat knocks over a crate of your goods. The cat is fine. The goods are not.', { lose: [0.05, 0.13] }),
+      B('The cafeteria serves something with "novel proteins". The crew\'s digestive recovery costs you a day\'s pay.', { cr: [-0.5, -0.2] }),
+      N('You overhear a lecture on the heat death of the universe. It makes your credit balance feel appropriately small.', { rep: 1 })
+    ],
+    halcyra: [
+      G('A skimmer pilot lets you ride shotgun through a lightning belt. At the end she pays you a "ballast fee" for the extra weight.', { cr: gm }),
+      G('A gas-tender tops up your tank from a surplus bottle and says it is about to expire. It looks fine to you.', { fuel: [12, 24] }),
+      G('A storm leaves a drifting canister at the platform\'s edge. Inside, bottled dark matter, sealed and humming.', { gain: { item: 'darkmatter', v: [0.7, 1.4] } }),
+      G('You win the skimmer-crew\'s weekly "name the storm" contest. The prize is cash, and the name sticks.', { cr: [0.5, 1.3], rep: 1 }),
+      G('A friendly cloud-diver shows you a hidden platform garden and sells you a bundle of high-air spices for next to nothing.', { gain: { item: 'spices', v: [0.5, 1.2] } }),
+      B('A lightning strike jolts your hull while you are visiting the upper deck. The coils sing for days.', { dmg: [0.3, 6] }),
+      B('A wind-shear drops you into a bad drift. The pilot charges you for the rescue, and the passage back is hard on the tank.', { cr: [-0.8, -0.3], fuel: [-8, -3] }),
+      B('A gas-bar bartender sells you a drink that is half storm and half regret. You wake up lighter in the wallet.', { cr: bm }),
+      B('A falling ring-shard dents a cargo hatch and some of your goods drift out into the clouds.', { lose: [0.06, 0.15] }),
+      N('You watch a storm the size of a planet tear itself apart at the edge of the platform. The skimmer crews raise a toast to you.', { rep: 1 })
+    ]
+  };
+})();
+
+/* Galactic Trader. Part 7a: encounters with one named character per planet, ten outcomes each (first four planets). */
+(function () {
+  var G = function (t, f) { return GT.mk(1, t, f); }, B = function (t, f) { return GT.mk(-1, t, f); }, N = function (t, f) { return GT.mk(0, t, f); };
+  var gm = [0.6, 1.6], bm = [-1.4, -0.5];
+  GT.ENCOUNTER = GT.ENCOUNTER || {};
+  GT.ENCOUNTER.meridoa = { who: 'Mother Orla Thistledown, Harvest Mystic', list: [
+    G('Mother Orla reads the husks in your palm and says "Gold follows you, child, and so does a goat". Her fee is a blessing, and she presses a few coins on you for luck.', { cr: [0.5, 1.4], rep: 1 }),
+    G('Orla anoints your hull with barley-water and murmurs to the engine. It purrs, and you find a full ration crate in the airlock.', { gain: { item: 'rations', v: [0.6, 1.3] } }),
+    G('Orla grins. "The soil remembers kindness." She waves you to the shed, where a forgotten crate of spice-seeds sits waiting.', { gain: { item: 'spices', v: [0.6, 1.3] } }),
+    G('Orla tells your fortune: "Trade east, sell west, say nothing to anyone." You do exactly that, and a stranger pays you a hefty finder\'s fee.', { cr: gm }),
+    G('Orla and her sister-mystics bind a ribbon of green around your fuel line. By morning the tank is fuller than you left it.', { fuel: [10, 22] }),
+    G('Orla names you a Friend of the Furrow before the village. Doors open, tabs are waived, and your name travels.', { rep: 3, cr: [0.2, 0.6] }),
+    B('Orla asks for "a small offering to the crop gods". The offering turns out to be rather large, and the crop gods are unavailable for comment.', { cr: bm }),
+    B('You laugh at Orla\'s omen. She curses you with "a year of sour milk". It is only a day, but your cargo does go off.', { lose: [0.05, 0.13], rep: -1 }),
+    B('Orla\'s ritual goes wrong and the compost-cauldron explodes. Your hull is splattered, and the repair crew bill you for the stains and the dents.', { cr: [-0.7, -0.3], dmg: [0.3, 4] }),
+    N('Orla sits with you, shares tea, and says nothing for an hour. You leave feeling oddly lighter and much more welcome.', { rep: 2 })
+  ] };
+  GT.ENCOUNTER.karthosu = { who: 'Veshti the Ghost-Reader, Dust Archivist', list: [
+    G('Veshti translates a fragment on your wall and tells you where a tomb vault was left unsealed. A day\'s digging later, you have a sack of relics.', { gain: { item: 'artifacts', v: [0.6, 1.3] } }),
+    G('Veshti whispers to the dust, and the dust whispers back the combination to a sealed chest. She takes a modest commission, and you take the rest.', { cr: [0.7, 1.7] }),
+    G('Veshti has a client who wants "something very old and very quiet". You oblige, and the commission is generous.', { cr: gm }),
+    G('Veshti trades you an old navigator\'s starchart and a flask of "ghost-fuel", a legendary tomb-oil that burns forever.', { fuel: [12, 24] }),
+    G('Veshti introduces you to the Digger\'s Guild, who regard you as "a person of discretion". Your name is spoken at the right tables.', { rep: 3 }),
+    G('Veshti reads your future in a bowl of sand. "You will meet someone with a debt to you." A guilt-ridden digger finds you that same hour and pays what he owes.', { cr: [0.4, 1.1], rep: 1 }),
+    B('Veshti reads aloud from a cursed scroll for "authenticity". A very bad week follows. A coil in your engine goes dark.', { dmg: [0.4, 6] }),
+    B('Veshti\'s "genuine pre-imperial vase" turns out to be a cooking pot. She has already left the planet by the time you notice.', { cr: bm }),
+    B('Veshti asks you to carry a "sealed document" through customs. The inspectors confiscate it and some of your cargo with it.', { lose: [0.07, 0.17], rep: -1 }),
+    N('Veshti shares an old merchant\'s proverb in an extinct language. You do not understand it, but it sounds wise, and the diggers nod respectfully.', { rep: 2 })
+  ] };
+  GT.ENCOUNTER.ferrox = { who: 'Spanner Okoro, Master Mechanic', list: [
+    G('Spanner takes one look at your drive and sighs. Ten minutes and a wrench later it hums like new, and he refuses payment, except for a favour: you carry a crate for him, for good money.', { cr: [0.5, 1.3], rep: 1 }),
+    G('Spanner opens a crate of "spare parts that fell off a truck". You offload them on the next dock for a bundle.', { gain: { item: 'metals', v: [0.7, 1.5] } }),
+    G('Spanner hotwires a pump on the company line and shares the spoils. "Don\'t tell the foreman."', { fuel: [10, 22] }),
+    G('Spanner buys you a round, then wins a bet on your behalf against a loud foreman. You split the pot.', { cr: gm }),
+    G('Spanner\'s apprentices rebuild your coil housing between shifts. It runs far cooler, and the crew call it "the Okoro treatment".', { rep: 2, cr: [0.2, 0.5] }),
+    G('Spanner recommends you to a captain who needs a shipment moved fast. The pay is excellent, and the captain remembers you.', { cr: [0.6, 1.5], rep: 1 }),
+    B('Spanner "adjusts" your engine mount and it never feels the same again. He insists it is a feature.', { dmg: [0.3, 6] }),
+    B('Spanner has a very good deal on "genuine alloy plate". It rusts before you leave the dock.', { cr: bm }),
+    B('Spanner leaves a wrench in your cargo bay. It falls into a crate at launch and it takes a while to find which crate.', { lose: [0.05, 0.12], cr: [-0.3, -0.1] }),
+    N('Spanner talks for an hour about the soul of a machine. You do not follow, but his crew are touched when you listen.', { rep: 2 })
+  ] };
+  GT.ENCOUNTER.kryndor = { who: 'Councillor Lysandra Prowl, Deputy of Trade', list: [
+    G('Councillor Prowl "waives a clerical fee" and quietly slips a rebate into your account. It is probably not legal, and she is probably running for something.', { cr: [0.7, 1.7] }),
+    G('Prowl invites you to a fundraiser, and a donor, charmed by your accent, buys a half-share in your next shipment at a premium.', { cr: gm, rep: 1 }),
+    G('Prowl hands you a "Trade Facilitator\'s Pass", a sticker that makes customs officers wave and smile. It gives your goods a boost.', { rep: 3, cr: [0.2, 0.6] }),
+    G('Prowl needs a "neutral courier" for a sealed folder to a friend. The fee is large, the folder is heavy, and she never says what it is.', { cr: [0.8, 1.8] }),
+    G('Prowl\'s aide slips you a fuel voucher from the "Transit Fund". It is perfectly legal, in a way that has not yet been tested.', { fuel: [10, 22] }),
+    G('Prowl mentions your ship in a public address as "an example of small-business grit". The cameras linger. The tips follow.', { rep: 3, cr: [0.3, 0.8] }),
+    B('Prowl proposes a "voluntary contribution to the Spire Beautification Fund". Declining does not seem advisable.', { cr: bm }),
+    B('Prowl\'s opponents have you audited for "suspicious associations". The auditors are very thorough and mostly right.', { cr: [-1.2, -0.5], rep: -2 }),
+    B('Prowl\'s new "Cargo Safety Ordinance" requires a hold inspection at once. A few crates do not pass, and are impounded.', { lose: [0.06, 0.16] }),
+    N('Prowl lectures you on supply lines for an hour. You nod politely. Somewhere in there is something quotable, and you end up in the news.', { rep: 2 })
+  ] };
+})();
+
+/* Galactic Trader. Part 7b: encounters for the last three planets. */
+(function () {
+  var G = function (t, f) { return GT.mk(1, t, f); }, B = function (t, f) { return GT.mk(-1, t, f); }, N = function (t, f) { return GT.mk(0, t, f); };
+  var gm = [0.6, 1.6], bm = [-1.4, -0.5];
+  GT.ENCOUNTER.nihil = { who: 'Sixfingers Ness, Free-Port Broker', list: [
+    G('Ness leans in and says she has "a friend who needs a thing moved, no questions". It is a very light thing and a very heavy payment.', { cr: [0.8, 1.8] }),
+    G('Ness sells you a crate of dark-matter vials "from a bankrupt lab". The labels say one thing and the vials hum another, but the buyer at the next dock does not ask.', { gain: { item: 'darkmatter', v: [0.7, 1.5] } }),
+    G('Ness lets you in on a rumour about a shipwreck. You find it, it is real, and the wreck is unguarded and generous.', { cr: gm }),
+    G('Ness has a cousin who runs a "fuel co-op". She does not specify the rules, but your tank is fuller afterwards.', { fuel: [10, 24] }),
+    G('Ness introduces you to the Free Port\'s "quiet council", who regard you as someone who understands things. Doors open.', { rep: 3, cr: [0.2, 0.6] }),
+    G('Ness tips you off to a customs sweep. You hide your goods, others do not, and you are the only one to profit from the confusion.', { cr: [0.5, 1.3], rep: 1 }),
+    B('Ness sells you a "guaranteed" map to a hidden cache. The cache is real. It is also a trap, and the trap works.', { cr: bm }),
+    B('Ness takes a "handling fee" for the introduction, a "discretion fee" for the silence, and a "convenience fee" for the convenience of paying.', { cr: [-1.2, -0.5] }),
+    B('Ness\'s "courier" is a pickpocket, and a very good one. A crate you swore you hadn\'t left alone is lighter by the morning.', { lose: [0.07, 0.17], rep: -1 }),
+    N('Ness pours you a drink the colour of a bruise and says, "To the long dark." You drink to it. Her people nod, and you are marked as safe.', { rep: 2 })
+  ] };
+  GT.ENCOUNTER.quellin = { who: 'Dr. Imre Quill, Disgraced Physicist', list: [
+    G('Dr. Quill needs a test subject for an experiment on "luck gradients". The side effect is a sudden, unexplained surplus in your accounts.', { cr: [0.7, 1.7] }),
+    G('Quill has a prototype that turns fuel into slightly more fuel. It does not work, except when it does, and you leave with a full tank.', { fuel: [12, 24] }),
+    G('Quill passes you a case of "unfinished" circuit cores that are, on inspection, flawless. He is too busy sulking to notice.', { gain: { item: 'circuitry', v: [0.7, 1.5] } }),
+    G('Quill is being sued by his former colleagues and needs someone to hold a sealed box for a week. He pays in advance, with a generous bonus.', { cr: gm }),
+    G('Quill publishes a footnote crediting "the merchant from Dock Four" for a key observation. Your name appears in a journal nobody reads, but everyone cites.', { rep: 3 }),
+    G('Quill shares a sample of experimental medicine. It is untested, probably fine, and worth a small fortune on the right dock.', { gain: { item: 'medical', v: [0.6, 1.4] } }),
+    B('Quill\'s experiment goes slightly wrong. Your ship now has a faint hum in the wrong key, and the engine coils agree.', { dmg: [0.4, 6] }),
+    B('Quill borrows "a small sum" for equipment. He swears to repay it "in a time loop or two".', { cr: bm }),
+    B('Quill\'s "harmless" teleportation device moves some of your cargo to somewhere. He is not sure where.', { lose: [0.07, 0.18] }),
+    N('Quill explains his theory of everything over lunch. It makes sense for about nine minutes. The staff are impressed you stayed.', { rep: 2 })
+  ] };
+  GT.ENCOUNTER.halcyra = { who: 'Captain Ruka Windlass, Cloud-Diver', list: [
+    G('Captain Windlass offers you a seat on a storm-dive. You come back damp, delighted and carrying a canister of bottled gas she insists you "keep for the ride".', { gain: { item: 'darkmatter', v: [0.6, 1.4] } }),
+    G('Windlass needs ballast for a delivery run and pays by the kilo. You are, apparently, the right weight.', { cr: gm }),
+    G('Windlass bets you can\'t hold your breath during a pressure-dive. You can, barely, and she pays up with a flourish.', { cr: [0.6, 1.5] }),
+    G('Windlass tells you about a hidden fuel bladder drifting in the cloud-deck. You skim it off, no questions asked.', { fuel: [12, 26] }),
+    G('Windlass\' crew adopt you as "honorary ballast". Their word carries weight on every platform in the sky.', { rep: 3, cr: [0.2, 0.6] }),
+    G('Windlass loans you a navigator for the next jump. Her charts save you a good deal of time and trouble on the way.', { fuel: [6, 14], cr: [0.2, 0.5] }),
+    B('Windlass\' dive goes wrong. A downdraft slams your ship into a platform strut, and the repair bill is stormy.', { cr: [-0.8, -0.3], dmg: [0.3, 5] }),
+    B('Windlass wins the bet. She is delighted, you are poorer, and there is a rematch scheduled for next season.', { cr: bm }),
+    B('Windlass\'s "express delivery" of your cargo to the dock is a little too express. A crate is lost to the clouds.', { lose: [0.06, 0.16] }),
+    N('Windlass shows you the horizon from the top of a platform spire. She says every captain should see it once. Her crew agree.', { rep: 2 })
+  ] };
+})();
+
+/* Galactic Trader. Part 8: artwork. Five distinct ship silhouettes, planet paintings on canvas, and the star map. */
+var UI = {};
+UI.shade = function (hex, amt) {
+  var n = parseInt(hex.slice(1), 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255;
+  function f(c) { return Math.max(0, Math.min(255, Math.round(amt >= 0 ? c + (255 - c) * amt : c * (1 + amt)))); }
+  return '#' + ((1 << 24) + (f(r) << 16) + (f(g) << 8) + f(b)).toString(16).slice(1);
+};
+
+UI.shipSVG = function (id, hue) {
+  var d = UI.shade(hue, -0.5), l = UI.shade(hue, 0.4), glass = '#bff4ff', fl = '#ffb347', body;
+  var flame = function (x, y, len) { return '<path d="M' + x + ' ' + (y - 7) + ' L' + (x - len) + ' ' + y + ' L' + x + ' ' + (y + 7) + 'Z" fill="' + fl + '"/><path d="M' + x + ' ' + (y - 3) + ' L' + (x - len * 0.55) + ' ' + y + ' L' + x + ' ' + (y + 3) + 'Z" fill="#fff4c2"/>'; };
+  if (id === 'gnat') {
+    body = flame(30, 70, 26) + '<path d="M104 64 L150 26 L166 28 L142 66Z M104 76 L150 114 L166 112 L142 74Z" fill="' + d + '"/>' +
+      '<path d="M30 70 L150 60 L222 70 L150 80Z" fill="' + hue + '"/><path d="M30 70 L150 66 L222 70 L150 74Z" fill="' + l + '" opacity=".6"/>' +
+      '<ellipse cx="160" cy="68" rx="20" ry="5" fill="' + glass + '"/><rect x="26" y="60" width="12" height="20" rx="3" fill="#2a2f4a"/>';
+  } else if (id === 'barge') {
+    body = flame(28, 52, 22) + flame(28, 72, 22) + flame(28, 92, 22) +
+      '<rect x="30" y="42" width="14" height="20" rx="3" fill="#2a2f4a"/><rect x="30" y="62" width="14" height="20" rx="3" fill="#2a2f4a"/><rect x="30" y="82" width="14" height="20" rx="3" fill="#2a2f4a"/>' +
+      '<rect x="44" y="40" width="150" height="64" rx="6" fill="' + hue + '"/><rect x="44" y="70" width="150" height="6" fill="' + d + '"/>' +
+      '<rect x="56" y="24" width="38" height="18" fill="' + l + '"/><rect x="98" y="24" width="38" height="18" fill="#ff7ad9"/><rect x="140" y="24" width="38" height="18" fill="#6fe7ff"/>' +
+      '<rect x="56" y="104" width="38" height="16" fill="' + d + '"/><rect x="98" y="104" width="38" height="16" fill="' + l + '"/>' +
+      '<path d="M194 48 L226 60 L226 84 L194 96Z" fill="' + d + '"/><path d="M200 56 L220 63 L220 70 L200 70Z" fill="' + glass + '"/>';
+  } else if (id === 'stargazer') {
+    body = flame(34, 72, 20) + '<rect x="30" y="62" width="14" height="20" rx="3" fill="#2a2f4a"/>' +
+      '<rect x="64" y="84" width="60" height="18" rx="9" fill="' + d + '"/><rect x="132" y="84" width="46" height="18" rx="9" fill="' + d + '"/>' +
+      '<path d="M40 72 L190 62 L232 72 L190 82Z" fill="' + hue + '"/><path d="M40 72 L190 67 L232 72 L190 77Z" fill="' + l + '" opacity=".55"/>' +
+      '<rect x="116" y="42" width="6" height="26" fill="' + d + '"/><ellipse cx="119" cy="38" rx="38" ry="11" fill="' + l + '"/><ellipse cx="119" cy="38" rx="30" ry="7" fill="' + d + '"/><circle cx="119" cy="30" r="4" fill="' + glass + '"/>' +
+      '<ellipse cx="202" cy="70" rx="16" ry="5" fill="' + glass + '"/>';
+  } else if (id === 'cutlass') {
+    body = flame(34, 50, 20) + flame(34, 94, 20) +
+      '<rect x="30" y="42" width="14" height="16" rx="3" fill="#2a2f4a"/><rect x="30" y="86" width="14" height="16" rx="3" fill="#2a2f4a"/>' +
+      '<path d="M40 38 Q150 22 232 72 Q150 76 118 112 Q76 126 44 102 Q78 84 64 62 Q54 48 40 38Z" fill="' + hue + '"/>' +
+      '<path d="M64 62 Q150 44 224 72 Q150 66 82 80Z" fill="' + l + '" opacity=".55"/><path d="M118 112 Q76 126 44 102 Q90 98 118 112Z" fill="' + d + '"/>' +
+      '<ellipse cx="176" cy="66" rx="16" ry="5" transform="rotate(14 176 66)" fill="' + glass + '"/>';
+  } else {
+    body = flame(34, 72, 24) + '<rect x="28" y="60" width="14" height="24" rx="3" fill="#2a2f4a"/>' +
+      '<path d="M92 52 L132 16 L150 18 L130 54Z M92 90 L132 126 L150 124 L130 88Z" fill="' + d + '"/>' +
+      '<path d="M36 72 Q64 40 150 44 L204 62 Q220 72 204 82 L150 100 Q64 104 36 72Z" fill="' + hue + '"/><path d="M50 72 Q84 56 160 58 L200 66 L160 72Z" fill="' + l + '" opacity=".5"/>' +
+      '<ellipse cx="170" cy="68" rx="22" ry="10" fill="' + glass + '"/><circle cx="96" cy="72" r="5" fill="' + d + '"/><circle cx="116" cy="72" r="5" fill="' + d + '"/>';
+  }
+  return '<svg viewBox="0 0 240 140" role="img" aria-label="Ship illustration">' + body + '</svg>';
+};
+
+/* ---------- planets (canvas, black starfield behind) ---------- */
+UI.drawPlanet = function (cv, p) {
+  var W = 480, H = 270, dpr = Math.min(window.devicePixelRatio || 1, 2);
+  cv.width = W * dpr; cv.height = H * dpr; cv.style.aspectRatio = W + ' / ' + H;
+  var c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  var seed = 0; for (var i = 0; i < p.id.length; i++) seed = seed * 31 + p.id.charCodeAt(i);
+  var rnd = GT.seeded(seed), cx = 300, cy = 126, r = 88, k;
+  c.fillStyle = '#000'; c.fillRect(0, 0, W, H);
+  for (k = 0; k < 150; k++) { c.globalAlpha = 0.25 + rnd() * 0.75; c.fillStyle = '#fff'; var sz = rnd() < 0.1 ? 1.8 : 1; c.fillRect(rnd() * W, rnd() * H, sz, sz); }
+  c.globalAlpha = 1;
+  var base = p.color, dark = UI.shade(base, -0.65), lite = UI.shade(base, 0.45);
+  function sphere() { var g = c.createRadialGradient(cx - r * 0.4, cy - r * 0.45, r * 0.1, cx, cy, r * 1.05); g.addColorStop(0, lite); g.addColorStop(0.45, base); g.addColorStop(1, dark); c.fillStyle = g; c.beginPath(); c.arc(cx, cy, r, 0, 7); c.fill(); }
+  function shadow() { var g = c.createRadialGradient(cx - r * 0.5, cy - r * 0.5, r * 0.5, cx + r * 0.2, cy + r * 0.2, r * 1.25); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,6,.78)'); c.fillStyle = g; c.beginPath(); c.arc(cx, cy, r, 0, 7); c.fill(); }
+  function clip() { c.save(); c.beginPath(); c.arc(cx, cy, r, 0, 7); c.clip(); }
+  function glow() { var g = c.createRadialGradient(cx, cy, r * 0.95, cx, cy, r * 1.3); g.addColorStop(0, base + '66'); g.addColorStop(1, base + '00'); c.fillStyle = g; c.beginPath(); c.arc(cx, cy, r * 1.3, 0, 7); c.fill(); }
+  var t = p.type;
+  if (t === 'Void Station') {
+    var g = c.createRadialGradient(cx, cy, 8, cx, cy, r * 1.25); g.addColorStop(0, '#000'); g.addColorStop(0.55, '#000'); g.addColorStop(0.75, base + '88'); g.addColorStop(1, base + '00');
+    c.fillStyle = g; c.beginPath(); c.arc(cx, cy, r * 1.25, 0, 7); c.fill();
+    c.strokeStyle = lite; c.lineWidth = 7; c.beginPath(); c.ellipse(cx, cy, 70, 70, 0, 0, 7); c.stroke();
+    c.strokeStyle = base; c.lineWidth = 2;
+    for (k = 0; k < 8; k++) { var a = k * Math.PI / 4; c.beginPath(); c.moveTo(cx + Math.cos(a) * 14, cy + Math.sin(a) * 14); c.lineTo(cx + Math.cos(a) * 67, cy + Math.sin(a) * 67); c.stroke(); }
+    c.fillStyle = lite; c.beginPath(); c.arc(cx, cy, 15, 0, 7); c.fill(); c.fillStyle = '#000'; c.beginPath(); c.arc(cx, cy, 6, 0, 7); c.fill();
+    c.fillStyle = '#fff'; for (k = 0; k < 24; k++) { var b = k * Math.PI / 12; c.fillRect(cx + Math.cos(b) * 70 - 1, cy + Math.sin(b) * 70 - 1, 3, 3); }
+    return;
+  }
+  if (p.ring) { c.save(); c.translate(cx, cy); c.rotate(-0.28); c.strokeStyle = lite; c.globalAlpha = 0.55; c.lineWidth = 16; c.beginPath(); c.ellipse(0, 0, 150, 28, 0, Math.PI, 2 * Math.PI); c.stroke(); c.lineWidth = 6; c.strokeStyle = base; c.beginPath(); c.ellipse(0, 0, 170, 34, 0, Math.PI, 2 * Math.PI); c.stroke(); c.restore(); c.globalAlpha = 1; }
+  glow(); sphere(); clip();
+  if (t === 'Gas Giant') { for (k = 0; k < 16; k++) { c.fillStyle = k % 2 ? 'rgba(255,240,200,.22)' : 'rgba(150,80,20,.25)'; var yy = cy - r + k * (r * 2 / 16) + rnd() * 4; c.fillRect(cx - r, yy, r * 2, 6 + rnd() * 8); } c.fillStyle = 'rgba(190,60,30,.55)'; c.beginPath(); c.ellipse(cx + 28, cy + 26, 22, 11, 0, 0, 7); c.fill(); }
+  else if (t === 'Agrarian') { for (k = 0; k < 90; k++) { c.save(); c.translate(cx + (rnd() - 0.5) * r * 2, cy + (rnd() - 0.5) * r * 2); c.rotate(rnd() < 0.5 ? 0.3 : -0.4); c.fillStyle = rnd() < 0.5 ? 'rgba(255,230,120,.5)' : 'rgba(30,120,50,.5)'; c.fillRect(0, 0, 8 + rnd() * 18, 5 + rnd() * 10); c.restore(); } c.fillStyle = 'rgba(70,150,255,.5)'; c.beginPath(); c.ellipse(cx - 30, cy + 40, 24, 10, 0.4, 0, 7); c.fill(); }
+  else if (t === 'Megacity') { for (k = 0; k < 400; k++) { var px = cx + (rnd() - 0.5) * r * 2, py = cy + (rnd() - 0.5) * r * 2; c.fillStyle = rnd() < 0.2 ? '#fff' : base; c.globalAlpha = 0.4 + rnd() * 0.6; c.fillRect(px, py, 1.6, 1.6); } c.globalAlpha = 1; c.strokeStyle = 'rgba(160,240,255,.35)'; c.lineWidth = 1; for (k = -3; k <= 3; k++) { c.beginPath(); c.moveTo(cx - r, cy + k * 24); c.lineTo(cx + r, cy + k * 24); c.stroke(); c.beginPath(); c.moveTo(cx + k * 24, cy - r); c.lineTo(cx + k * 24, cy + r); c.stroke(); } }
+  else if (t === 'Mining') { for (k = 0; k < 28; k++) { var qx = cx + (rnd() - 0.5) * r * 1.8, qy = cy + (rnd() - 0.5) * r * 1.8, qr = 3 + rnd() * 12; c.fillStyle = 'rgba(40,10,0,.45)'; c.beginPath(); c.arc(qx, qy, qr, 0, 7); c.fill(); c.strokeStyle = 'rgba(255,170,90,.35)'; c.stroke(); } c.fillStyle = '#ffb347'; for (k = 0; k < 14; k++) c.fillRect(cx + (rnd() - 0.5) * r * 1.6, cy + (rnd() - 0.5) * r * 1.6, 2, 2); }
+  else if (t === 'Science') { for (k = 0; k < 9; k++) { var dx = cx + (rnd() - 0.5) * r * 1.5, dy = cy + (rnd() - 0.5) * r * 1.5; c.fillStyle = 'rgba(255,255,255,.75)'; c.beginPath(); c.arc(dx, dy, 6 + rnd() * 6, Math.PI, 2 * Math.PI); c.fill(); c.fillRect(dx - 12, dy, 24, 3); } c.strokeStyle = 'rgba(255,255,255,.35)'; for (k = 0; k < 6; k++) { c.beginPath(); c.moveTo(cx - r, cy - 60 + k * 24 + rnd() * 6); c.quadraticCurveTo(cx, cy - 70 + k * 26, cx + r, cy - 50 + k * 22); c.stroke(); } }
+  else if (t === 'Ruin') { for (k = 0; k < 18; k++) { var rx = cx + (rnd() - 0.5) * r * 1.6, ry = cy + (rnd() - 0.5) * r * 1.6; c.strokeStyle = 'rgba(70,40,10,.5)'; c.lineWidth = 2; c.beginPath(); c.arc(rx, ry, 4 + rnd() * 14, 0, 7); c.stroke(); } c.strokeStyle = 'rgba(255,235,190,.7)'; c.lineWidth = 3; c.beginPath(); c.arc(cx - 6, cy + 4, 50, 0.4, 4.2); c.stroke(); c.fillStyle = 'rgba(255,235,190,.8)'; for (k = 0; k < 6; k++) { var aa = 0.4 + k * 0.62; c.fillRect(cx - 6 + Math.cos(aa) * 50 - 2, cy + 4 + Math.sin(aa) * 50 - 6, 4, 12); } }
+  c.restore(); shadow();
+  if (p.ring) { c.save(); c.translate(cx, cy); c.rotate(-0.28); c.strokeStyle = lite; c.globalAlpha = 0.85; c.lineWidth = 16; c.beginPath(); c.ellipse(0, 0, 150, 28, 0, 0, Math.PI); c.stroke(); c.lineWidth = 6; c.strokeStyle = base; c.beginPath(); c.ellipse(0, 0, 170, 34, 0, 0, Math.PI); c.stroke(); c.restore(); c.globalAlpha = 1; }
+};
+
+/* ---------- star map (svg) ---------- */
+UI.mapSX = function (x) { return 24 + x * 3.55; };
+UI.mapSY = function (y) { return 26 + y * 3.7; };
+UI.mapSVG = function (s, dest) {
+  var P = GT.PLANETS, out = '<svg viewBox="0 0 400 270" role="group" aria-label="Star map"><rect width="400" height="270" fill="#000"/>', k, rnd = GT.seeded(77);
+  for (k = 0; k < 110; k++) out += '<circle cx="' + (rnd() * 400).toFixed(0) + '" cy="' + (rnd() * 270).toFixed(0) + '" r="' + (rnd() < 0.12 ? 1.2 : 0.6) + '" fill="#fff" opacity="' + (0.25 + rnd() * 0.7).toFixed(2) + '"/>';
+  if (dest !== null && dest !== s.loc) {
+    out += '<line x1="' + UI.mapSX(P[s.loc].x) + '" y1="' + UI.mapSY(P[s.loc].y) + '" x2="' + UI.mapSX(P[dest].x) + '" y2="' + UI.mapSY(P[dest].y) + '" stroke="#ffd166" stroke-width="2" stroke-dasharray="6 5"/>';
+  }
+  P.forEach(function (p, i) {
+    var x = UI.mapSX(p.x), y = UI.mapSY(p.y), here = i === s.loc, sel = i === dest, rad = here ? 11 : 8;
+    out += '<g class="pl" data-i="' + i + '" tabindex="0" role="button" aria-label="' + GT.esc(p.name) + (here ? ', current location' : sel ? ', selected destination' : '') + '">';
+    out += '<circle cx="' + x + '" cy="' + y + '" r="22" fill="transparent"/>';
+    if (p.ring) out += '<ellipse cx="' + x + '" cy="' + y + '" rx="' + (rad + 8) + '" ry="3.4" fill="none" stroke="' + p.color + '" stroke-width="1.6" opacity=".85" transform="rotate(-16 ' + x + ' ' + y + ')"/>';
+    if (here) out += '<circle cx="' + x + '" cy="' + y + '" r="' + (rad + 6) + '" fill="none" stroke="#6fe7ff" stroke-width="1.5"/>';
+    if (sel) out += '<circle cx="' + x + '" cy="' + y + '" r="' + (rad + 6) + '" fill="none" stroke="#ffd166" stroke-width="2" stroke-dasharray="3 3"/>';
+    out += '<circle cx="' + x + '" cy="' + y + '" r="' + rad + '" fill="' + p.color + '"/><circle cx="' + (x - rad * 0.3) + '" cy="' + (y - rad * 0.3) + '" r="' + rad * 0.45 + '" fill="#fff" opacity=".28"/>';
+    out += '<text x="' + x + '" y="' + (y + rad + (here || sel ? 21 : 13)) + '" text-anchor="middle" font-size="' + (here ? 14 : 10) + '" font-weight="' + (here ? 800 : 500) + '" fill="' + (here ? '#6fe7ff' : sel ? '#ffd166' : '#c9d0ff') + '">' + GT.esc(p.name) + '</text>';
+    s.comps.forEach(function (cp, ci) { if (cp.loc === i) out += '<g><rect x="' + (x + rad + 1 + ci * 7) + '" y="' + (y - rad - 4) + '" width="5" height="5" transform="rotate(45 ' + (x + rad + 3 + ci * 7) + ' ' + (y - rad - 1.5) + ')" fill="#ff7a8c"><title>' + GT.esc(cp.name) + '</title></rect></g>'; });
+    out += '</g>';
+  });
+  return out + '</svg>';
+};
+
+/* Galactic Trader. Part 9a: rendering the four columns. */
+var S = null;
+var ui = { ship: 'wayfarer', name: '', qty: {}, dep: 0, wd: 0, rep: 0, dest: null, more: 0, tab: 'c1', cache: {} };
+var $ = function (id) { return document.getElementById(id); };
+var esc = GT.esc, fmt = GT.fmt;
+
+function btn(label, act, ok, extra) { return '<button class="btn ' + (extra || '') + '" data-act="' + act + '"' + (ok && !(S && S.over) ? '' : ' disabled') + '>' + label + '</button>'; }
+function bar(frac, cls) { return '<span class="bar"><i class="' + (cls || '') + '" style="width:' + Math.round(Math.max(0, Math.min(1, frac)) * 100) + '%"></i></span>'; }
+function repLabel(r) { return r >= 75 ? 'Legend' : r >= 40 ? 'Respected' : r >= 10 ? 'Known' : r > -10 ? 'Unknown' : r > -30 ? 'Suspect' : 'Notorious'; }
+function qtyOf(i) { return Math.max(1, ui.qty[i] || 1); }
+
+function renderCol1() {
+  var sh = GT.SHIPS.filter(function (x) { return x.id === S.shipId; })[0], es = GT.effSpeed(S), used = GT.cargoUsed(S), h = '';
+  h += '<div class="sec"><div class="pname">' + esc(S.name) + '</div><div class="dim">Captain of the ' + esc(sh.name) + '</div><div class="shipart">' + UI.shipSVG(sh.id, sh.hue) + '</div></div>';
+  h += '<div class="sec"><h3>Ship status</h3><div class="card"><div class="stat">';
+  h += '<span>Credits</span><span class="big">' + fmt(S.credits) + 'c</span>';
+  h += '<span>Reputation</span><span class="num"><b>' + S.rep + '</b> <span class="dim">' + repLabel(S.rep) + '</span></span>';
+  h += '<span>Cargo hold</span><span class="num">' + used + ' / ' + S.ship.cargoMax + '</span>' + bar(used / S.ship.cargoMax);
+  h += '<span>Fuel</span><span class="num">' + S.ship.fuel + ' / ' + S.ship.fuelMax + ' PC</span>' + bar(S.ship.fuel / S.ship.fuelMax, 'f');
+  h += '<span>Engine speed</span><span class="num">Warp ' + es.toFixed(1) + (es < S.ship.speed ? ' <span class="bad">(damaged, base ' + S.ship.speed.toFixed(1) + ')</span>' : '') + '</span>';
+  h += '</div></div></div>';
+  h += '<div class="sec"><h3>Cargo hold</h3><div class="card"><div class="cargo"><span class="dim">Item</span><span class="dim r">Units</span><span class="dim r">Avg paid</span>';
+  var any = false;
+  S.cargo.forEach(function (c, i) { if (c.qty) { any = true; h += '<span>' + GT.ITEMS[i].name + '</span><span class="num">' + c.qty + '</span><span class="num">' + (c.avg ? c.avg.toFixed(1) + 'c' : 'free') + '</span>'; } });
+  if (!any) h += '<span class="dim" style="grid-column:1/-1">The hold is empty.</span>';
+  h += '</div></div></div>';
+  h += '<div class="sec"><h3>Ship upgrades</h3><div class="card upg">';
+  ['cargo', 'speed', 'fuel'].forEach(function (k) {
+    var u = GT.UPGRADES[k], lv = S.ship.lv[k], avail = GT.upgradeAvail(S, k), maxed = lv >= GT.CFG.UPGRADE_MAX, cost = GT.upgradeCost(S, k);
+    var lab = GT.PLANETS[S.loc].upgrades.indexOf(k) < 0 ? 'Not offered here' : maxed ? 'Maxed' : fmt(cost) + 'c';
+    h += '<span><b>' + u.name + '</b> <span class="dim">Lv ' + lv + '/' + GT.CFG.UPGRADE_MAX + '</span><br><span class="dim">' + u.label + '</span></span>' + btn(lab, 'up-' + k, avail && cost <= S.credits, 'alt');
+  });
+  h += '</div></div>';
+  h += '<div class="sec"><h3>Bank</h3><div class="card" style="display:flex;flex-direction:column;gap:8px">';
+  h += '<div class="row"><span>Deposit <span class="dim">(' + (GT.CFG.DEPOSIT_RATE * 100) + '% interest)</span></span><b class="num">' + fmt(S.bank) + 'c</b></div>';
+  h += '<div class="row"><span>Loan <span class="dim">(' + (GT.CFG.LOAN_RATE * 100) + '% interest)</span></span><b class="num ' + (S.loan ? 'bad' : '') + '">' + fmt(S.loan) + 'c</b></div>';
+  h += '<div class="row"><input class="val" id="in-dep" type="number" min="0" step="1" value="' + ui.dep + '" aria-label="Deposit amount">' + btn('Deposit', 'deposit', ui.dep > 0 && ui.dep <= S.credits) + '</div>';
+  h += '<div class="row"><input class="val" id="in-wd" type="number" min="0" step="1" value="' + ui.wd + '" aria-label="Withdraw amount">' + btn('Withdraw', 'withdraw', ui.wd > 0 && ui.wd <= S.bank) + '</div>';
+  h += '<div class="row"><span class="dim">Fixed amount</span>' + btn('Take Loan ' + fmt(GT.CFG.LOAN_STEP) + 'c', 'loan', GT.canLoan(S)) + '</div>';
+  h += '<div class="row"><input class="val" id="in-rep" type="number" min="0" step="1" value="' + ui.rep + '" aria-label="Repay amount">' + btn('Repay Loan', 'repay', ui.rep > 0 && S.loan > 0 && S.credits > 0) + '</div>';
+  h += '<div class="dim" style="font-size:11px">Interest is added every ' + GT.CFG.INTEREST_EVERY + ' jumps. Loans are capped at ' + fmt(GT.CFG.LOAN_CAP) + 'c.</div></div></div>';
+  return h;
+}
+
+function trendHTML(i) {
+  if (S.trendHidden[i]) return '<span class="dim" title="No price report for this item today">?</span>';
+  var t = GT.trend(S, S.loc, i) * 100;
+  return '<span class="' + (t >= 0 ? 'up' : 'dn') + '" title="Price against the item\'s base price of ' + GT.ITEMS[i].base + 'c">' + (t >= 0 ? '▲ +' : '▼ ') + Math.round(t) + '%</span>';
+}
+
+function renderCol2() {
+  var p = GT.PLANETS[S.loc], h = '', t = GT.taxInfo(S, S.loc), v = S.visit;
+  h += '<div class="planetart"><canvas id="pc" role="img" aria-label="' + esc(p.name) + ', a ' + p.type.toLowerCase() + ' world"></canvas><div class="tag"><div class="pname">' + esc(p.name) + '</div><div class="say">' + esc(p.say) + ' &middot; ' + p.type + '</div></div></div>';
+  h += '<div class="acts">';
+  if (p.fuelSold) {
+    var fp = GT.fuelPrice(S, S.loc), room = S.ship.fuelMax - S.ship.fuel;
+    h += btn('Refuel +10', 'ref10', room > 0 && S.credits >= fp) + btn('Fill tank', 'refall', room > 0 && S.credits >= fp);
+  } else h += '<span class="dim" style="align-self:center">No fuel dock here.</span>';
+  h += btn(v.explored ? 'Explored' : 'Explore', 'explore', !v.explored && !S.pending) + btn(v.encountered ? 'Met someone' : 'Seek Encounter', 'encounter', !v.encountered && !S.pending);
+  if (p.gambling) h += btn('Parlour of Thin Hours', 'gamble', GT.canGamble(S), 'alt');
+  h += '</div>';
+  if (p.fuelSold) h += '<div class="dim" style="font-size:12px">Fuel here: <b class="num">' + GT.fuelPrice(S, S.loc) + 'c</b> per PC' + (GT.depotCut(S) ? ' (depot discount applied)' : '') + '.</div>';
+  h += '<div class="dim" style="font-size:12px">' + esc(p.desc) + '</div>';
+  if (v.offer) {
+    var f = GT.facDef(v.offer.type);
+    h += '<div class="card offer"><div class="row"><b>Offer: ' + f.name + '</b><b class="num amber">' + fmt(v.offer.price) + 'c</b></div><div class="dim" style="font-size:12px;margin:4px 0 8px">' + f.blurb + ' ' + GT.facBenefitText(v.offer.type, v.offer.B) + '.</div>' + btn('Buy facility', 'facility', v.offer.price <= S.credits) + '</div>';
+  } else if (S.owned[S.loc]) {
+    var o = S.owned[S.loc]; h += '<div class="card" style="border-color:var(--good)"><b class="good">You own the ' + GT.facDef(o.type).name + ' here.</b></div>';
+  }
+  h += '<div class="sec"><div class="row"><h3>Market</h3><span class="num" style="font-size:12px" title="' + esc(GT.discText(t)) + '">Planet tax <b>' + (t.rate * 100).toFixed(1) + '%</b> <span class="dim">(base ' + (t.base * 100).toFixed(1) + '%)</span></span></div><div class="market">';
+  GT.ITEMS.forEach(function (it, i) {
+    var q = qtyOf(i), held = S.cargo[i].qty, stock = S.markets[S.loc][i].stock, mx = GT.maxBuy(S, i);
+    h += '<div class="mrow" data-i="' + i + '"><span class="nm" title="' + esc(it.blurb) + '">' + it.name + (held ? ' <span class="dim">(' + held + ')</span>' : '') + '</span>';
+    h += '<span class="num"><b>' + fmt(GT.price(S, S.loc, i)) + 'c</b></span><span class="num dim" title="Units for sale">' + stock + ' in stock</span>' + trendHTML(i);
+    h += '<div class="ctl">' + btn('Buy', 'buy', GT.canBuy(S, i, q)) + btn('Max', 'max', mx > 0) + '<input class="qty" type="number" min="1" step="1" value="' + q + '" aria-label="Quantity of ' + it.name + '">' + btn('Sell', 'sell', GT.canSell(S, i, q)) + btn('All', 'all', held > 0) + '</div></div>';
+  });
+  return h + '</div></div>';
+}
+
+function renderCol3() {
+  var h = '', d = ui.dest, P = GT.PLANETS;
+  h += '<div class="sec"><h3>Star map</h3><div class="mapwrap">' + UI.mapSVG(S, d) + '</div><div class="dim" style="font-size:11px">Select a world to plan a jump. Red diamonds are rival traders.</div></div>';
+  h += '<div class="sec"><h3>Trip plan</h3><div class="card trip">';
+  if (d === null || d === S.loc) h += '<p class="dim">Select a destination on the map.</p>';
+  else {
+    var p = P[d], cost = GT.jumpCost(S, d), ok = S.ship.fuel >= cost, rivals = S.comps.filter(function (c) { return c.loc === d; });
+    h += '<div class="row"><b style="font-size:15px;color:' + p.color + '">' + esc(p.name) + '</b><span class="dim">' + p.type + '</span></div>';
+    h += '<p class="dim" style="font-size:12px">' + esc(p.desc) + '</p>';
+    h += '<p>Distance <b class="num">' + GT.dist(S.loc, d).toFixed(0) + '</b> &middot; Fuel cost <b class="num ' + (ok ? '' : 'bad') + '">' + cost + ' PC</b> <span class="dim">(you have ' + S.ship.fuel + ')</span></p>';
+    if (rivals.length) h += '<p class="dim" style="font-size:12px">Rivals docked there: ' + rivals.map(function (c) { return esc(c.name); }).join(', ') + '.</p>';
+    if (!ok) h += '<p class="warn"><b>Warning:</b> you do not have enough fuel for this jump. ' + (P[S.loc].fuelSold ? 'Refuel here first.' : 'There is no fuel dock here.') + '</p>';
+    h += btn('Jump', 'jump', GT.canJump(S, d), 'go');
+  }
+  if (GT.stranded(S) && !S.over) { var tt = P[GT.towTarget(S)]; h += '<p class="warn" style="margin-top:8px"><b>Stranded:</b> not enough fuel for any jump.</p>' + btn('Call a tow to ' + esc(tt.name) + ' (' + GT.CFG.TOW_COST + 'c)', 'tow', true, 'alt'); }
+  h += '</div></div>';
+  var rows = S.comps.map(function (c) { return { name: c.name + ' ' + c.title, cargo: c.cargo, speed: c.speed, w: c.wealth, me: false }; });
+  rows.push({ name: S.name + ' (you)', cargo: S.ship.cargoMax, speed: GT.effSpeed(S), w: GT.networth(S), me: true });
+  rows.sort(function (a, b) { return b.w - a.w; });
+  h += '<div class="sec"><h3>Leaderboard</h3><div class="card" style="padding:6px;overflow-x:auto"><table><tr><th>#</th><th>Trader</th><th class="r">Cargo</th><th class="r">Speed</th><th class="r">Wealth</th></tr>';
+  rows.forEach(function (r, i) { h += '<tr class="' + (r.me ? 'me' : '') + '"><td>' + (i + 1) + '</td><td>' + esc(r.name) + '</td><td class="r">' + r.cargo + '</td><td class="r">' + r.speed.toFixed(1) + '</td><td class="r">' + fmt(r.w) + 'c</td></tr>'; });
+  return h + '</table></div><div class="dim" style="font-size:11px">Wealth is credits plus bank, minus loans. Reach ' + fmt(GT.CFG.WIN) + 'c to win.</div></div>';
+}
+
+function renderCol4() {
+  var shown = GT.CFG.LOG_SHOWN + ui.more, h = '<div class="row"><h3>Flight log</h3><button class="tbtn" data-act="info" aria-label="How to play">? How to play</button></div><div class="log">';
+  S.log.slice(0, shown).forEach(function (e) { h += '<div class="le ' + e.kind + '"><span class="tn">[Turn ' + e.turn + ']</span> ' + e.text + '</div>'; });
+  if (S.log.length > shown) h += '<button class="btn alt" data-act="more">Show older entries (' + (S.log.length - shown) + ')</button>';
+  return h + '</div>';
+}
+
+function paint(id, html) { var el = $(id), st = el.scrollTop; el.innerHTML = html; el.scrollTop = st; }
+function render() {
+  if (!S) return;
+  paint('c1', renderCol1()); paint('c2', renderCol2()); paint('c3', renderCol3());
+  var lg = $('c4'), st = lg.scrollTop; lg.innerHTML = renderCol4(); lg.scrollTop = st;
+  var cv = $('pc'), p = GT.PLANETS[S.loc];
+  if (cv) { if (!ui.cache[p.id]) { var off = document.createElement('canvas'); UI.drawPlanet(off, p); ui.cache[p.id] = off; } cv.width = ui.cache[p.id].width; cv.height = ui.cache[p.id].height; cv.style.aspectRatio = '480 / 270'; cv.getContext('2d').drawImage(ui.cache[p.id], 0, 0); }
+  $('topstat').textContent = 'Turn ' + S.turn + '  |  Net worth ' + fmt(GT.networth(S)) + 'c of ' + fmt(GT.CFG.WIN) + 'c';
+  ['c1', 'c2', 'c3', 'c4'].forEach(function (c) { $(c).classList.toggle('on', c === ui.tab); });
+  Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (t) { t.classList.toggle('on', t.dataset.tab === ui.tab); });
+}
+
+/* Galactic Trader. Part 9b: popups, the start screen, actions and boot. */
+function openModal(html, wide) { var m = $('modal'); m.innerHTML = '<div class="sheet' + (wide ? ' wide' : '') + '" role="dialog" aria-modal="true">' + html + '</div>'; m.hidden = false; var b = m.querySelector('button'); if (b) b.focus({ preventScroll: true }); }
+function closeModal() { $('modal').hidden = true; $('modal').innerHTML = ''; }
+
+var INFO = '<h2>How to play Galactic Trader</h2>' +
+  '<h4>The goal</h4><p>Build your fortune to <b>150,000 credits</b>. Your wealth is your credits plus your bank deposit, minus any loan. You lose if you have <b>zero or fewer credits and an empty hold</b>. Both are checked only when a planet jump finishes, so a bad day is not final until you jump.</p>' +
+  '<h4>Resources</h4><ul><li><b>Credits (c):</b> the cash you carry. The bank holds the rest.</li><li><b>Fuel (PC):</b> every jump burns fuel. Faster engines burn less. Only about half the worlds sell fuel.</li><li><b>Cargo:</b> seven goods: Rations, Metals, Medical, Spices, Circuitry, Dark Matter and Artifacts. Your hold has a fixed size.</li><li><b>Reputation:</b> grows when you buy facilities, sabotage rivals successfully, and help them. It cuts your tax and tilts luck toward good outcomes. It falls when you are caught or fail.</li></ul>' +
+  '<h4>Trading</h4><ul><li>Each world makes some goods cheaply, so their price is low there. Buy where a good is abundant and sell on the far side of the map, where it is scarce.</li><li>Prices follow supply and demand. Buying drains stock and raises the price. Selling floods the market and lowers it. Markets slowly recover, and random shortages and gluts also move them.</li><li>The trend shows today\'s price against the item\'s base price. About one item in four has no report, shown as a question mark.</li><li>Every trade is taxed. Facilities and reputation reduce the rate. Prices and stock on other worlds cannot be seen, but each description hints at what is plentiful.</li></ul>' +
+  '<h4>Travel, events and encounters</h4><ul><li>Select a world on the map and press Jump. Roughly 3 trips in 10 meet an event: a windfall, a pirate, a breakdown, and many more.</li><li>On each visit you may <b>Explore</b> once (about a 1 in 4 chance of something happening) and <b>Seek Encounter</b> once (about 3 in 10). Each world has its own characters.</li><li>Some worlds sell ship upgrades: more cargo, a faster engine, a bigger tank. A bigger tank starts empty.</li><li>Stuck without the fuel for any jump? A tug will drag you to a fuel dock, for a fee.</li></ul>' +
+  '<h4>Facilities</h4><p>About 1 trip in 5 brings an offer to buy a facility on the world you reach. It stands while you are docked, so sell cargo first if you need the money. Brokers improve your trades, depots cut fuel costs, and factories, warehouses and hotels collect fees from rivals, which you receive when you next visit. A facility costs about 20 times the benefit it brings per jump, and owning one raises your reputation.</p>' +
+  '<h4>Bank</h4><p>Deposits earn 3% and loans cost 5%. Interest is added every 4 jumps. You can take a loan of 1,000c at a time. Withdraw before you jump if you want cash on hand.</p>' +
+  '<h4>Rivals</h4><p>Four rival traders roam the map and compete on the leaderboard. When you share a world with one, you may get to <b>Sabotage</b>, <b>Assist</b> or <b>Ignore</b> them. Sabotage is risky, and being caught costs you. Assisting costs money or fuel and may be repaid generously, thanked, or snubbed.</p>' +
+  '<h4>Gambling</h4><p>One world runs a strange parlour. Nobody explains the rules, and the odds are described only in words. The house keeps an edge in the long run.</p>' +
+  '<div class="row" style="justify-content:flex-end"><button class="btn" data-act="close">Got it</button></div>';
+
+function compModal() {
+  var pe = S.pending, c = S.comps[pe.ci], att = c.wealth > GT.networth(S) * 1.3 ? 'They look you over with open scorn.' : c.wealth < GT.networth(S) * 0.7 ? 'They watch you with careful, hungry respect.' : 'They give you a polite and professional nod.';
+  openModal('<h2>A rival at the dock</h2><p><b>' + esc(c.name) + '</b>, ' + esc(c.title) + ', is currently docked here. They are ' + pe.mood + '. ' + att + '</p>' +
+    '<p class="dim">Their ship: cargo ' + c.cargo + ', warp ' + c.speed.toFixed(1) + '. What do you do?</p>' +
+    '<div class="acts"><button class="btn" data-act="comp-sabotage">Sabotage</button><button class="btn alt" data-act="comp-assist">Assist (about ' + fmt(GT.compAssistCost(S)) + 'c or some fuel)</button><button class="btn alt" data-act="comp-ignore">Ignore</button></div>' +
+    '<p class="dim" style="font-size:12px">Sabotage has a low chance to work and a low chance of backfiring. If you cannot afford to assist, you will ignore them instead.</p>');
+}
+
+function gambleModal(last) {
+  var h = '<div class="row"><h2>The Parlour of Thin Hours</h2><b class="num">' + fmt(S.credits) + 'c</b></div><p class="dim">Smoke, low light and no printed rules. ' + esc(GT.GAME_LUCK_NOTE) + '</p>';
+  if (last) h += '<div class="card" style="border-color:' + (last.net > 0 ? 'var(--good)' : last.net < 0 ? 'var(--bad)' : 'var(--line)') + '"><b class="' + (last.net > 0 ? 'good' : last.net < 0 ? 'bad' : '') + '">' + (last.net > 0 ? '+' : last.net < 0 ? '-' : '') + fmt(Math.abs(last.net)) + 'c</b> &nbsp;' + esc(last.text) + '</div>';
+  GT.GAMES.forEach(function (g, gi) {
+    h += '<div class="card"><b>' + esc(g.name) + '</b><p class="dim" style="font-size:12px;margin:4px 0 8px">' + esc(g.blurb) + '</p><div class="acts">';
+    GT.STAKES.forEach(function (st) { h += '<button class="btn alt" data-act="gamble-' + gi + '-' + st + '"' + (st <= S.credits ? '' : ' disabled') + '>Wager ' + fmt(st) + 'c</button>'; });
+    h += '</div></div>';
+  });
+  openModal(h + '<div class="row" style="justify-content:flex-end"><button class="btn" data-act="close">Leave the table</button></div>', true);
+}
+
+function endModal() {
+  var o = S.over, st = S.stats, h = '<h2 class="' + (o.won ? 'win' : 'lose') + '">' + (o.won ? 'You made your fortune' : 'You are ruined') + '</h2><p>' + esc(S.name) + ', after <b>' + st.jumps + ' jumps</b> (turn ' + o.turn + '). ' + esc(o.why) + '</p>';
+  var tb = 0, ts = 0, sp = 0, er = 0;
+  h += '<h4>Goods traded</h4><div style="overflow-x:auto"><table><tr><th>Item</th><th class="r">Bought</th><th class="r">Spent</th><th class="r">Sold</th><th class="r">Earned</th></tr>';
+  GT.ITEMS.forEach(function (it, i) { tb += st.bought[i]; ts += st.sold[i]; sp += st.spent[i]; er += st.earned[i]; h += '<tr><td>' + it.name + '</td><td class="r">' + st.bought[i] + '</td><td class="r">' + fmt(st.spent[i]) + 'c</td><td class="r">' + st.sold[i] + '</td><td class="r">' + fmt(st.earned[i]) + 'c</td></tr>'; });
+  h += '<tr><td><b>Total</b></td><td class="r"><b>' + tb + '</b></td><td class="r"><b>' + fmt(sp) + 'c</b></td><td class="r"><b>' + ts + '</b></td><td class="r"><b>' + fmt(er) + 'c</b></td></tr></table></div>';
+  function r(a, b, cls) { return '<div class="row"><span class="dim">' + a + '</span><b class="num ' + (cls || '') + '">' + b + '</b></div>'; }
+  h += '<div class="cols2"><div><h4>Money</h4>' + r('Final net worth', fmt(GT.networth(S)) + 'c') + r('Peak net worth', fmt(st.peak) + 'c') + r('Tax paid', fmt(st.tax) + 'c') + r('Tax discount from reputation', fmt(st.taxSavedRep) + 'c', 'good') + r('Tax discount from facilities', fmt(st.taxSavedFac) + 'c', 'good') + r('Broker price edge', fmt(st.brokerEdge) + 'c', 'good') + r('Gained from events', fmt(st.eventGain) + 'c', 'good') + r('Lost to events', fmt(st.eventLoss) + 'c', 'bad') + r('Bank interest earned', fmt(st.interestEarned) + 'c', 'good') + r('Loan interest paid', fmt(st.interestPaid) + 'c', 'bad') + r('Rival fees collected', fmt(st.feeIncome) + 'c', 'good') + r('Gambling net', (st.gambleNet >= 0 ? '+' : '-') + fmt(Math.abs(st.gambleNet)) + 'c', st.gambleNet >= 0 ? 'good' : 'bad') + '</div>' +
+    '<div><h4>Journey</h4>' + r('Jumps made', st.jumps) + r('Events met on the road', st.events) + r('Worlds explored', st.explores) + r('Encounters sought', st.encounters) + r('Fuel bought', st.fuelBought + ' PC for ' + fmt(st.fuelSpent) + 'c') + r('Tows needed', st.tows) + r('Facilities bought', st.facilitiesBought + ' (' + GT.facCount(S) + ' kept)') + r('Spent on ship upgrades', fmt(st.upgradesSpent) + 'c') + r('Sabotage attempts', st.sabotage + ' (' + st.sabotageWon + ' worked)') + r('Rivals assisted', st.assists) + r('Reputation', S.rep + ' now, peak ' + st.repPeak + ', low ' + st.repLow) + r('Gambling rounds', st.gambleRounds) + '</div></div>';
+  openModal(h + '<div class="row" style="justify-content:flex-end"><button class="btn alt" data-act="close">View the log</button><button class="btn" data-act="new">Play again</button></div>', true);
+}
+
+/* ---------- start screen ---------- */
+function renderStart() {
+  var mx = { cargo: 75, speed: 2.2, fuel: 190 }, h = '<div class="in"><div><div class="title">Galactic Trader</div><p class="tag2">Seven worlds. Seven goods. Four rivals who would love to see you fail. Buy low, haul far, sell high, and reach 150,000 credits before the dark swallows your last coin.</p></div>';
+  h += '<div class="ships" role="group" aria-label="Choose your ship">';
+  GT.SHIPS.forEach(function (sh) {
+    function m(l, v, k) { return '<span>' + l + '</span><span class="bar"><i style="width:' + Math.round(v / mx[k] * 100) + '%"></i></span><span>' + (k === 'speed' ? v.toFixed(1) : v) + '</span>'; }
+    h += '<button class="ship" data-act="pick-' + sh.id + '" aria-pressed="' + (ui.ship === sh.id) + '"><div style="background:#04060f;border-radius:6px">' + UI.shipSVG(sh.id, sh.hue) + '</div><div class="sn">' + esc(sh.name) + '</div><div class="mini">' + m('Cargo', sh.cargo, 'cargo') + m('Speed', sh.speed, 'speed') + m('Fuel', sh.fuel, 'fuel') + '</div><div class="sd">' + esc(sh.desc) + '</div></button>';
+  });
+  h += '</div><div class="launch"><label>Captain name<input id="in-name" type="text" maxlength="20" placeholder="Captain" value="' + esc(ui.name) + '" autocomplete="off"></label><button class="btn" data-act="launch">Launch</button></div></div>';
+  $('start').innerHTML = h; $('start').hidden = false;
+}
+
+/* ---------- actions ---------- */
+function rowI(el) { var r = el.closest('.mrow'); return r ? +r.dataset.i : -1; }
+function afterAction(jumped) {
+  if (jumped) { ui.dep = 0; ui.wd = 0; ui.rep = 0; ui.dest = null; ui.more = 0; }
+  render(); $('c4').scrollTop = 0;
+  if (S.over) endModal(); else if (S.pending && $('modal').hidden) compModal();
+}
+function setTheme(t) { document.documentElement.setAttribute('data-theme', t); $('btnTheme').textContent = t === 'dark' ? 'Theme: Dark' : 'Theme: Light'; try { localStorage.setItem('gt-theme', t); } catch (e) {} }
+
+function act(a, el) {
+  if (a.indexOf('pick-') === 0) { ui.ship = a.slice(5); Array.prototype.forEach.call(document.querySelectorAll('.ship'), function (b) { b.setAttribute('aria-pressed', String(b.dataset.act === a)); }); return; }
+  if (a === 'launch') {
+    var nm = ($('in-name').value || '').trim() || 'Captain'; ui.name = nm; S = GT.newState(ui.ship, nm); ui.dest = null; ui.qty = {}; ui.dep = ui.wd = ui.rep = 0; ui.more = 0; ui.tab = 'c1'; ui.cache = ui.cache || {};
+    GT.log(S, 'Welcome aboard, <b>' + esc(nm) + '</b>. You start at <b>Kryndor Spire</b> with ' + fmt(S.credits) + 'c and a ' + GT.SHIPS.filter(function (x) { return x.id === S.shipId; })[0].name + '. Reach ' + fmt(GT.CFG.WIN) + 'c to win.', 'info');
+    GT.log(S, 'Tip: goods are cheap where they are made. Look at each world\'s description, pick a far world on the star map, and sell what you carry where it is scarce.', 'info');
+    $('start').hidden = true; closeModal(); render(); return;
+  }
+  if (a === 'close') { closeModal(); return; }
+  if (a === 'info') { openModal(INFO, true); return; }
+  if (a === 'theme') { setTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'); return; }
+  if (a === 'new') { if (!S || S.over || el.dataset.sure) { S = null; closeModal(); renderStart(); } else openModal('<h2>Abandon this voyage?</h2><p>Your current game will be lost.</p><div class="row" style="justify-content:flex-end"><button class="btn alt" data-act="close">Keep playing</button><button class="btn" data-act="new" data-sure="1">Abandon</button></div>'); return; }
+  if (a === 'tab') { ui.tab = el.dataset.tab; render(); return; }
+  if (!S) return;
+  if (a === 'more') { ui.more += 60; render(); return; }
+  if (S.over) return;
+  var i = rowI(el), jumped = false, q;
+  if (a === 'buy') GT.buy(S, i, qtyOf(i));
+  else if (a === 'max') GT.buy(S, i, GT.maxBuy(S, i));
+  else if (a === 'sell') GT.sell(S, i, qtyOf(i));
+  else if (a === 'all') GT.sell(S, i, S.cargo[i].qty);
+  else if (a === 'ref10') GT.refuel(S, 10);
+  else if (a === 'refall') GT.refuel(S, 9999);
+  else if (a === 'explore') GT.explore(S);
+  else if (a === 'encounter') GT.encounter(S);
+  else if (a.indexOf('up-') === 0) GT.upgrade(S, a.slice(3));
+  else if (a === 'deposit') { GT.deposit(S, ui.dep); ui.dep = 0; }
+  else if (a === 'withdraw') { GT.withdraw(S, ui.wd); ui.wd = 0; }
+  else if (a === 'loan') GT.takeLoan(S);
+  else if (a === 'repay') { GT.repay(S, ui.rep); ui.rep = 0; }
+  else if (a === 'facility') GT.buyFacility(S);
+  else if (a === 'jump') { jumped = GT.jump(S, ui.dest); }
+  else if (a === 'tow') { jumped = GT.tow(S); }
+  else if (a === 'gamble') { gambleModal(null); return; }
+  else if (a.indexOf('gamble-') === 0) { var pr = a.split('-'); var res = GT.gamble(S, +pr[1], +pr[2]); gambleModal(res); render(); return; }
+  else if (a.indexOf('comp-') === 0) { GT.compAction(S, a.slice(5)); closeModal(); }
+  afterAction(jumped);
+}
+
+document.addEventListener('click', function (e) {
+  var pl = e.target.closest('.pl');
+  if (pl && S && !S.over) { var i = +pl.dataset.i; ui.dest = i === S.loc || ui.dest === i ? null : i; render(); return; }
+  var el = e.target.closest('[data-act]'); if (el && !el.disabled) act(el.dataset.act, el);
+});
+document.addEventListener('keydown', function (e) {
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.classList && e.target.classList.contains('pl') && S && !S.over) { e.preventDefault(); var i = +e.target.dataset.i; ui.dest = i === S.loc || ui.dest === i ? null : i; render(); }
+  if (e.key === 'Escape' && !$('modal').hidden && !(S && S.pending)) closeModal();
+});
+function setDis(sel, ok) { var b = document.querySelector(sel); if (b) b.disabled = !ok || !!(S && S.over); }
+document.addEventListener('input', function (e) {
+  var t = e.target; if (!S) return;
+  var v = Math.max(0, Math.floor(+t.value || 0));
+  if (t.classList.contains('qty')) {
+    var row = t.closest('.mrow'), i = +row.dataset.i; ui.qty[i] = Math.max(1, v);
+    row.querySelector('[data-act="buy"]').disabled = !GT.canBuy(S, i, ui.qty[i]) || !!S.over; row.querySelector('[data-act="sell"]').disabled = !GT.canSell(S, i, ui.qty[i]) || !!S.over;
+  } else if (t.id === 'in-dep') { ui.dep = v; setDis('[data-act="deposit"]', v > 0 && v <= S.credits); }
+  else if (t.id === 'in-wd') { ui.wd = v; setDis('[data-act="withdraw"]', v > 0 && v <= S.bank); }
+  else if (t.id === 'in-rep') { ui.rep = v; setDis('[data-act="repay"]', v > 0 && S.loan > 0 && S.credits > 0); }
+  else if (t.id === 'in-name') ui.name = t.value;
+});
+
+/* ---------- boot ---------- */
+(function () {
+  var t = null; try { t = localStorage.getItem('gt-theme'); } catch (e) {}
+  if (t !== 'dark' && t !== 'light') t = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  setTheme(t); renderStart();
+})();
+
+</script>
