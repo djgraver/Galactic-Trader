@@ -9,11 +9,7 @@ UI.shade = function (hex, amt) {
 UI.shipSVG = function (id, hue) {
   var d = UI.shade(hue, -0.5), l = UI.shade(hue, 0.4), glass = '#bff4ff', fl = '#ffb347', body;
   var flame = function (x, y, len) { return '<path d="M' + x + ' ' + (y - 7) + ' L' + (x - len) + ' ' + y + ' L' + x + ' ' + (y + 7) + 'Z" fill="' + fl + '"/><path d="M' + x + ' ' + (y - 3) + ' L' + (x - len * 0.55) + ' ' + y + ' L' + x + ' ' + (y + 3) + 'Z" fill="#fff4c2"/>'; };
-  if (id === 'gnat') {
-    body = flame(30, 70, 26) + '<path d="M104 64 L150 26 L166 28 L142 66Z M104 76 L150 114 L166 112 L142 74Z" fill="' + d + '"/>' +
-      '<path d="M30 70 L150 60 L222 70 L150 80Z" fill="' + hue + '"/><path d="M30 70 L150 66 L222 70 L150 74Z" fill="' + l + '" opacity=".6"/>' +
-      '<ellipse cx="160" cy="68" rx="20" ry="5" fill="' + glass + '"/><rect x="26" y="60" width="12" height="20" rx="3" fill="#2a2f4a"/>';
-  } else if (id === 'barge') {
+  if (id === 'barge') {
     body = flame(28, 52, 22) + flame(28, 72, 22) + flame(28, 92, 22) +
       '<rect x="30" y="42" width="14" height="20" rx="3" fill="#2a2f4a"/><rect x="30" y="62" width="14" height="20" rx="3" fill="#2a2f4a"/><rect x="30" y="82" width="14" height="20" rx="3" fill="#2a2f4a"/>' +
       '<rect x="44" y="40" width="150" height="64" rx="6" fill="' + hue + '"/><rect x="44" y="70" width="150" height="6" fill="' + d + '"/>' +

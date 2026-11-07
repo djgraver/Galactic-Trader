@@ -1,0 +1,11 @@
+<!doctype html><html><body style="margin:0;background:#222"><canvas id="c" style="width:960px;height:600px;image-rendering:pixelated"></canvas>
+<script src="gt-21-px.js"></script>
+<script>
+var b=new PX.Buf(320,200); b.clear(PX.LC);
+b.rect(0,0,320,66,[PX.LC,PX.W,6]); b.rect(0,66,320,134,PX.G);
+b.poly([[0,170],[0,200],[100,200],[320,60],[320,30]],PX.D);
+b.ellipse(80,60,30,20,[PX.R,PX.Y,8]); b.dome(200,120,40,30,[PX.B,PX.LC,10]);
+b.text(10,10,'HELLO MARKET 123 !?',PX.K,1); b.text(10,24,'GALACTIC',PX.W,2);
+b.poly([[240,100],[300,100],[270,150]],[PX.M,PX.LM,5]);
+b.paint(document.getElementById('c'),false);
+</script></body></html>

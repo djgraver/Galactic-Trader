@@ -1,0 +1,1378 @@
+<!doctype html><meta charset=utf-8><body style="margin:0;background:#333"><div id=out></div><script>/* Galactic Trader. Part 1: data tables. Parts are concatenated into one script by build.py. */
+var GT = {};
+
+GT.CFG = {
+  WIN: 150000, START_CREDITS: 2500, START_FUEL_FRAC: 0.8,
+  TRAVEL_EVENT: 0.30, EXPLORE: 0.25, ENCOUNTER: 0.30, FACILITY_OFFER: 0.20, COMP_EVENT: 0.20,
+  DEPOSIT_RATE: 0.03, LOAN_RATE: 0.05, INTEREST_EVERY: 4, LOAN_STEP: 1000, LOAN_CAP: 10000,
+  FUEL_K: 0.5, TOW_COST: 400, DAMAGE_TURNS: 6, FEE_CAP_TURNS: 12, LOG_SHOWN: 60,
+  ELASTICITY: 0.35, REVERT: 0.2, UPGRADE_MAX: 6
+};
+
+/* depth = typical stock a neutral planet holds; thin markets for pricey goods stop dumping */
+GT.ITEMS = [
+  { id: 'rations',  name: 'Rations',     base: 24,  depth: 400, vol: 0.035, blurb: 'Vacuum-sealed meals. Everyone eats.' },
+  { id: 'metals',   name: 'Metals',      base: 52,  depth: 260, vol: 0.040, blurb: 'Ingots and alloy plate for hulls and habitats.' },
+  { id: 'medical',  name: 'Medical',     base: 95,  depth: 160,  vol: 0.045, blurb: 'Meds, grafts and sterile field kits.' },
+  { id: 'spices',   name: 'Spices',      base: 160, depth: 100,  vol: 0.060, blurb: 'Flavour worth more than its weight in fuel.' },
+  { id: 'circuitry',name: 'Circuitry',   base: 260, depth: 72,  vol: 0.055, blurb: 'Logic cores and gate arrays.' },
+  { id: 'darkmatter',name:'Dark Matter', base: 460, depth: 40,  vol: 0.085, blurb: 'Contained in magnetic bottles. Do not shake.' },
+  { id: 'artifacts',name: 'Artifacts',   base: 780, depth: 20,  vol: 0.100, blurb: 'Relics of dead empires. Provenance optional.' }
+];
+
+/* mult order: rations, metals, medical, spices, circuitry, darkmatter, artifacts. Below 0.8 means the planet produces it. */
+GT.PLANETS = [
+  { id: 'meridoa', name: 'Meridoa', say: 'meh-RID-oh-ah', type: 'Agrarian', x: 8, y: 38, color: '#7ed957', ring: false,
+    tax: 0.03, fuel: 8, fuelSold: false, upgrades: ['cargo'], gambling: false,
+    mult: [0.55, 1.25, 0.90, 0.70, 1.35, 1.20, 1.10],
+    fac: { broker: 1, depot: 0.5, factory: 1, warehouse: 2, hotel: 1 },
+    desc: 'Terraced fields roll to every horizon under a soft green sun. Grain barges outnumber people. Rations and spices are plentiful and cheap, while anything with a circuit in it is treated like magic.' },
+  { id: 'karthosu', name: 'Karth-Osu', say: 'KARTH oh-SOO', type: 'Ruin', x: 22, y: 52, color: '#d9a35c', ring: false,
+    tax: 0.065, fuel: 9, fuelSold: false, upgrades: [], gambling: false,
+    mult: [1.30, 1.20, 1.40, 1.10, 1.30, 1.10, 0.50],
+    fac: { broker: 0.5, depot: 0.3, factory: 0.5, warehouse: 1, hotel: 2 },
+    desc: 'The bones of a vanished empire, half buried in ochre dust. Diggers sell relics from the tombs at fair prices. They have no clean water, no medicine and no patience for tourists.' },
+  { id: 'ferrox', name: 'Ferrox', say: 'FEH-rox', type: 'Mining', x: 30, y: 12, color: '#d9603b', ring: false,
+    tax: 0.04, fuel: 8, fuelSold: true, upgrades: ['cargo', 'fuel'], gambling: false,
+    mult: [1.35, 0.55, 1.30, 1.20, 1.20, 1.00, 1.00],
+    fac: { broker: 0.7, depot: 1.5, factory: 2, warehouse: 1.5, hotel: 0.5 },
+    desc: 'A red, pitted rock chewed hollow by a thousand drills. Metals pour out of Ferrox by the megaton and sell for next to nothing. The miners pay well for food and doctors, and Ferrox has a working fuel dock.' },
+  { id: 'kryndor', name: 'Kryndor Spire', say: 'KRIN-dor SPYR', type: 'Megacity', x: 50, y: 30, color: '#4fd2ff', ring: false,
+    tax: 0.07, fuel: 11, fuelSold: true, upgrades: ['cargo', 'speed', 'fuel'], gambling: false,
+    mult: [1.30, 1.10, 1.20, 1.35, 0.85, 1.25, 1.40],
+    fac: { broker: 2, depot: 0.7, factory: 0.7, warehouse: 1, hotel: 2 },
+    desc: 'One city that covers a whole moon, lit like a jewel box. Circuitry is cheap here. Spices, luxuries and relics sell at silly prices. The tax collectors are everywhere, and so is the best shipyard in the sector.' },
+  { id: 'nihil', name: 'Nihil Station', say: 'NY-hill', type: 'Void Station', x: 58, y: 52, color: '#b07cff', ring: false,
+    tax: 0.015, fuel: 14, fuelSold: true, upgrades: ['speed'], gambling: true,
+    mult: [1.45, 1.20, 1.10, 0.90, 1.00, 0.65, 1.30],
+    fac: { broker: 1.5, depot: 1, factory: 0.3, warehouse: 2, hotel: 2 },
+    desc: 'A free port hanging in the dark between stars, with almost no tax and almost no questions. Dark matter is cheap here. Hungry crews trade fortunes at the Parlour of Thin Hours, where the games are strange and nobody explains them.' },
+  { id: 'quellin', name: 'Quellin Reach', say: 'KWEL-in REECH', type: 'Science', x: 72, y: 14, color: '#ff7ad9', ring: false,
+    tax: 0.04, fuel: 10, fuelSold: false, upgrades: ['speed'], gambling: false,
+    mult: [1.15, 1.10, 0.60, 1.20, 0.65, 1.35, 1.20],
+    fac: { broker: 0.7, depot: 0.7, factory: 1, warehouse: 0.7, hotel: 1 },
+    desc: 'White domes and humming labs on a frozen pink moon. Medical supplies and circuitry are made here by the crate. The researchers pay anything for dark matter and for relics to puzzle over.' },
+  { id: 'halcyra', name: 'Halcyra', say: 'hal-SY-rah', type: 'Gas Giant', x: 90, y: 38, color: '#ffc24d', ring: true,
+    tax: 0.04, fuel: 6, fuelSold: true, upgrades: ['fuel'], gambling: false,
+    mult: [1.40, 1.30, 1.25, 1.00, 1.20, 0.55, 1.20],
+    fac: { broker: 0.7, depot: 2, factory: 1.5, warehouse: 1, hotel: 0.7 },
+    desc: 'A golden ringed giant. Skimmer platforms drift in its upper clouds and bottle dark matter from the storms. Fuel is cheap, but food, metal and medicine all have to be hauled in from far away.' }
+];
+
+GT.SHIPS = [
+  { id: 'wayfarer', name: 'Wayfarer', cargo: 45, speed: 1.4, fuel: 100, hue: '#4fd2ff',
+    desc: 'A sturdy all-rounder with a patched hull and a loyal crew of two. It does nothing brilliantly and nothing badly.' },
+  { id: 'barge', name: 'Behemoth Barge', cargo: 75, speed: 0.9, fuel: 130, hue: '#ffc24d',
+    desc: 'A flying warehouse. It crawls between worlds but hauls more cargo than anything else on the lanes.' },
+  { id: 'stargazer', name: 'Stargazer', cargo: 34, speed: 1.6, fuel: 190, hue: '#b07cff',
+    desc: 'A long-range survey hull with a huge tank. You can skip the fuel docks and go where the margins are.' },
+  { id: 'cutlass', name: 'Cutlass Runner', cargo: 38, speed: 2.0, fuel: 95, hue: '#d9603b',
+    desc: 'A smuggler\'s fast hull, with a hold that has some very good false floors. It is quick, quiet and thirsty.' }
+];
+
+GT.UPGRADES = {
+  cargo: { name: 'Cargo Bay', unit: 'units', step: 8, base: 1200, grow: 1.8, label: '+8 cargo' },
+  speed: { name: 'Warp Engine', unit: 'warp', step: 0.2, base: 1400, grow: 1.8, label: '+0.2 warp' },
+  fuel:  { name: 'Fuel Tank', unit: 'PC', step: 25, base: 900, grow: 1.7, label: '+25 PC tank (empty)' }
+};
+
+/* kind: trade = price edge; fuel = cheaper fuel; fee = income from rivals, collected when you visit */
+GT.FACILITIES = [
+  { id: 'broker', name: 'Trade Broker', kind: 'trade', pct: 0.015, blurb: 'Better quotes on every trade you make, and a lighter tax bill.' },
+  { id: 'depot', name: 'Fuel Depot', kind: 'fuel', pct: 0.06, blurb: 'Cheaper fuel at every refuelling dock you use, and a lighter tax bill.' },
+  { id: 'factory', name: 'Factory', kind: 'fee', feePct: 0.0045, blurb: 'Rival traders buy parts here. You collect a fee when you next visit.' },
+  { id: 'warehouse', name: 'Warehouse', kind: 'fee', feePct: 0.0040, blurb: 'Rivals rent storage space. Fees pile up until you visit.' },
+  { id: 'hotel', name: 'Hotel', kind: 'fee', feePct: 0.0050, blurb: 'Rival crews sleep here. You collect the bills when you visit.' }
+];
+
+GT.COMPETITORS = [
+  { name: 'Zara Vex', title: 'the Silk-Handed', rate: 0.046 },
+  { name: 'Old Brannock', title: 'of the Long Haul', rate: 0.041 },
+  { name: 'Captain Ilyx Orro', title: 'the Unlucky', rate: 0.050 },
+  { name: 'Mox Tallow', title: 'who Never Blinks', rate: 0.044 }
+];
+
+GT.MOODS = [
+  'in a foul mood, picking at a ration tin', 'whistling cheerfully and counting coin', 'looking tired and a little desperate',
+  'smug, with a fresh stack of credit chits', 'jumpy, glancing at every shadow', 'strangely calm, polishing a boarding hook',
+  'half asleep over a cold drink', 'bragging loudly to anyone who will listen'
+];
+
+/* Galactic Trader. Part 2: state, markets, tax and trading. No DOM access here. */
+(function () {
+  var rng = Math.random;
+  GT.setRng = function (f) { rng = f; };
+  GT.seeded = function (seed) { return function () { seed |= 0; seed = seed + 0x6D2B79F5 | 0; var t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; };
+  GT.rand = function () { return rng(); };
+  GT.R = function (a, b) { return a + rng() * (b - a); };
+  GT.RI = function (a, b) { return Math.floor(a + rng() * (b - a + 1)); };
+  GT.pick = function (arr) { return arr[Math.floor(rng() * arr.length)]; };
+  GT.clamp = function (v, a, b) { return Math.max(a, Math.min(b, v)); };
+  GT.gauss = function () { var u = 1 - rng(), v = rng(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+  GT.esc = function (t) { return String(t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+  GT.fmt = function (n) { return Math.round(n).toLocaleString('en-US'); };
+  var clamp = GT.clamp, R = GT.R;
+
+  /* ---------- state ---------- */
+  GT.newState = function (shipId, name) {
+    var sh = GT.SHIPS.filter(function (x) { return x.id === shipId; })[0] || GT.SHIPS[0];
+    var s = {
+      name: (name || 'Nameless').slice(0, 20), shipId: sh.id,
+      ship: { cargoMax: sh.cargo, speed: sh.speed, fuelMax: sh.fuel, fuel: Math.round(sh.fuel * GT.CFG.START_FUEL_FRAC), lv: { cargo: 0, speed: 0, fuel: 0 }, damage: [] },
+      credits: GT.CFG.START_CREDITS, bank: 0, loan: 0, rep: 0, turn: 1, loc: 3, dest: null,
+      cargo: GT.ITEMS.map(function () { return { qty: 0, avg: 0 }; }),
+      markets: [], fuelMult: [], mods: [], owned: {}, comps: [], log: [], over: null,
+      visit: { explored: false, encountered: false, offer: null, flags: {} }, pending: null, trendHidden: [],
+      stats: { jumps: 0, bought: [], spent: [], sold: [], earned: [], tax: 0, taxSavedRep: 0, taxSavedFac: 0, brokerEdge: 0,
+        eventGain: 0, eventLoss: 0, events: 0, explores: 0, encounters: 0, fuelBought: 0, fuelSpent: 0, interestEarned: 0, interestPaid: 0,
+        feeIncome: 0, facilitiesBought: 0, upgradesSpent: 0, sabotage: 0, sabotageWon: 0, assists: 0, gambleNet: 0, gambleRounds: 0,
+        peak: GT.CFG.START_CREDITS, repPeak: 0, repLow: 0, tows: 0 }
+    };
+    GT.ITEMS.forEach(function () { s.stats.bought.push(0); s.stats.spent.push(0); s.stats.sold.push(0); s.stats.earned.push(0); });
+    GT.PLANETS.forEach(function (p) {
+      s.fuelMult.push(1);
+      s.markets.push(GT.ITEMS.map(function (it, i) {
+        var target = it.depth * clamp(Math.pow(1 / p.mult[i], 2.5), 0.4, 3.5);
+        return { target: target, stock: Math.round(target * R(0.85, 1.15)), shock: 1 };
+      }));
+    });
+    GT.COMPETITORS.forEach(function (c, k) {
+      var w = GT.CFG.START_CREDITS * R(0.9, 1.15);
+      s.comps.push({ name: c.name, title: c.title, rate: c.rate, wealth: w, loc: (k * 2 + 1) % GT.PLANETS.length, cargo: 30, speed: 1.2, mood: 0 });
+    });
+    GT.refreshComps(s);
+    GT.rollTrends(s);
+    return s;
+  };
+  GT.log = function (s, text, kind, amount) { s.log.unshift({ turn: s.turn, text: text, kind: kind || 'info', amount: amount || 0 }); if (s.log.length > 600) s.log.length = 600; };
+  GT.networth = function (s) { return s.credits + s.bank - s.loan; };
+  GT.scale = function (s) { return clamp(GT.networth(s) * 0.05, 150, 6000); };
+  GT.cargoUsed = function (s) { return s.cargo.reduce(function (a, c) { return a + c.qty; }, 0); };
+  GT.cargoFree = function (s) { return s.ship.cargoMax - GT.cargoUsed(s); };
+  GT.effSpeed = function (s) { var d = s.ship.damage.reduce(function (a, x) { return a + x.amt; }, 0); return Math.max(0.5, s.ship.speed - d); };
+  GT.rollTrends = function (s) { s.trendHidden = GT.ITEMS.map(function () { return rng() < 0.25; }); };
+  GT.refreshComps = function (s) {
+    s.comps.forEach(function (c) {
+      var f = Math.min(1, c.wealth / GT.CFG.WIN);
+      c.cargo = Math.round(30 + 55 * f); c.speed = Math.round((1.2 + 1.2 * f) * 10) / 10;
+    });
+  };
+
+  /* ---------- facilities ---------- */
+  GT.facCount = function (s) { return Object.keys(s.owned).length; };
+  GT.facOfType = function (s, id) { return Object.keys(s.owned).filter(function (k) { return s.owned[k].type === id; }).length; };
+  GT.brokerEdge = function (s) { return Math.min(0.06, GT.facOfType(s, 'broker') * 0.015) + ((s.visit && s.visit.haggle) || 0); };
+  GT.depotCut = function (s) { return Math.min(0.24, GT.facOfType(s, 'depot') * 0.06); };
+
+  /* ---------- prices ---------- */
+  GT.modMult = function (s, p, i) { var m = 1; s.mods.forEach(function (x) { if (x.p === p && x.i === i) m *= x.mult; }); return m; };
+  GT.priceAt = function (s, p, i, stock) {
+    var mk = s.markets[p][i], f = clamp(Math.pow(Math.max(stock, 0.5) / mk.target, -GT.CFG.ELASTICITY), 0.5, 2.0);
+    return Math.max(1, GT.ITEMS[i].base * GT.PLANETS[p].mult[i] * f * mk.shock * GT.modMult(s, p, i));
+  };
+  GT.price = function (s, p, i) { return GT.priceAt(s, p, i, s.markets[p][i].stock); };
+  GT.trend = function (s, p, i) { return GT.price(s, p, i) / GT.ITEMS[i].base - 1; };
+
+  GT.taxInfo = function (s, p) {
+    var base = GT.PLANETS[p].tax, here = s.owned[p] ? 0.12 : 0;
+    var facCut = base * Math.min(0.6, GT.facCount(s) * 0.05 + here);
+    var rep = clamp(s.rep, -50, 100), repCut = base * (rep >= 0 ? rep / 100 * 0.4 : rep / 50 * 0.25);
+    return { base: base, facCut: facCut, repCut: repCut, rate: Math.max(0.005, base - facCut - repCut) };
+  };
+
+  /* ---------- trading. quote* never mutate; buy/sell apply a quote ---------- */
+  GT.quoteBuy = function (s, i, qty) {
+    var p = s.loc, stock = s.markets[p][i].stock, edge = GT.brokerEdge(s), sub = 0, n = Math.min(qty, Math.floor(stock));
+    for (var k = 0; k < n; k++) sub += GT.priceAt(s, p, i, stock - k) * (1 - edge);
+    var t = GT.taxInfo(s, p), tax = sub * t.rate;
+    return { qty: n, sub: sub, tax: tax, total: sub + tax, avg: n ? sub / n : 0, t: t, edgeValue: sub * edge / (1 - edge) };
+  };
+  GT.quoteSell = function (s, i, qty) {
+    var p = s.loc, stock = s.markets[p][i].stock, edge = GT.brokerEdge(s), sub = 0, n = Math.min(qty, s.cargo[i].qty);
+    for (var k = 0; k < n; k++) sub += GT.priceAt(s, p, i, stock + k) * (1 + edge);
+    var t = GT.taxInfo(s, p), tax = sub * t.rate;
+    return { qty: n, sub: sub, tax: tax, total: sub - tax, avg: n ? sub / n : 0, t: t, edgeValue: sub * edge / (1 + edge) };
+  };
+  GT.maxBuy = function (s, i) {
+    var p = s.loc, stock = s.markets[p][i].stock, edge = GT.brokerEdge(s), rate = GT.taxInfo(s, p).rate;
+    var cap = Math.min(Math.floor(stock), GT.cargoFree(s)), sub = 0, n = 0;
+    for (var k = 0; k < cap; k++) {
+      var c = GT.priceAt(s, p, i, stock - k) * (1 - edge);
+      if ((sub + c) * (1 + rate) > s.credits) break;
+      sub += c; n++;
+    }
+    return n;
+  };
+  GT.canBuy = function (s, i, qty) { return qty > 0 && s.markets[s.loc][i].stock >= qty && GT.cargoFree(s) >= qty && GT.quoteBuy(s, i, qty).total <= s.credits; };
+  GT.canSell = function (s, i, qty) { return qty > 0 && s.cargo[i].qty >= qty; };
+
+  GT.buy = function (s, i, qty) {
+    if (!GT.canBuy(s, i, qty)) return null;
+    var q = GT.quoteBuy(s, i, qty), c = s.cargo[i], p = s.loc, st = s.stats, it = GT.ITEMS[i];
+    c.avg = (c.avg * c.qty + q.sub) / (c.qty + q.qty); c.qty += q.qty;
+    s.markets[p][i].stock -= q.qty; s.credits -= q.total;
+    st.bought[i] += q.qty; st.spent[i] += q.total; st.tax += q.tax;
+    st.taxSavedRep += q.sub * q.t.repCut; st.taxSavedFac += q.sub * q.t.facCut; st.brokerEdge += q.edgeValue;
+    GT.log(s, 'Bought <b>' + q.qty + ' ' + it.name + '</b> at an average of ' + q.avg.toFixed(1) + 'c: ' + GT.fmt(q.sub) + 'c, plus ' + GT.fmt(q.tax) + 'c tax (' + (q.t.rate * 100).toFixed(1) + '% after ' + GT.discText(q.t) + '). ' + GT.savedText(q) + 'Overall <b>-' + GT.fmt(q.total) + 'c</b>.', 'loss', -q.total);
+    return q;
+  };
+  GT.sell = function (s, i, qty) {
+    if (!GT.canSell(s, i, qty)) return null;
+    var q = GT.quoteSell(s, i, qty), c = s.cargo[i], p = s.loc, st = s.stats, it = GT.ITEMS[i];
+    var paid = c.avg * q.qty, profit = q.total - paid;
+    c.qty -= q.qty; if (c.qty === 0) c.avg = 0;
+    s.markets[p][i].stock += q.qty; s.credits += q.total;
+    st.sold[i] += q.qty; st.earned[i] += q.total; st.tax += q.tax;
+    st.taxSavedRep += q.sub * q.t.repCut; st.taxSavedFac += q.sub * q.t.facCut; st.brokerEdge += q.edgeValue;
+    GT.log(s, 'Sold <b>' + q.qty + ' ' + it.name + '</b> at an average of ' + q.avg.toFixed(1) + 'c: ' + GT.fmt(q.sub) + 'c, less ' + GT.fmt(q.tax) + 'c tax (' + (q.t.rate * 100).toFixed(1) + '% after ' + GT.discText(q.t) + '). ' + GT.savedText(q) + 'Overall <b>+' + GT.fmt(q.total) + 'c</b> (' + (profit >= 0 ? '+' : '') + GT.fmt(profit) + 'c against what you paid).', 'gain', q.total);
+    return q;
+  };
+  GT.savedText = function (q) {
+    var r = q.sub * q.t.repCut, f = q.sub * q.t.facCut, parts = [];
+    if (r >= 1) parts.push('your reputation saved you ' + GT.fmt(r) + 'c'); else if (r <= -1) parts.push('your poor reputation cost you ' + GT.fmt(-r) + 'c');
+    if (f >= 1) parts.push('your facilities saved you ' + GT.fmt(f) + 'c');
+    return parts.length ? 'Discounts: ' + parts.join(' and ') + '. ' : '';
+  };
+  GT.discText = function (t) {
+    var f = (t.facCut / t.base * 100), r = (t.repCut / t.base * 100);
+    return GT.fmt(t.base * 1000) / 10 + '% base, ' + (f ? '-' + f.toFixed(0) + '% from facilities' : 'no facility discount') + ', ' + (r >= 0 ? '-' + r.toFixed(0) + '% from reputation' : '+' + (-r).toFixed(0) + '% reputation penalty');
+  };
+
+  /* ---------- fuel ---------- */
+  GT.fuelPrice = function (s, p) { return Math.max(1, Math.round(GT.PLANETS[p].fuel * s.fuelMult[p] * (1 - GT.depotCut(s)))); };
+  GT.canRefuel = function (s) { return GT.PLANETS[s.loc].fuelSold; };
+  GT.refuel = function (s, qty) {
+    var room = s.ship.fuelMax - s.ship.fuel, price = GT.fuelPrice(s, s.loc);
+    var n = Math.min(qty, room, Math.floor(s.credits / price));
+    if (!GT.canRefuel(s) || n <= 0) return 0;
+    var cost = n * price; s.ship.fuel += n; s.credits -= cost; s.stats.fuelBought += n; s.stats.fuelSpent += cost;
+    GT.log(s, 'Refuelled <b>' + n + ' PC</b> at ' + price + 'c each. <b>-' + GT.fmt(cost) + 'c</b>.', 'loss', -cost);
+    return n;
+  };
+
+  /* ---------- per-jump market drift ---------- */
+  var MODS = [
+    { mult: 1.45, text: 'A shortage of {item} is driving prices up on {planet}.' },
+    { mult: 0.66, text: 'A glut of {item} has {planet} dumping stock cheaply.' },
+    { mult: 1.35, text: 'A festival on {planet} has everyone shopping for {item}.' },
+    { mult: 0.72, text: 'A rumour of a quality scandal has {item} sliding on {planet}.' }
+  ];
+  GT.tickMarkets = function (s) {
+    GT.PLANETS.forEach(function (pl, p) {
+      GT.ITEMS.forEach(function (it, i) {
+        var mk = s.markets[p][i];
+        mk.stock += (mk.target - mk.stock) * GT.CFG.REVERT + GT.gauss() * 0.03 * mk.target;
+        mk.stock = Math.max(1, Math.round(mk.stock));
+        mk.shock = Math.exp(Math.log(mk.shock) * 0.8 + GT.gauss() * it.vol);
+      });
+      s.fuelMult[p] = clamp(Math.exp(Math.log(s.fuelMult[p]) * 0.85 + GT.gauss() * 0.06), 0.8, 1.3);
+      if (rng() < 0.05 && !s.mods.some(function (x) { return x.p === p; })) {
+        var m = GT.pick(MODS), i2 = GT.RI(0, GT.ITEMS.length - 1);
+        s.mods.push({ p: p, i: i2, mult: m.mult, turns: GT.RI(4, 8), text: m.text.replace('{item}', GT.ITEMS[i2].name).replace('{planet}', pl.name) });
+      }
+    });
+    s.mods.forEach(function (x) { x.turns--; });
+    for (var q = s.mods.length - 1; q >= 0; q--) if (s.mods[q].turns <= 0) s.mods.splice(q, 1);
+  };
+})();
+
+/* Galactic Trader. Part 3: effects, jumping, bank, upgrades, win and loss. */
+(function () {
+  var clamp = GT.clamp, R = GT.R, fmt = GT.fmt;
+
+  GT.luck = function (s) { return clamp(s.rep, -50, 100) / 100 * 0.5; };
+  GT.addRep = function (s, d) { s.rep = clamp(s.rep + d, -100, 100); s.stats.repPeak = Math.max(s.stats.repPeak, s.rep); s.stats.repLow = Math.min(s.stats.repLow, s.rep); };
+
+  /* Entries carry g: 1 good, -1 bad, 0 neutral. Reputation tilts the odds of good ones. */
+  GT.pickEntry = function (list, s) {
+    var luck = GT.luck(s), tot = 0, w = list.map(function (e) { var x = e.g > 0 ? 1 + luck : e.g < 0 ? 1 - luck : 1; tot += x; return x; });
+    var r = GT.rand() * tot;
+    for (var k = 0; k < list.length; k++) { r -= w[k]; if (r <= 0) return list[k]; }
+    return list[list.length - 1];
+  };
+
+  /* Applies cr (money, signed multiples of the scale), fuel, lose, gain, dmg and rep. Returns {money, kind, detail}. */
+  GT.applyEffect = function (s, e) {
+    var S = GT.scale(s), money = 0, parts = [], k;
+    if (e.cr) {
+      var lo = Math.min(e.cr[0], e.cr[1]), hi = Math.max(e.cr[0], e.cr[1]);
+      money = Math.round(S * R(lo, hi) / 5) * 5;
+      s.credits += money;
+      if (money >= 0) s.stats.eventGain += money; else s.stats.eventLoss -= money;
+      parts.push('<b>' + (money >= 0 ? '+' : '-') + fmt(Math.abs(money)) + 'c</b>');
+    }
+    if (e.fuel) {
+      var df = GT.RI(Math.min(e.fuel[0], e.fuel[1]), Math.max(e.fuel[0], e.fuel[1])), before = s.ship.fuel;
+      s.ship.fuel = clamp(s.ship.fuel + df, 0, s.ship.fuelMax);
+      parts.push((s.ship.fuel - before >= 0 ? '+' : '') + (s.ship.fuel - before) + ' PC fuel');
+    }
+    if (e.lose) {
+      var used = GT.cargoUsed(s), n = used ? Math.max(1, Math.ceil(used * R(e.lose[0], e.lose[1]))) : 0, gone = {};
+      for (k = 0; k < n; k++) {
+        var pool = s.cargo.map(function (c, i) { return c.qty > 0 ? i : -1; }).filter(function (i) { return i >= 0; });
+        if (!pool.length) break;
+        var pi = 0, r = GT.rand() * s.cargo.reduce(function (a, c) { return a + c.qty; }, 0);
+        for (var z = 0; z < s.cargo.length; z++) { r -= s.cargo[z].qty; if (r <= 0) { pi = z; break; } }
+        s.cargo[pi].qty--; if (!s.cargo[pi].qty) s.cargo[pi].avg = 0;
+        gone[pi] = (gone[pi] || 0) + 1;
+      }
+      var txt = Object.keys(gone).map(function (i) { return gone[i] + ' ' + GT.ITEMS[i].name; }).join(', ');
+      parts.push(txt ? 'lost cargo: ' + txt : 'your hold was empty, so nothing was lost');
+    }
+    if (e.gain) {
+      var ii = e.gain.item === 'any' ? GT.RI(0, 4) : GT.ITEMS.map(function (x) { return x.id; }).indexOf(e.gain.item);
+      if (ii < 0) ii = 0;
+      var want = Math.max(1, Math.round(S * R(e.gain.v[0], e.gain.v[1]) / GT.ITEMS[ii].base)), got = Math.min(want, GT.cargoFree(s));
+      if (got > 0) { var c = s.cargo[ii]; c.avg = c.avg * c.qty / (c.qty + got); c.qty += got; parts.push('gained ' + got + ' ' + GT.ITEMS[ii].name + (got < want ? ' (your hold was too full for the rest)' : '')); }
+      else parts.push('your hold was too full to take the ' + GT.ITEMS[ii].name);
+    }
+    if (e.dmg) { s.ship.damage.push({ amt: e.dmg[0], turns: e.dmg[1] }); parts.push('engine damaged: -' + e.dmg[0].toFixed(1) + ' warp for ' + e.dmg[1] + ' jumps'); }
+    if (e.rep) { GT.addRep(s, e.rep); parts.push((e.rep > 0 ? '+' : '') + e.rep + ' reputation'); }
+    return { money: money, kind: money > 0 ? 'gain' : money < 0 ? 'loss' : 'event', detail: parts.length ? ' <span class="fx">(' + parts.join('; ') + ')</span>' : '' };
+  };
+
+  /* ---------- travel ---------- */
+  GT.dist = function (a, b) { var A = GT.PLANETS[a], B = GT.PLANETS[b]; return Math.hypot(A.x - B.x, A.y - B.y); };
+  GT.jumpCost = function (s, to) { return Math.ceil(GT.dist(s.loc, to) * GT.CFG.FUEL_K / Math.sqrt(GT.effSpeed(s))); };
+  GT.minJump = function (s) { var m = 1e9; GT.PLANETS.forEach(function (p, i) { if (i !== s.loc) m = Math.min(m, GT.jumpCost(s, i)); }); return m; };
+  GT.stranded = function (s) { return s.ship.fuel < GT.minJump(s); };
+
+  /* ---------- what speed does ----------
+     1. Fuel: burn per jump falls with the square root of speed.
+     2. Evasion: each 0.1 of warp above 0.9 gives a 2.5% chance to outrun a bad travel event (cap 45%).
+     3. Initiative: in a shared game the fastest ship moves first each round, so it gets first pick of the markets.
+     4. Getaway: a quick ship makes cleaner escapes when it sabotages a rival. */
+  GT.evadeChance = function (s) { return clamp((GT.effSpeed(s) - 0.9) * 0.25, 0, 0.45); };
+  GT.speedEdge = function (s) { return clamp((GT.effSpeed(s) - 1) * 0.05, -0.01, 0.12); };
+  GT.fuelRatio = function (s) { return 1 / Math.sqrt(GT.effSpeed(s)); };
+  GT.DODGES = [
+    'Your sensors catch trouble ahead and the engines do the rest. At warp {speed} you slip past before it can lay a finger on you.',
+    'Something nasty lunges at your hull. Your warp {speed} laughs and leaves it eating your exhaust.',
+    'Alarms start to wail, but you are already gone. Nothing outruns trouble like a fast ship.',
+    'A hazard drifts across your lane and the autopilot swerves with a squeal. The crew spill their tea, and nothing else is lost.',
+    'The pirates barely finish their sentence before you are a dot on their scope. Speed pays.'
+  ];
+
+  GT.canJump = function (s, to) { return !s.over && !s.pending && to !== s.loc && to >= 0 && s.ship.fuel >= GT.jumpCost(s, to); };
+
+  GT.jump = function (s, to, towed, opts) {
+    if (s.over || s.pending || to === s.loc) return false;
+    var from = s.loc, cost = towed ? 0 : GT.jumpCost(s, to);
+    if (!towed && s.ship.fuel < cost) return false;
+    var A = GT.PLANETS[from], B = GT.PLANETS[to];
+    s.ship.fuel -= cost; s.stats.jumps++;
+    GT.log(s, (towed ? 'A tanker tug hooks onto you and drags you out of <b>' + A.name + '</b>. ' : 'Departed <b>' + A.name + '</b>, bound for ' + B.name + '. ') + (cost ? 'Burned ' + cost + ' PC of fuel.' : ''), 'info');
+    if (towed) { s.credits -= GT.CFG.TOW_COST; s.stats.tows++; s.stats.eventLoss += GT.CFG.TOW_COST; GT.log(s, 'The tug crew bills you for the rescue: <b>-' + GT.CFG.TOW_COST + 'c</b>.', 'loss', -GT.CFG.TOW_COST); }
+    var ev = (opts && Object.prototype.hasOwnProperty.call(opts, 'event')) ? opts.event : ((GT.rand() < GT.CFG.TRAVEL_EVENT && GT.TRAVEL) ? GT.pickEntry(GT.TRAVEL, s) : null);
+    if (ev && ev.g < 0 && !towed && !(opts && opts.noEvade) && GT.rand() < GT.evadeChance(s)) {
+      s.stats.evaded = (s.stats.evaded || 0) + 1;
+      GT.log(s, GT.pick(GT.DODGES).replace('{speed}', GT.effSpeed(s).toFixed(1)), 'event'); s.log[0].dodge = true; ev = null;
+    }
+    if (ev) { var fx = GT.applyEffect(s, ev); s.stats.events++; GT.log(s, (opts && opts.note ? opts.note + ' ' : '') + ev.t + fx.detail, fx.kind, fx.money); }
+    s.turn++;
+    s.ship.damage.forEach(function (d) { d.turns--; });
+    s.ship.damage = s.ship.damage.filter(function (d) { return d.turns > 0; });
+    /* In a shared game the world ticks once per round (GT.endRound), not once per captain. */
+    if (!s.multi) { GT.tickMarkets(s); GT.tickComps(s); }
+    if (s.stats.jumps % GT.CFG.INTEREST_EVERY === 0) GT.interest(s);
+    s.loc = to; s.dest = null; GT.rollTrends(s);
+    s.visit = { explored: false, encountered: false, offer: null, flags: {} };
+    GT.log(s, 'Arrived at <b>' + B.name + '</b> (' + B.type + ').', 'info');
+    if (s.multi) s.arrivalPending = true; else GT.arrivalHooks(s, to);
+    s.stats.peak = Math.max(s.stats.peak, GT.networth(s));
+    GT.checkEnd(s);
+    return true;
+  };
+
+  /* Emergency tow to the nearest fuel dock. It costs a jump and a fee, so it can sink a broke player. */
+  GT.towTarget = function (s) {
+    var best = -1, bd = 1e9;
+    GT.PLANETS.forEach(function (p, i) { if (i !== s.loc && p.fuelSold) { var d = GT.dist(s.loc, i); if (d < bd) { bd = d; best = i; } } });
+    return best;
+  };
+  GT.tow = function (s) { if (!GT.stranded(s) || s.over || s.pending) return false; return GT.jump(s, GT.towTarget(s), true); };
+
+  /* Everything that happens when you step off the ship: fees, a facility offer, a rival at the dock. */
+  GT.arrivalHooks = function (s, to) {
+    s.mods.forEach(function (m) { if (m.p === to) GT.log(s, m.text, 'info'); });
+    if (s.owned[to]) GT.collectFees(s, to);
+    if (!s.owned[to] && !GT.ownedByOther(s, to) && GT.rand() < GT.CFG.FACILITY_OFFER) GT.makeOffer(s, to);
+    var here = s.comps.filter(function (c) { return c.loc === to; });
+    if (here.length && GT.rand() < GT.CFG.COMP_EVENT) { var c = GT.pick(here); s.pending = { type: 'comp', ci: s.comps.indexOf(c), mood: GT.pick(GT.MOODS) }; }
+  };
+  GT.ownedByOther = function (s, p) { return !!(s.game && s.game.players.some(function (o) { return o !== s && o.owned[p]; })); };
+  GT.othersHere = function (s) { return s.game ? s.game.players.filter(function (o) { return o !== s && o.loc === s.loc && !(o.over && !o.over.won); }) : []; };
+
+  GT.interest = function (s) {
+    if (s.bank > 0) { var g = Math.round(s.bank * GT.CFG.DEPOSIT_RATE); s.bank += g; s.stats.interestEarned += g; GT.log(s, 'The bank pays <b>' + (GT.CFG.DEPOSIT_RATE * 100) + '%</b> interest on your deposit: <b>+' + fmt(g) + 'c</b> added to your account.', 'gain', g); }
+    if (s.loan > 0) { var l = Math.round(s.loan * GT.CFG.LOAN_RATE); s.loan += l; s.stats.interestPaid += l; GT.log(s, 'Your loan accrues <b>' + (GT.CFG.LOAN_RATE * 100) + '%</b> interest: <b>-' + fmt(l) + 'c</b> added to the debt.', 'loss', -l); }
+  };
+
+  GT.checkEnd = function (s) {
+    var nw = GT.networth(s);
+    if (nw >= GT.CFG.WIN) s.over = { won: true, turn: s.turn, why: 'Your fortune has reached ' + fmt(nw) + ' credits.' };
+    else if (s.credits <= 0 && GT.cargoUsed(s) === 0) s.over = { won: false, turn: s.turn, why: 'You have ' + fmt(s.credits) + ' credits and an empty hold. There is nothing left to trade with.' };
+    return s.over;
+  };
+
+  /* ---------- bank ---------- */
+  GT.deposit = function (s, n) { n = Math.floor(n); if (n <= 0 || n > s.credits) return false; s.credits -= n; s.bank += n; GT.log(s, 'Deposited <b>' + fmt(n) + 'c</b> in the bank.', 'info'); return true; };
+  GT.withdraw = function (s, n) { n = Math.floor(n); if (n <= 0 || n > s.bank) return false; s.bank -= n; s.credits += n; GT.log(s, 'Withdrew <b>' + fmt(n) + 'c</b> from the bank.', 'info'); return true; };
+  GT.canLoan = function (s) { return s.loan + GT.CFG.LOAN_STEP <= GT.CFG.LOAN_CAP; };
+  GT.takeLoan = function (s) { if (!GT.canLoan(s)) return false; s.loan += GT.CFG.LOAN_STEP; s.credits += GT.CFG.LOAN_STEP; GT.log(s, 'Took out a loan of <b>' + fmt(GT.CFG.LOAN_STEP) + 'c</b> at ' + (GT.CFG.LOAN_RATE * 100) + '% interest. You now owe ' + fmt(s.loan) + 'c.', 'info'); return true; };
+  GT.repay = function (s, n) { n = Math.floor(Math.min(n, s.loan, s.credits)); if (n <= 0) return false; s.credits -= n; s.loan -= n; GT.log(s, 'Repaid <b>' + fmt(n) + 'c</b> of your loan. You now owe ' + fmt(s.loan) + 'c.', 'info'); return true; };
+
+  /* ---------- upgrades ---------- */
+  GT.upgradeAvail = function (s, key) { return GT.PLANETS[s.loc].upgrades.indexOf(key) >= 0 && s.ship.lv[key] < GT.CFG.UPGRADE_MAX; };
+  GT.upgradeCost = function (s, key) { var u = GT.UPGRADES[key]; return Math.round(u.base * Math.pow(u.grow, s.ship.lv[key]) / 10) * 10; };
+  GT.upgrade = function (s, key) {
+    if (!GT.upgradeAvail(s, key)) return false;
+    var cost = GT.upgradeCost(s, key), u = GT.UPGRADES[key];
+    if (cost > s.credits) return false;
+    s.credits -= cost; s.stats.upgradesSpent += cost; s.ship.lv[key]++;
+    if (key === 'cargo') s.ship.cargoMax += u.step; else if (key === 'speed') s.ship.speed = Math.round((s.ship.speed + u.step) * 10) / 10; else s.ship.fuelMax += u.step;
+    GT.log(s, 'Upgraded your <b>' + u.name + '</b> (' + u.label + ') to level ' + s.ship.lv[key] + '. <b>-' + fmt(cost) + 'c</b>.', 'loss', -cost);
+    return true;
+  };
+})();
+
+/* Galactic Trader. Part 4: facilities, rival traders, exploring, encounters and the parlour. */
+(function () {
+  var clamp = GT.clamp, R = GT.R, fmt = GT.fmt;
+
+  /* ---------- facilities: price is about 20 times the benefit it brings per jump ---------- */
+  GT.facDef = function (id) { return GT.FACILITIES.filter(function (f) { return f.id === id; })[0]; };
+  GT.facBenefit = function (s, id, p) {
+    var f = GT.facDef(id), S = clamp(GT.networth(s), 2500, 150000);
+    if (f.kind === 'trade') return f.pct * S * 0.6;
+    if (f.kind === 'fuel') return f.pct * (150 + S * 0.006);
+    return f.feePct * S * GT.PLANETS[p].fac[id];
+  };
+  GT.facBenefitText = function (id, B) {
+    var f = GT.facDef(id);
+    if (f.kind === 'trade') return '+' + (f.pct * 100).toFixed(1) + '% better prices on all trades and a lower tax bill (worth about ' + fmt(B) + 'c per jump)';
+    if (f.kind === 'fuel') return '-' + (f.pct * 100).toFixed(0) + '% on fuel at every dock and a lower tax bill (worth about ' + fmt(B) + 'c per jump)';
+    return 'about ' + fmt(B) + 'c in rival fees for every jump you are away, collected when you return';
+  };
+  GT.makeOffer = function (s, p) {
+    var pl = GT.PLANETS[p], tot = 0, ids = GT.FACILITIES.map(function (f) { tot += pl.fac[f.id]; return f.id; }), r = GT.rand() * tot, id = ids[0];
+    for (var k = 0; k < ids.length; k++) { r -= pl.fac[ids[k]]; if (r <= 0) { id = ids[k]; break; } }
+    var B = GT.facBenefit(s, id, p), price = Math.max(200, Math.round(20 * B / 10) * 10);
+    s.visit.offer = { type: id, B: B, price: price };
+    GT.log(s, 'A local agent offers you a <b>' + GT.facDef(id).name + '</b> on ' + pl.name + ' for <b>' + fmt(price) + 'c</b>: ' + GT.facBenefitText(id, B) + '. The offer stands while you are docked here.', 'info');
+  };
+  GT.buyFacility = function (s) {
+    var o = s.visit.offer, p = s.loc;
+    if (!o || o.price > s.credits || s.owned[p]) return false;
+    s.credits -= o.price; s.owned[p] = { type: o.type, since: s.turn, fee: GT.facDef(o.type).kind === 'fee' ? o.B : 0 };
+    s.stats.facilitiesBought++; GT.addRep(s, 4);
+    GT.log(s, 'You bought the <b>' + GT.facDef(o.type).name + '</b> on ' + GT.PLANETS[p].name + '. <b>-' + fmt(o.price) + 'c</b>. Word gets around (+4 reputation).', 'loss', -o.price);
+    s.visit.offer = null; return true;
+  };
+  GT.collectFees = function (s, p) {
+    var o = s.owned[p]; if (!o || !o.fee) { if (o) o.since = s.turn; return; }
+    var turns = Math.min(GT.CFG.FEE_CAP_TURNS, s.turn - o.since); o.since = s.turn;
+    if (turns <= 0) return;
+    var inc = Math.round(o.fee * turns * R(0.8, 1.2) / 5) * 5; s.credits += inc; s.stats.feeIncome += inc;
+    GT.log(s, 'Your <b>' + GT.facDef(o.type).name + '</b> here has earned rival-trader fees over ' + turns + ' jumps: <b>+' + fmt(inc) + 'c</b>.', 'gain', inc);
+  };
+
+  /* ---------- rival traders ---------- */
+  GT.tickComps = function (s, nwOverride) {
+    var nw = typeof nwOverride === 'number' ? nwOverride : GT.networth(s);
+    s.comps.forEach(function (c) {
+      var rate = c.rate * R(0.35, 1.65);
+      if (nw > c.wealth * 1.5) rate *= 1.12; else if (c.wealth > nw * 1.6) rate *= 0.85;
+      c.wealth *= 1 + rate;
+      if (GT.rand() < 0.06) c.wealth *= R(0.9, 0.96);
+      c.wealth = Math.min(c.wealth, GT.CFG.WIN * 0.97);
+      var to = GT.RI(0, GT.PLANETS.length - 2); c.loc = to >= c.loc ? to + 1 : to;
+    });
+    GT.refreshComps(s);
+  };
+  GT.canAssist = function (s) { return s.credits >= 150 && GT.compAssistCost(s) <= s.credits; };
+  GT.compAssistCost = function (s) { return Math.max(150, Math.round(GT.scale(s) * 0.8 / 10) * 10); };
+
+  GT.compAction = function (s, act, perf) {
+    var pe = s.pending; if (!pe || pe.type !== 'comp') return false;
+    var c = s.comps[pe.ci], st = s.stats, luck = GT.luck(s), S = GT.scale(s), nm = '<b>' + c.name + '</b>';
+    s.pending = null;
+    if (act === 'assist' && !GT.canAssist(s)) { GT.log(s, 'You reach for your credit chit, find it far too light to help ' + nm + ', and quietly decide to ignore them instead.', 'info'); act = 'ignore'; }
+    if (act === 'sabotage') {
+      st.sabotage++;
+      var win = GT.rand() < (perf === undefined ? 0.30 + luck * 0.4 : 0.18 + 0.27 * perf + luck * 0.3) + GT.speedEdge(s);
+      if (win) {
+        var hit = c.wealth * R(0.04, 0.09); c.wealth -= hit; st.sabotageWon++; GT.addRep(s, 4);
+        GT.log(s, 'You slip into ' + nm + '\'s hold and quietly dump a third of their fuel mix. By morning they have lost about <b>' + fmt(hit) + 'c</b> in delays and repairs, and nobody saw you. <span class="fx">(+4 reputation)</span>', 'event');
+      } else if (GT.rand() < 0.35 - luck * 0.2) {
+        var fine = Math.round(S * R(0.5, 1.2) / 5) * 5; s.credits -= fine; st.eventLoss += fine; GT.addRep(s, -8);
+        GT.log(s, 'Your sabotage goes badly wrong. ' + nm + '\'s crew catch you with a spanner in the fuel line, and dock security fine you <b>-' + fmt(fine) + 'c</b>. <span class="fx">(-8 reputation)</span>', 'loss', -fine);
+      } else {
+        GT.addRep(s, -2);
+        GT.log(s, 'You try to sabotage ' + nm + ' and fumble it. Nothing breaks, and nobody notices, but you feel foolish. <span class="fx">(-2 reputation)</span>', 'event');
+      }
+    } else if (act === 'assist') {
+      st.assists++;
+      var cost = GT.compAssistCost(s), fuelHelp = GT.rand() < 0.4 && s.ship.fuel > 40, r = GT.rand();
+      var what = fuelHelp ? 15 + ' PC of fuel' : fmt(cost) + 'c';
+      if (fuelHelp) s.ship.fuel -= 15; else s.credits -= cost;
+      var pay = 0.2 + luck * 0.3, thanks = 0.6 + luck * 0.1;
+      if (r < pay) {
+        var back = Math.round(cost * R(1.8, 2.8) / 5) * 5; s.credits += back; st.eventGain += back; GT.addRep(s, 3);
+        GT.log(s, 'You give ' + nm + ' ' + what + ' to get them off the dock. Within the hour a courier hands you a chit: they repaid <b>+' + fmt(back) + 'c</b>, "with interest, friend". <span class="fx">(+3 reputation)</span>', 'gain', back - (fuelHelp ? 0 : cost));
+        if (!fuelHelp) st.eventLoss += cost;
+      } else if (r < pay + thanks) {
+        if (!fuelHelp) st.eventLoss += cost;
+        var up = GT.rand() < 0.5; if (up) GT.addRep(s, 2);
+        GT.log(s, 'You give ' + nm + ' ' + what + '. They grip your hand. "Thank you. I won\'t forget this." <b>' + (fuelHelp ? '-15 PC' : '-' + fmt(cost) + 'c') + '</b>' + (up ? ' <span class="fx">(+2 reputation)</span>' : ''), fuelHelp ? 'event' : 'loss', fuelHelp ? 0 : -cost);
+      } else {
+        if (!fuelHelp) st.eventLoss += cost;
+        GT.log(s, 'You give ' + nm + ' ' + what + ' and they pocket it without a word, and snub you at the door. <b>' + (fuelHelp ? '-15 PC' : '-' + fmt(cost) + 'c') + '</b>', fuelHelp ? 'event' : 'loss', fuelHelp ? 0 : -cost);
+      }
+      c.wealth += fuelHelp ? 0 : cost * 0.5;
+    } else {
+      var snark = GT.rand() < 0.35, line = GT.pick(GT.SNARK || ['Nice ship. Did it come with the dents?']);
+      if (snark) {
+        var lose = GT.rand() < 0.4; if (lose) GT.addRep(s, -1);
+        GT.log(s, 'You ignore ' + nm + '. They call after you: "' + line + '"' + (lose ? ' <span class="fx">(-1 reputation)</span>' : ''), 'event');
+      } else GT.log(s, 'You ignore ' + nm + ' and they ignore you right back.', 'info');
+    }
+    GT.refreshComps(s);
+    return true;
+  };
+
+  /* ---------- exploring and seeking encounters (once each per visit) ---------- */
+  GT.NOTHING_X = ['You wander for an hour and find nothing but dust and sore feet.', 'You poke around the back streets. Nothing happens, though a stray dog follows you for a while.', 'A quiet walk. You see nothing worth writing down.', 'You search for anything unusual and find only the usual.'];
+  GT.NOTHING_E = ['{who} is nowhere to be found. You leave a message and nobody replies.', 'You wait around for {who}, who never shows. You drink something questionable instead.', '{who} is busy, or hiding. Either way, no meeting today.'];
+  function seek(s, kind, chance) {
+    var key = kind === 'x' ? 'explored' : 'encountered', pl = GT.PLANETS[s.loc];
+    if (s.visit[key] || s.over || s.pending) return false;
+    s.visit[key] = true;
+    var pool = kind === 'x' ? (GT.EXPLORE || {})[pl.id] : ((GT.ENCOUNTER || {})[pl.id] || {}).list, who = ((GT.ENCOUNTER || {})[pl.id] || {}).who || 'a stranger';
+    if (kind === 'x') s.stats.explores++; else s.stats.encounters++;
+    if (GT.rand() < (chance !== undefined ? chance : (kind === 'x' ? GT.CFG.EXPLORE : GT.CFG.ENCOUNTER)) && pool && pool.length) {
+      var ev = GT.pickEntry(pool, s), fx = GT.applyEffect(s, ev);
+      s.stats.events++;
+      GT.log(s, (kind === 'x' ? '<b>Exploring ' + pl.name + ':</b> ' : '<b>' + who + ':</b> ') + ev.t + fx.detail, fx.kind, fx.money);
+    } else {
+      GT.log(s, (kind === 'x' ? '<b>Exploring ' + pl.name + ':</b> ' + GT.pick(GT.NOTHING_X) : '<b>' + who + ':</b> ' + GT.pick(GT.NOTHING_E).replace('{who}', who)), 'info');
+    }
+    return true;
+  }
+  GT.explore = function (s, chance) { return seek(s, 'x', chance); };
+  GT.encounter = function (s, chance) { return seek(s, 'e', chance); };
+
+  /* ---------- the Parlour of Thin Hours (Nihil Station). Odds are never shown as numbers. ---------- */
+  /* outcomes: [multiplier, probability, text]. The first two outcomes trade probability with the parlour's mood. */
+  GT.GAMES = [
+    { id: 'ledger', name: 'The Tidal Ledger', shift: 0.04, blurb: 'You pay the Ledger in a currency it will not name. It nods, or it does not. A high chance of a small return, a slim chance of being forgotten entirely.',
+      out: [[0, 0.22, 'The Ledger turns a page and your name is no longer on it.'], [0.7, 0.20, 'The Ledger sighs and returns most of what it owes.'], [1.2, 0.50, 'The Ledger hums and pays a little over what you laid down.'], [2, 0.08, 'The Ledger rings twice. You are paid double.']] },
+    { id: 'moth', name: 'Quiet Moth of Ssur', shift: 0.02, blurb: 'A pale moth lands on one of the lamps. Which lamp it prefers depends on the hour, the moon, and your sleeve. Mostly you lose, but sometimes you win a great deal.',
+      out: [[0, 0.67, 'The moth ignores your lamp and drifts away through the smoke.'], [1.5, 0.17, 'The moth circles your lamp twice. A modest bonus.'], [3, 0.10, 'The moth settles and does not leave. Triple.'], [6, 0.06, 'The moth glows. The Parlour goes silent. Sixfold.']] },
+    { id: 'orchard', name: 'The Glass Orchard', shift: 0.04, blurb: 'You pick a pane of glass and the Orchard decides if it ripens. A low chance of doubling, a high chance of a 20% return, and an odd chance of bruised fruit.',
+      out: [[0, 0.21, 'The glass shatters. The Orchard apologises in nine languages.'], [0.5, 0.16, 'Bruised fruit. Half your stake comes back, wrapped in leaves.'], [1.2, 0.52, 'The fruit ripens a little. A fifth more than you laid down.'], [2, 0.11, 'The whole tree blushes gold. You double your stake.']] },
+    { id: 'seven', name: 'Resonance of Seven', shift: 0.005, blurb: 'Seven bells, each tuned to a different regret. You will almost never hear all of them agree. Nearly always a total loss, and rarely a fortune.',
+      out: [[0, 0.92, 'The bells jangle and fall silent.'], [8, 0.065, 'Four bells chime together. Eight times your stake.'], [25, 0.015, 'All seven bells ring as one. The floor shakes. Twenty-five times your stake.']] }
+  ];
+  GT.STAKES = [50, 250, 1000, 5000];
+  GT.GAME_LUCK_NOTE = 'The Parlour\'s mood drifts between rounds. Nobody knows which way.';
+  GT.canGamble = function (s) { return GT.PLANETS[s.loc].gambling && !s.over && !s.pending; };
+  GT.gamble = function (s, gi, stake) {
+    if (!GT.canGamble(s) || stake > s.credits || stake <= 0) return null;
+    var g = GT.GAMES[gi], mood = s.gamble ? s.gamble.mood : 0, d = g.shift * (mood === 1 ? -1 : mood === 2 ? 1 : 0) + GT.luck(s) * g.shift;
+    var p = g.out.map(function (o) { return o[1]; });
+    var mv = clamp(d, -p[1] + 0.001, p[0] - 0.001); p[0] -= mv; p[1] += mv;
+    var r = GT.rand(), k = 0; for (; k < p.length - 1; k++) { r -= p[k]; if (r <= 0) break; }
+    var o = g.out[k], ret = Math.round(stake * o[0]), net = ret - stake;
+    s.credits += net; s.stats.gambleNet += net; s.stats.gambleRounds++;
+    s.gamble = { mood: GT.RI(0, 2) };
+    GT.log(s, '<b>' + g.name + ':</b> you wager ' + fmt(stake) + 'c. ' + o[2] + ' <b>' + (net >= 0 ? '+' : '-') + fmt(Math.abs(net)) + 'c</b>' + (net === 0 ? '' : '.'), net > 0 ? 'gain' : net < 0 ? 'loss' : 'event', net);
+    return { text: o[2], net: net, ret: ret };
+  };
+})();
+
+/* Galactic Trader. Part 8: artwork. Five distinct ship silhouettes, planet paintings on canvas, and the star map. */
+var UI = {};
+UI.shade = function (hex, amt) {
+  var n = parseInt(hex.slice(1), 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255;
+  function f(c) { return Math.max(0, Math.min(255, Math.round(amt >= 0 ? c + (255 - c) * amt : c * (1 + amt)))); }
+  return '#' + ((1 << 24) + (f(r) << 16) + (f(g) << 8) + f(b)).toString(16).slice(1);
+};
+
+UI.shipSVG = function (id, hue) {
+  var d = UI.shade(hue, -0.5), l = UI.shade(hue, 0.4), glass = '#bff4ff', fl = '#ffb347', body;
+  var flame = function (x, y, len) { return '<path d="M' + x + ' ' + (y - 7) + ' L' + (x - len) + ' ' + y + ' L' + x + ' ' + (y + 7) + 'Z" fill="' + fl + '"/><path d="M' + x + ' ' + (y - 3) + ' L' + (x - len * 0.55) + ' ' + y + ' L' + x + ' ' + (y + 3) + 'Z" fill="#fff4c2"/>'; };
+  if (id === 'barge') {
+    body = flame(28, 52, 22) + flame(28, 72, 22) + flame(28, 92, 22) +
+      '<rect x="30" y="42" width="14" height="20" rx="3" fill="#2a2f4a"/><rect x="30" y="62" width="14" height="20" rx="3" fill="#2a2f4a"/><rect x="30" y="82" width="14" height="20" rx="3" fill="#2a2f4a"/>' +
+      '<rect x="44" y="40" width="150" height="64" rx="6" fill="' + hue + '"/><rect x="44" y="70" width="150" height="6" fill="' + d + '"/>' +
+      '<rect x="56" y="24" width="38" height="18" fill="' + l + '"/><rect x="98" y="24" width="38" height="18" fill="#ff7ad9"/><rect x="140" y="24" width="38" height="18" fill="#6fe7ff"/>' +
+      '<rect x="56" y="104" width="38" height="16" fill="' + d + '"/><rect x="98" y="104" width="38" height="16" fill="' + l + '"/>' +
+      '<path d="M194 48 L226 60 L226 84 L194 96Z" fill="' + d + '"/><path d="M200 56 L220 63 L220 70 L200 70Z" fill="' + glass + '"/>';
+  } else if (id === 'stargazer') {
+    body = flame(34, 72, 20) + '<rect x="30" y="62" width="14" height="20" rx="3" fill="#2a2f4a"/>' +
+      '<rect x="64" y="84" width="60" height="18" rx="9" fill="' + d + '"/><rect x="132" y="84" width="46" height="18" rx="9" fill="' + d + '"/>' +
+      '<path d="M40 72 L190 62 L232 72 L190 82Z" fill="' + hue + '"/><path d="M40 72 L190 67 L232 72 L190 77Z" fill="' + l + '" opacity=".55"/>' +
+      '<rect x="116" y="42" width="6" height="26" fill="' + d + '"/><ellipse cx="119" cy="38" rx="38" ry="11" fill="' + l + '"/><ellipse cx="119" cy="38" rx="30" ry="7" fill="' + d + '"/><circle cx="119" cy="30" r="4" fill="' + glass + '"/>' +
+      '<ellipse cx="202" cy="70" rx="16" ry="5" fill="' + glass + '"/>';
+  } else if (id === 'cutlass') {
+    body = flame(34, 50, 20) + flame(34, 94, 20) +
+      '<rect x="30" y="42" width="14" height="16" rx="3" fill="#2a2f4a"/><rect x="30" y="86" width="14" height="16" rx="3" fill="#2a2f4a"/>' +
+      '<path d="M40 38 Q150 22 232 72 Q150 76 118 112 Q76 126 44 102 Q78 84 64 62 Q54 48 40 38Z" fill="' + hue + '"/>' +
+      '<path d="M64 62 Q150 44 224 72 Q150 66 82 80Z" fill="' + l + '" opacity=".55"/><path d="M118 112 Q76 126 44 102 Q90 98 118 112Z" fill="' + d + '"/>' +
+      '<ellipse cx="176" cy="66" rx="16" ry="5" transform="rotate(14 176 66)" fill="' + glass + '"/>';
+  } else {
+    body = flame(34, 72, 24) + '<rect x="28" y="60" width="14" height="24" rx="3" fill="#2a2f4a"/>' +
+      '<path d="M92 52 L132 16 L150 18 L130 54Z M92 90 L132 126 L150 124 L130 88Z" fill="' + d + '"/>' +
+      '<path d="M36 72 Q64 40 150 44 L204 62 Q220 72 204 82 L150 100 Q64 104 36 72Z" fill="' + hue + '"/><path d="M50 72 Q84 56 160 58 L200 66 L160 72Z" fill="' + l + '" opacity=".5"/>' +
+      '<ellipse cx="170" cy="68" rx="22" ry="10" fill="' + glass + '"/><circle cx="96" cy="72" r="5" fill="' + d + '"/><circle cx="116" cy="72" r="5" fill="' + d + '"/>';
+  }
+  return '<svg viewBox="0 0 240 140" role="img" aria-label="Ship illustration">' + body + '</svg>';
+};
+
+/* ---------- planets (canvas, black starfield behind) ---------- */
+UI.drawPlanet = function (cv, p) {
+  var W = 480, H = 270, dpr = Math.min(window.devicePixelRatio || 1, 2);
+  cv.width = W * dpr; cv.height = H * dpr; cv.style.aspectRatio = W + ' / ' + H;
+  var c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  var seed = 0; for (var i = 0; i < p.id.length; i++) seed = seed * 31 + p.id.charCodeAt(i);
+  var rnd = GT.seeded(seed), cx = 300, cy = 126, r = 88, k;
+  c.fillStyle = '#000'; c.fillRect(0, 0, W, H);
+  for (k = 0; k < 150; k++) { c.globalAlpha = 0.25 + rnd() * 0.75; c.fillStyle = '#fff'; var sz = rnd() < 0.1 ? 1.8 : 1; c.fillRect(rnd() * W, rnd() * H, sz, sz); }
+  c.globalAlpha = 1;
+  var base = p.color, dark = UI.shade(base, -0.65), lite = UI.shade(base, 0.45);
+  function sphere() { var g = c.createRadialGradient(cx - r * 0.4, cy - r * 0.45, r * 0.1, cx, cy, r * 1.05); g.addColorStop(0, lite); g.addColorStop(0.45, base); g.addColorStop(1, dark); c.fillStyle = g; c.beginPath(); c.arc(cx, cy, r, 0, 7); c.fill(); }
+  function shadow() { var g = c.createRadialGradient(cx - r * 0.5, cy - r * 0.5, r * 0.5, cx + r * 0.2, cy + r * 0.2, r * 1.25); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,6,.78)'); c.fillStyle = g; c.beginPath(); c.arc(cx, cy, r, 0, 7); c.fill(); }
+  function clip() { c.save(); c.beginPath(); c.arc(cx, cy, r, 0, 7); c.clip(); }
+  function glow() { var g = c.createRadialGradient(cx, cy, r * 0.95, cx, cy, r * 1.3); g.addColorStop(0, base + '66'); g.addColorStop(1, base + '00'); c.fillStyle = g; c.beginPath(); c.arc(cx, cy, r * 1.3, 0, 7); c.fill(); }
+  var t = p.type;
+  if (t === 'Void Station') {
+    var g = c.createRadialGradient(cx, cy, 8, cx, cy, r * 1.25); g.addColorStop(0, '#000'); g.addColorStop(0.55, '#000'); g.addColorStop(0.75, base + '88'); g.addColorStop(1, base + '00');
+    c.fillStyle = g; c.beginPath(); c.arc(cx, cy, r * 1.25, 0, 7); c.fill();
+    c.strokeStyle = lite; c.lineWidth = 7; c.beginPath(); c.ellipse(cx, cy, 70, 70, 0, 0, 7); c.stroke();
+    c.strokeStyle = base; c.lineWidth = 2;
+    for (k = 0; k < 8; k++) { var a = k * Math.PI / 4; c.beginPath(); c.moveTo(cx + Math.cos(a) * 14, cy + Math.sin(a) * 14); c.lineTo(cx + Math.cos(a) * 67, cy + Math.sin(a) * 67); c.stroke(); }
+    c.fillStyle = lite; c.beginPath(); c.arc(cx, cy, 15, 0, 7); c.fill(); c.fillStyle = '#000'; c.beginPath(); c.arc(cx, cy, 6, 0, 7); c.fill();
+    c.fillStyle = '#fff'; for (k = 0; k < 24; k++) { var b = k * Math.PI / 12; c.fillRect(cx + Math.cos(b) * 70 - 1, cy + Math.sin(b) * 70 - 1, 3, 3); }
+    return;
+  }
+  if (p.ring) { c.save(); c.translate(cx, cy); c.rotate(-0.28); c.strokeStyle = lite; c.globalAlpha = 0.55; c.lineWidth = 16; c.beginPath(); c.ellipse(0, 0, 150, 28, 0, Math.PI, 2 * Math.PI); c.stroke(); c.lineWidth = 6; c.strokeStyle = base; c.beginPath(); c.ellipse(0, 0, 170, 34, 0, Math.PI, 2 * Math.PI); c.stroke(); c.restore(); c.globalAlpha = 1; }
+  glow(); sphere(); clip();
+  if (t === 'Gas Giant') { for (k = 0; k < 16; k++) { c.fillStyle = k % 2 ? 'rgba(255,240,200,.22)' : 'rgba(150,80,20,.25)'; var yy = cy - r + k * (r * 2 / 16) + rnd() * 4; c.fillRect(cx - r, yy, r * 2, 6 + rnd() * 8); } c.fillStyle = 'rgba(190,60,30,.55)'; c.beginPath(); c.ellipse(cx + 28, cy + 26, 22, 11, 0, 0, 7); c.fill(); }
+  else if (t === 'Agrarian') { for (k = 0; k < 90; k++) { c.save(); c.translate(cx + (rnd() - 0.5) * r * 2, cy + (rnd() - 0.5) * r * 2); c.rotate(rnd() < 0.5 ? 0.3 : -0.4); c.fillStyle = rnd() < 0.5 ? 'rgba(255,230,120,.5)' : 'rgba(30,120,50,.5)'; c.fillRect(0, 0, 8 + rnd() * 18, 5 + rnd() * 10); c.restore(); } c.fillStyle = 'rgba(70,150,255,.5)'; c.beginPath(); c.ellipse(cx - 30, cy + 40, 24, 10, 0.4, 0, 7); c.fill(); }
+  else if (t === 'Megacity') { for (k = 0; k < 400; k++) { var px = cx + (rnd() - 0.5) * r * 2, py = cy + (rnd() - 0.5) * r * 2; c.fillStyle = rnd() < 0.2 ? '#fff' : base; c.globalAlpha = 0.4 + rnd() * 0.6; c.fillRect(px, py, 1.6, 1.6); } c.globalAlpha = 1; c.strokeStyle = 'rgba(160,240,255,.35)'; c.lineWidth = 1; for (k = -3; k <= 3; k++) { c.beginPath(); c.moveTo(cx - r, cy + k * 24); c.lineTo(cx + r, cy + k * 24); c.stroke(); c.beginPath(); c.moveTo(cx + k * 24, cy - r); c.lineTo(cx + k * 24, cy + r); c.stroke(); } }
+  else if (t === 'Mining') { for (k = 0; k < 28; k++) { var qx = cx + (rnd() - 0.5) * r * 1.8, qy = cy + (rnd() - 0.5) * r * 1.8, qr = 3 + rnd() * 12; c.fillStyle = 'rgba(40,10,0,.45)'; c.beginPath(); c.arc(qx, qy, qr, 0, 7); c.fill(); c.strokeStyle = 'rgba(255,170,90,.35)'; c.stroke(); } c.fillStyle = '#ffb347'; for (k = 0; k < 14; k++) c.fillRect(cx + (rnd() - 0.5) * r * 1.6, cy + (rnd() - 0.5) * r * 1.6, 2, 2); }
+  else if (t === 'Science') { for (k = 0; k < 9; k++) { var dx = cx + (rnd() - 0.5) * r * 1.5, dy = cy + (rnd() - 0.5) * r * 1.5; c.fillStyle = 'rgba(255,255,255,.75)'; c.beginPath(); c.arc(dx, dy, 6 + rnd() * 6, Math.PI, 2 * Math.PI); c.fill(); c.fillRect(dx - 12, dy, 24, 3); } c.strokeStyle = 'rgba(255,255,255,.35)'; for (k = 0; k < 6; k++) { c.beginPath(); c.moveTo(cx - r, cy - 60 + k * 24 + rnd() * 6); c.quadraticCurveTo(cx, cy - 70 + k * 26, cx + r, cy - 50 + k * 22); c.stroke(); } }
+  else if (t === 'Ruin') { for (k = 0; k < 18; k++) { var rx = cx + (rnd() - 0.5) * r * 1.6, ry = cy + (rnd() - 0.5) * r * 1.6; c.strokeStyle = 'rgba(70,40,10,.5)'; c.lineWidth = 2; c.beginPath(); c.arc(rx, ry, 4 + rnd() * 14, 0, 7); c.stroke(); } c.strokeStyle = 'rgba(255,235,190,.7)'; c.lineWidth = 3; c.beginPath(); c.arc(cx - 6, cy + 4, 50, 0.4, 4.2); c.stroke(); c.fillStyle = 'rgba(255,235,190,.8)'; for (k = 0; k < 6; k++) { var aa = 0.4 + k * 0.62; c.fillRect(cx - 6 + Math.cos(aa) * 50 - 2, cy + 4 + Math.sin(aa) * 50 - 6, 4, 12); } }
+  c.restore(); shadow();
+  c.strokeStyle = '#1d0f33'; c.lineWidth = 5; c.beginPath(); c.arc(cx, cy, r, 0, 7); c.stroke();
+  if (p.ring) { c.save(); c.translate(cx, cy); c.rotate(-0.28); c.strokeStyle = lite; c.globalAlpha = 0.85; c.lineWidth = 16; c.beginPath(); c.ellipse(0, 0, 150, 28, 0, 0, Math.PI); c.stroke(); c.lineWidth = 6; c.strokeStyle = base; c.beginPath(); c.ellipse(0, 0, 170, 34, 0, 0, Math.PI); c.stroke(); c.restore(); c.globalAlpha = 1; }
+};
+
+/* ---------- star map (svg) ---------- */
+UI.mapSX = function (x) { return 24 + x * 3.55; };
+UI.mapSY = function (y) { return 26 + y * 3.7; };
+UI.mapSVG = function (s, dest) {
+  var P = GT.PLANETS, out = '<svg viewBox="0 0 400 270" role="group" aria-label="Star map"><rect width="400" height="270" fill="#000"/>', k, rnd = GT.seeded(77);
+  for (k = 0; k < 110; k++) out += '<circle cx="' + (rnd() * 400).toFixed(0) + '" cy="' + (rnd() * 270).toFixed(0) + '" r="' + (rnd() < 0.12 ? 1.2 : 0.6) + '" fill="#fff" opacity="' + (0.25 + rnd() * 0.7).toFixed(2) + '"/>';
+  if (dest !== null && dest !== s.loc) {
+    out += '<line x1="' + UI.mapSX(P[s.loc].x) + '" y1="' + UI.mapSY(P[s.loc].y) + '" x2="' + UI.mapSX(P[dest].x) + '" y2="' + UI.mapSY(P[dest].y) + '" stroke="#ffd166" stroke-width="2" stroke-dasharray="6 5"/>';
+  }
+  P.forEach(function (p, i) {
+    var x = UI.mapSX(p.x), y = UI.mapSY(p.y), here = i === s.loc, sel = i === dest, rad = here ? 11 : 8;
+    out += '<g class="pl" data-i="' + i + '" tabindex="0" role="button" aria-label="' + GT.esc(p.name) + (here ? ', current location' : sel ? ', selected destination' : '') + '">';
+    out += '<circle cx="' + x + '" cy="' + y + '" r="22" fill="transparent"/>';
+    if (p.ring) out += '<ellipse cx="' + x + '" cy="' + y + '" rx="' + (rad + 8) + '" ry="3.4" fill="none" stroke="' + p.color + '" stroke-width="1.6" opacity=".85" transform="rotate(-16 ' + x + ' ' + y + ')"/>';
+    if (here) out += '<circle cx="' + x + '" cy="' + y + '" r="' + (rad + 6) + '" fill="none" stroke="#6fe7ff" stroke-width="1.5"/>';
+    if (sel) out += '<circle cx="' + x + '" cy="' + y + '" r="' + (rad + 6) + '" fill="none" stroke="#ffd166" stroke-width="2" stroke-dasharray="3 3"/>';
+    out += '<circle cx="' + x + '" cy="' + y + '" r="' + rad + '" fill="' + p.color + '"/><circle cx="' + (x - rad * 0.3) + '" cy="' + (y - rad * 0.3) + '" r="' + rad * 0.45 + '" fill="#fff" opacity=".28"/>';
+    out += '<text x="' + x + '" y="' + (y + rad + (here || sel ? 21 : 13)) + '" text-anchor="middle" font-size="' + (here ? 14 : 10) + '" font-weight="' + (here ? 800 : 500) + '" fill="' + (here ? '#6fe7ff' : sel ? '#ffd166' : '#c9d0ff') + '">' + GT.esc(p.name) + '</text>';
+    s.comps.forEach(function (cp, ci) { if (cp.loc === i) out += '<g><rect x="' + (x + rad + 1 + ci * 7) + '" y="' + (y - rad - 4) + '" width="5" height="5" transform="rotate(45 ' + (x + rad + 3 + ci * 7) + ' ' + (y - rad - 1.5) + ')" fill="#ff7a8c"><title>' + GT.esc(cp.name) + '</title></rect></g>'; });
+    out += '</g>';
+  });
+  return out + '</svg>';
+};
+
+/* Galactic Trader Deluxe. Part 11: character generator. A name goes in, a deeply unreasonable person comes out. */
+var CH = {};
+CH.OUT = '#1d0f33';
+CH.hash = function (str) { var h = 2166136261 >>> 0; for (var i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h >>> 0; };
+CH.SPECIES = [
+  { id: 'human', label: 'Human-ish', skins: ['#ffd2a8', '#e8b07a', '#c98a5b', '#8d5a3b', '#f6c9b3'], head: 'ellipse' },
+  { id: 'zorp', label: 'Zorpian', skins: ['#8be04e', '#5fd0a0', '#b6e36a'], head: 'pear', antennae: true },
+  { id: 'blorb', label: 'Blorbian', skins: ['#b57bff', '#ff8bd0', '#7bb6ff'], head: 'blob', stalk: true },
+  { id: 'mothkin', label: 'Mothkin', skins: ['#e0cba8', '#cdbdf0', '#f6e6b8'], head: 'ellipse', fuzz: true },
+  { id: 'bot', label: 'Tin-Robot', skins: ['#b9c4d6', '#e0b95c', '#9fd0c8'], head: 'box', rivets: true },
+  { id: 'lizard', label: 'Lizardfolk', skins: ['#6fcf6f', '#d8b43a', '#4fb6a3'], head: 'ellipse', crest: true }
+];
+CH.HAIRS = ['bald', 'tuft', 'afro', 'mohawk', 'pigtails', 'bowler', 'tophat', 'cap', 'captain', 'propeller', 'wizard'];
+CH.HAIRCOL = ['#2b1a12', '#6b3b1e', '#e0b040', '#d64a2a', '#3a3a8a', '#2a9d6b', '#e8e8f0', '#e04aa8'];
+CH.SHIRT = ['#ff5a4f', '#3aa7ff', '#ffc531', '#7bd957', '#c25cff', '#ff8a2a', '#2ed3c4', '#ff6fb0'];
+CH.ACC = ['none', 'monocle', 'eyepatch', 'bowtie', 'scarf', 'goggles', 'glasses', 'bandaid'];
+CH.OUTFITS = ['jacket', 'hoodie', 'tee', 'hawaiian', 'suit'];
+
+CH.build = function (r, over) {
+  var pick = function (a) { return a[Math.floor(r() * a.length)]; }, t = {};
+  t.sp = over && over.sp != null ? over.sp : Math.floor(r() * CH.SPECIES.length);
+  var sp = CH.SPECIES[t.sp % CH.SPECIES.length]; t.sp = t.sp % CH.SPECIES.length;
+  t.skin = pick(sp.skins); t.skin2 = CH.shade(t.skin, -0.18);
+  t.eyes = Math.floor(r() * 4); t.nose = Math.floor(r() * 4); t.mouth = Math.floor(r() * 5);
+  t.hair = over && over.hair != null ? over.hair : Math.floor(r() * CH.HAIRS.length);
+  t.hairCol = pick(CH.HAIRCOL); t.hatCol = pick(CH.SHIRT);
+  t.shirt = pick(CH.SHIRT); t.outfit = Math.floor(r() * CH.OUTFITS.length); t.acc = Math.floor(r() * CH.ACC.length);
+  t.shoe = pick(['#ff5a4f', '#ffc531', '#3aa7ff', '#2b1a12', '#c25cff']);
+  t.size = 0.92 + r() * 0.2; t.pupil = [Math.round((r() - 0.5) * 6), Math.round((r() - 0.5) * 5)];
+  if (over) for (var k in over) t[k] = over[k];
+  return t;
+};
+CH.shade = function (hex, amt) { return UI.shade(hex, amt); };
+
+CH.ADJ = ['Moist', 'Reluctant', 'Dubious', 'Magnificent', 'Slightly Haunted', 'Unlicensed', 'Gourmet', 'Feral', 'Pocket-Sized', 'Notorious', 'Tragic', 'Overqualified', 'Sticky', 'Interdimensional', 'Bargain-Bin', 'Dramatic', 'Suspicious', 'Humble', 'Explosive', 'Fancy', 'Lukewarm', 'Legendary', 'Accidental', 'Part-Time', 'Sentient', 'Gullible', 'Radiant', 'Soggy', 'Unstoppable', 'Moderately Famous'];
+CH.NOUN = ['Opportunist', 'Cargo Wrangler', 'Haggler', 'Spice Goblin', 'Coin Gremlin', 'Warp Tourist', 'Bargain Pirate', 'Invoice Wizard', 'Pocket Tycoon', 'Comet Surfer', 'Receipt Collector', 'Fuel Philosopher', 'Tax Dodger', 'Moon Salesman', 'Crate Whisperer', 'Space Hobo', 'Margin Hunter', 'Barter Bard', 'Nebula Nomad', 'Void Merchant', 'Ledger Knight', 'Credit Chaser', 'Galactic Gadabout', 'Cargo Cultist', 'Star Peddler', 'Dock Rat', 'Trade Tornado', 'Lunar Landlord', 'Stowaway Baron', 'Rocket Hobbyist'];
+CH.CATCH = ['Everything is negotiable, including this sentence.', 'Buy low, sell high, panic medium.', 'I have a good feeling about this invoice.', 'Never trust a discount with a smile.', 'Cargo today, legend tomorrow.', 'My other ship is also in debt.', 'Time is money, and I\'m running late on both.', 'If it hums, I\'ll sell it.', 'That\'s not a bug, it\'s a surcharge.', 'I came, I saw, I overpaid.', 'Fortune favours the bold and the well-insured.', 'Don\'t panic. Haggle.', 'Today\'s forecast: profit, with a chance of pirates.', 'I\'ve seen things. Mostly overpriced.', 'Tax is just a suggestion. A loud suggestion.', 'Trust me, I\'m a licensed amateur.', 'Nothing ventured, nothing lost, nothing eaten.', 'Space is big. My ambition is bigger. My hold is medium.', 'I didn\'t choose the trade life. It ordered me by mistake.', 'Haggling is just arguing with a calculator.'];
+CH.A = ['a flock of very opinionated geese', 'three retired accountants', 'a travelling puppet show', 'a feral vending machine', 'their disappointed aunt', 'a moderately competent robot', 'a mildly cursed accordion', 'a lighthouse keeper with a grudge'];
+CH.B = ['a moon with no gravity and worse Wi-Fi', 'a space station shaped like a croissant', 'a farm that sold exclusively mist', 'a planet that is mostly a car park', 'a cargo ship named Gerald', 'the wrong side of a nebula', 'an asteroid that smelled of soup', 'a very small planet with a very large mayor'];
+CH.C = ['haggle in six languages and sulk in twelve', 'fix any engine with a sandwich', 'count change faster than light', 'sell sand to a desert-shaped robot', 'sleep through explosions', 'juggle invoices', 'read minds, but only the boring ones', 'win staring contests against moons'];
+CH.D = ['selling the family goat', 'that thing with the goose', 'eating the evidence', 'the tax audit of \'89', 'trusting a talking crate', 'trying to haggle with a black hole', 'answering the phone in the first place', 'buying a ship with a "surprise" in the engine'];
+CH.SMELL = ['warm toast', 'old coins', 'a thunderstorm in a jar', 'regret and cinnamon', 'a freshly opened spaceship', 'wet dog (not theirs)', 'ozone and ambition', 'crayons'];
+
+/* The name decides everything. Same name, same captain. The reroll button nudges the salt. */
+CH.fromName = function (name, salt) {
+  name = (name || '').trim() || 'Captain'; salt = salt || 0;
+  var low = name.toLowerCase(), letters = low.replace(/[^a-z]/g, '') || 'x', vowels = (letters.match(/[aeiou]/g) || []).length;
+  var h = CH.hash(low + '#' + salt), r = GT.seeded(h), first = letters.charCodeAt(0) - 97, sum = 0;
+  for (var i = 0; i < letters.length; i++) sum += letters.charCodeAt(i) - 96;
+  var t = CH.build(r, { sp: (first + salt) % CH.SPECIES.length, hair: (letters.length + salt) % CH.HAIRS.length });
+  t.name = name; t.salt = salt;
+  var ratio = vowels / letters.length, grade = ratio < 0.25 ? 'Crunchy' : ratio < 0.35 ? 'Moderately Shiny' : ratio < 0.45 ? 'Pleasantly Squishy' : 'Dangerously Melodic';
+  t.title = CH.ADJ[(h >>> 3) % CH.ADJ.length] + ' ' + CH.NOUN[(h >>> 11) % CH.NOUN.length];
+  t.catch = CH.CATCH[(h >>> 7) % CH.CATCH.length];
+  t.story = 'Raised by ' + CH.A[(h >>> 5) % 8] + ' on ' + CH.B[(h >>> 9) % 8] + ', ' + name + ' learned to ' + CH.C[(h >>> 13) % 8] + '. Their only regret is ' + CH.D[(h >>> 17) % 8] + '.';
+  t.fate = [['Letters', letters.length], ['Vowels', vowels], ['Lucky number', sum % 97 + 3], ['Species', CH.SPECIES[t.sp].label], ['Smells faintly of', CH.SMELL[(h >>> 19) % 8]], ['Destiny grade', grade]];
+  return t;
+};
+CH.fromSeed = function (seed, over) { var t = CH.build(GT.seeded(CH.hash(seed)), over); t.name = seed; return t; };
+
+/* ---------- drawing ---------- */
+CH.head = function (t) {
+  var sp = CH.SPECIES[t.sp], O = CH.OUT, sw = 'stroke="' + O + '" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"', h = '';
+  var skin = t.skin, sk2 = t.skin2, hc = t.hairCol, hat = CH.HAIRS[t.hair], bot = sp.id === 'bot';
+  if (sp.stalk) h += '<path d="M0,-44 Q-6,-72 10,-84" fill="none" ' + sw + ' stroke-width="9"/><path d="M0,-44 Q-6,-72 10,-84" fill="none" stroke="' + skin + '" stroke-width="4" stroke-linecap="round"/><circle cx="10" cy="-88" r="11" fill="#fff" ' + sw + '/><circle cx="12" cy="-87" r="4.5" fill="' + O + '"/>';
+  if (sp.antennae) h += '<path d="M-14,-46 Q-24,-78 -36,-84 M14,-46 Q24,-78 36,-84" fill="none" ' + sw + '/><circle cx="-36" cy="-85" r="6" fill="#ffe14a" ' + sw + '/><circle cx="36" cy="-85" r="6" fill="#ffe14a" ' + sw + '/>';
+  if (sp.fuzz) h += '<path d="M-10,-46 Q-30,-82 -50,-66 Q-36,-62 -34,-46Z M10,-46 Q30,-82 50,-66 Q36,-62 34,-46Z" fill="#fff8e0" ' + sw + '/>';
+  if (sp.crest) h += '<path d="M-22,-42 L-14,-70 L-6,-46 L2,-74 L10,-46 L20,-68 L24,-40Z" fill="#e0572b" ' + sw + '/>';
+  if (bot) h += '<line x1="0" y1="-46" x2="0" y2="-72" ' + sw + '/><circle cx="0" cy="-76" r="6" fill="#ff5a4f" ' + sw + '/>';
+  var shape = { ellipse: '<ellipse cx="0" cy="0" rx="46" ry="50" fill="' + skin + '" ' + sw + '/>', pear: '<path d="M-36,-30 Q-38,-52 0,-52 Q38,-52 36,-30 Q58,30 0,52 Q-58,30 -36,-30Z" fill="' + skin + '" ' + sw + '/>', blob: '<path d="M-48,2 Q-54,-46 0,-50 Q54,-46 48,2 Q52,48 0,50 Q-52,48 -48,2Z" fill="' + skin + '" ' + sw + '/>', box: '<rect x="-44" y="-46" width="88" height="94" rx="14" fill="' + skin + '" ' + sw + '/>' }[sp.head];
+  h += (sp.fuzz ? '' : '') + shape;
+  if (sp.fuzz) h += '<path d="M-46,10 Q-60,24 -42,36 M46,10 Q60,24 42,36" fill="none" stroke="#fff8e0" stroke-width="9" stroke-linecap="round"/>';
+  if (bot) h += '<circle cx="-36" cy="-36" r="3" fill="' + sk2 + '"/><circle cx="36" cy="-36" r="3" fill="' + sk2 + '"/><circle cx="-36" cy="40" r="3" fill="' + sk2 + '"/><circle cx="36" cy="40" r="3" fill="' + sk2 + '"/>';
+  /* eyes */
+  var px = t.pupil[0], py = t.pupil[1], eyes = '';
+  var eye = function (x, y, r, big) { return '<circle cx="' + x + '" cy="' + y + '" r="' + r + '" fill="#fff" ' + sw + ' stroke-width="3.5"/>' + (sp.id === 'lizard' ? '<ellipse cx="' + (x + px * 0.4) + '" cy="' + y + '" rx="2.6" ry="' + (r * 0.7) + '" fill="' + O + '"/>' : '<circle cx="' + (x + px) + '" cy="' + (y + py) + '" r="' + (big ? 6.5 : 5) + '" fill="' + O + '"/><circle cx="' + (x + px + 1.8) + '" cy="' + (y + py - 2) + '" r="1.6" fill="#fff"/>'); };
+  if (bot) eyes = '<rect x="-30" y="-20" width="24" height="18" rx="4" fill="#0e2a1a" ' + sw + ' stroke-width="3"/><rect x="6" y="-20" width="24" height="18" rx="4" fill="#0e2a1a" ' + sw + ' stroke-width="3"/><circle cx="' + (-18 + px) + '" cy="-11" r="4" fill="#58ff9a"/><circle cx="' + (18 + px) + '" cy="-11" r="4" fill="#58ff9a"/>';
+  else if (t.eyes === 2) eyes = eye(0, -8, 20, true);
+  else if (t.eyes === 3) eyes = eye(-18, -8, 15, true) + eye(18, -6, 10, false);
+  else if (t.eyes === 1) eyes = eye(-18, -8, 13) + eye(18, -8, 13) + '<path d="M-33,-10 Q-18,-26 -3,-10Z M3,-10 Q18,-26 33,-10Z" fill="' + sk2 + '" ' + sw + ' stroke-width="3"/>';
+  else eyes = eye(-18, -8, 13) + eye(18, -8, 13);
+  h += eyes;
+  /* nose */
+  h += ['<circle cx="0" cy="8" r="8" fill="' + sk2 + '" ' + sw + ' stroke-width="3"/>', '<path d="M-3,-2 Q14,14 -2,22 Q-10,20 -8,14Z" fill="' + sk2 + '" ' + sw + ' stroke-width="3"/>', '<ellipse cx="0" cy="10" rx="4.5" ry="3.5" fill="' + sk2 + '" ' + sw + ' stroke-width="3"/>', '<ellipse cx="0" cy="12" rx="13" ry="9" fill="' + sk2 + '" ' + sw + ' stroke-width="3"/><circle cx="-4" cy="12" r="2" fill="' + O + '"/><circle cx="4" cy="12" r="2" fill="' + O + '"/>'][t.nose];
+  /* mouth */
+  h += [
+    '<path d="M-20,26 Q0,46 20,26Z" fill="#fff" ' + sw + ' stroke-width="3.5"/><path d="M-12,30 L12,30" stroke="' + O + '" stroke-width="2"/>',
+    '<path d="M-15,34 Q0,22 15,34" fill="none" ' + sw + '/>',
+    '<ellipse cx="0" cy="32" rx="11" ry="9" fill="#5a1a2a" ' + sw + ' stroke-width="3.5"/><ellipse cx="0" cy="36" rx="6" ry="3.5" fill="#ff7a8a"/>',
+    '<path d="M-14,28 Q0,38 14,28" fill="none" ' + sw + '/><rect x="-6" y="28" width="6" height="9" rx="1.5" fill="#fff" ' + sw + ' stroke-width="2.5"/><rect x="0" y="28" width="6" height="9" rx="1.5" fill="#fff" ' + sw + ' stroke-width="2.5"/>',
+    '<path d="M-14,28 Q0,40 14,28" fill="none" ' + sw + '/><path d="M-26,24 Q-12,16 0,24 Q12,16 26,24 Q14,34 0,28 Q-14,34 -26,24Z" fill="' + hc + '" ' + sw + ' stroke-width="3"/>'
+  ][t.mouth];
+  /* accessory on the face */
+  var a = CH.ACC[t.acc];
+  if (a === 'monocle') h += '<circle cx="18" cy="-8" r="16" fill="rgba(180,230,255,.35)" ' + sw + ' stroke="#d8a21a" stroke-width="3.5"/><path d="M30,0 Q40,30 30,56" fill="none" stroke="#d8a21a" stroke-width="2"/>';
+  if (a === 'eyepatch') h += '<path d="M-46,-18 L30,-26" stroke="' + O + '" stroke-width="4"/><ellipse cx="-18" cy="-8" rx="17" ry="14" fill="#15101f" ' + sw + ' stroke-width="3"/>';
+  if (a === 'glasses') h += '<rect x="-36" y="-22" width="30" height="26" rx="8" fill="rgba(180,230,255,.3)" ' + sw + ' stroke-width="3.5"/><rect x="6" y="-22" width="30" height="26" rx="8" fill="rgba(180,230,255,.3)" ' + sw + ' stroke-width="3.5"/><line x1="-6" y1="-10" x2="6" y2="-10" stroke="' + O + '" stroke-width="3.5"/>';
+  if (a === 'bandaid') h += '<rect x="14" y="14" width="22" height="9" rx="4" transform="rotate(-24 25 18)" fill="#ffd6a5" ' + sw + ' stroke-width="2.5"/>';
+  /* hair and hats sit on top */
+  var top = '';
+  if (hat === 'tuft') top = '<path d="M-6,-50 Q-18,-76 -4,-70 Q0,-86 10,-70 Q24,-78 10,-50Z" fill="' + hc + '" ' + sw + '/>';
+  else if (hat === 'afro') top = '<circle cx="0" cy="-40" r="46" fill="' + hc + '" ' + sw + '/><ellipse cx="0" cy="-30" rx="40" ry="22" fill="' + skin + '"/>' + '<path d="M-42,-24 Q0,-10 42,-24" fill="none" stroke="' + O + '" stroke-width="3"/>';
+  else if (hat === 'mohawk') top = '<path d="M-10,-48 L-14,-80 L-4,-62 L2,-90 L10,-62 L18,-82 L14,-48Z" fill="' + hc + '" ' + sw + '/>';
+  else if (hat === 'pigtails') top = '<path d="M-40,-30 Q0,-64 40,-30 Q0,-48 -40,-30Z" fill="' + hc + '" ' + sw + '/><circle cx="-54" cy="-18" r="14" fill="' + hc + '" ' + sw + '/><circle cx="54" cy="-18" r="14" fill="' + hc + '" ' + sw + '/>';
+  else if (hat === 'bowler') top = '<ellipse cx="0" cy="-42" rx="50" ry="9" fill="#2a2038" ' + sw + '/><path d="M-30,-44 Q-30,-84 0,-84 Q30,-84 30,-44Z" fill="#2a2038" ' + sw + '/><rect x="-30" y="-56" width="60" height="9" fill="' + t.hatCol + '"/>';
+  else if (hat === 'tophat') top = '<ellipse cx="0" cy="-44" rx="50" ry="9" fill="#2a2038" ' + sw + '/><rect x="-28" y="-100" width="56" height="58" rx="4" fill="#2a2038" ' + sw + '/><rect x="-28" y="-62" width="56" height="12" fill="' + t.hatCol + '"/>';
+  else if (hat === 'cap') top = '<path d="M-44,-34 Q-40,-78 0,-78 Q40,-78 44,-34Z" fill="' + t.hatCol + '" ' + sw + '/><path d="M-4,-38 Q40,-34 62,-26 Q40,-44 -4,-48Z" fill="' + t.hatCol + '" ' + sw + '/>';
+  else if (hat === 'captain') top = '<path d="M-48,-36 Q-40,-86 0,-84 Q40,-86 48,-36 Q0,-26 -48,-36Z" fill="#f4f1ff" ' + sw + '/><path d="M-50,-34 Q0,-20 50,-34 L48,-42 Q0,-30 -48,-42Z" fill="#1d3a8a" ' + sw + ' stroke-width="3"/><circle cx="0" cy="-60" r="9" fill="#ffc531" ' + sw + ' stroke-width="3"/>';
+  else if (hat === 'propeller') top = '<path d="M-36,-36 Q0,-82 36,-36Z" fill="' + t.hatCol + '" ' + sw + '/><line x1="0" y1="-64" x2="0" y2="-78" ' + sw + '/><path d="M-26,-82 Q0,-92 26,-82 Q0,-76 -26,-82Z" fill="#ffc531" ' + sw + ' stroke-width="3"/>';
+  else if (hat === 'wizard') top = '<ellipse cx="0" cy="-42" rx="50" ry="9" fill="#5a3bb0" ' + sw + '/><path d="M-32,-44 L8,-110 Q18,-90 32,-44Z" fill="#5a3bb0" ' + sw + '/><circle cx="2" cy="-72" r="5" fill="#ffe14a"/><circle cx="12" cy="-58" r="3.5" fill="#ffe14a"/>';
+  if (a === 'goggles') top += '<rect x="-40" y="-52" width="80" height="12" rx="6" fill="#6a4a2a" ' + sw + ' stroke-width="3"/><circle cx="-18" cy="-46" r="11" fill="#9fe6ff" ' + sw + ' stroke-width="3"/><circle cx="18" cy="-46" r="11" fill="#9fe6ff" ' + sw + ' stroke-width="3"/>';
+  return h + top;
+};
+
+CH.torso = function (t) {
+  var sw = 'stroke="' + CH.OUT + '" stroke-width="4" stroke-linejoin="round"', c = t.shirt, c2 = CH.shade(c, -0.25), o = CH.OUTFITS[t.outfit], a = CH.ACC[t.acc], s = '';
+  if (o === 'hoodie') s += '<path d="M-34,66 Q0,40 34,66 L40,80 L-40,80Z" fill="' + c2 + '" ' + sw + '/>';
+  s += '<path d="M-62,150 Q-64,76 -22,66 L22,66 Q64,76 62,150Z" fill="' + c + '" ' + sw + '/>';
+  if (o === 'jacket') s += '<path d="M-22,66 L0,110 L22,66 L10,64 L0,84 L-10,64Z" fill="#fff" ' + sw + ' stroke-width="3"/><path d="M0,84 L0,150" stroke="' + CH.OUT + '" stroke-width="3"/>';
+  if (o === 'tee') s += '<path d="M0,96 l6,12 13,2 -10,9 3,13 -12,-7 -12,7 3,-13 -10,-9 13,-2z" fill="#ffe14a" ' + sw + ' stroke-width="2.5"/>';
+  if (o === 'hawaiian') s += '<circle cx="-30" cy="104" r="6" fill="#fff"/><circle cx="26" cy="96" r="6" fill="#ffe14a"/><circle cx="-6" cy="124" r="6" fill="#ff8ab0"/><circle cx="34" cy="128" r="5" fill="#fff"/><path d="M-22,66 L-6,92 L0,66Z M22,66 L6,92 L0,66Z" fill="' + c2 + '" ' + sw + ' stroke-width="3"/>';
+  if (o === 'suit') s += '<ellipse cx="0" cy="68" rx="30" ry="9" fill="#dfe6ff" ' + sw + ' stroke-width="3"/><rect x="-14" y="104" width="28" height="22" rx="5" fill="#2a2f4a" ' + sw + ' stroke-width="3"/><circle cx="-6" cy="115" r="3" fill="#58ff9a"/><circle cx="6" cy="115" r="3" fill="#ff5a4f"/>';
+  if (a === 'bowtie') s += '<path d="M0,70 L-18,60 L-18,80Z M0,70 L18,60 L18,80Z" fill="#ff3d8b" ' + sw + ' stroke-width="3"/><circle cx="0" cy="70" r="4" fill="#ff3d8b" ' + sw + ' stroke-width="2.5"/>';
+  if (a === 'scarf') s += '<path d="M-34,64 Q0,86 34,64 L38,80 Q0,100 -38,80Z" fill="#ffc531" ' + sw + '/><path d="M14,80 L26,120 L10,118Z" fill="#ffc531" ' + sw + ' stroke-width="3"/>';
+  return s;
+};
+
+/* Portrait: head and shoulders, for dialogue boxes. */
+CH.portrait = function (t, extra) {
+  return '<svg class="portrait ' + (extra || '') + '" viewBox="-80 -112 160 262" role="img" aria-label="' + GT.esc(t.name || 'Character') + '"><g transform="scale(' + t.size.toFixed(2) + ' ' + t.size.toFixed(2) + ')">' + CH.torso(t) + CH.head(t) + '</g></svg>';
+};
+
+/* Full-body sprite for the street scenes. Returns a <g> that is about 100 wide and 175 tall with feet at y=175. */
+CH.sprite = function (t, cls) {
+  var sw = 'stroke="' + CH.OUT + '" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"', c = t.shirt, bot = CH.SPECIES[t.sp].id === 'bot';
+  var leg = function (x, k) { return '<g class="leg ' + k + '"><path d="M' + x + ',118 L' + x + ',150" stroke="' + CH.OUT + '" stroke-width="13" stroke-linecap="round"/><path d="M' + x + ',118 L' + x + ',150" stroke="' + (bot ? '#8a94aa' : '#3b3f8a') + '" stroke-width="7" stroke-linecap="round"/><ellipse cx="' + (x + 6) + '" cy="156" rx="14" ry="8" fill="' + t.shoe + '" ' + sw + ' stroke-width="3.5"/></g>'; };
+  return '<g class="sprite ' + (cls || '') + '"><ellipse cx="50" cy="166" rx="30" ry="6" fill="rgba(0,0,0,.28)"/>' + leg(40, 'l1') + leg(60, 'l2') +
+    '<g transform="translate(50 49) scale(.5)">' + CH.torso(t) + '</g>' +
+    '<path d="M24,96 L12,128 M76,96 L88,128" stroke="' + CH.OUT + '" stroke-width="12" stroke-linecap="round"/><path d="M24,96 L12,128 M76,96 L88,128" stroke="' + c + '" stroke-width="6" stroke-linecap="round"/>' +
+    '<circle cx="12" cy="130" r="6" fill="' + t.skin + '" ' + sw + ' stroke-width="3"/><circle cx="88" cy="130" r="6" fill="' + t.skin + '" ' + sw + ' stroke-width="3"/>' +
+    '<g class="bob" style="--hs:' + (0.62 * t.size).toFixed(2) + '" transform="translate(50 52) scale(' + (0.62 * t.size).toFixed(2) + ')">' + CH.head(t) + '</g></g>';
+};
+
+/* Galactic Trader Deluxe. Part 12: the supporting cast and what they say. Cast rows are [name, job, species, hair, signature greeting]. */
+var NP = { cache: {} };
+NP.CAST = {
+  meridoa: {
+    market: ['Aunt Petunia Gourdwhistle', 'Shopkeeper', 0, 4, 'Fresh-picked, hand-squeezed and only slightly sentient!'],
+    bank: ['Mr. Hoe', 'Head Teller', 0, 5, 'Welcome to the Bank of Beans. We hold your money close and your gourds closer.'],
+    yard: ['Rusty Furrow', 'Shipwright', 0, 7, 'Tractor parts, warp parts. Same thing, really.'],
+    office: ['Agent Daisy Chain', 'Land Agent', 0, 1, 'A little plot of land and a big plot of lies!']
+  },
+  karthosu: {
+    market: ['Hakim Gravel', 'Relic Dealer', 5, 0, 'Everything here is authentic, or at least extremely old.'],
+    bank: ['Osiris Wrapp', 'Teller', 3, 0, 'Welcome to the Tomb & Trust. Your money will be preserved for eternity. Fees apply in the afterlife.'],
+    yard: ['Ptah Spanner', 'Pharaoh-Mechanic', 0, 6, 'I built pyramids. Your engine is small potatoes.'],
+    office: ['Sphinxy', 'Tomb Realtor', 5, 2, 'Riddle me this: do you want a tomb with a view?']
+  },
+  ferrox: {
+    market: ['Big Brenda Slagheap', 'Ore Merchant', 0, 3, 'Metal, mud and mercy! Mostly metal!'],
+    bank: ['Hardhat Hal', 'Credit Union Boss', 0, 7, 'First Credit Union of the Deep. Please wipe your boots on the money.'],
+    yard: ['Nub', 'Spanner\'s Apprentice', 2, 7, 'Spanner\'s out. I\'m Nub. I\'m about forty percent qualified.'],
+    fuel: ['Pump Boss Gus', 'Pump Boss', 0, 0, 'Fill her up, or don\'t. I get paid either way.'],
+    office: ['Claim Agent Slate', 'Claims Officer', 4, 5, 'Claims staked, grudges filed.']
+  },
+  kryndor: {
+    market: ['Mei-Lin Quicksale', 'Store Manager', 0, 8, 'Welcome to Spire Mart, level 412! Please validate your parking and your existence.'],
+    bank: ['Wilhelmina Compound', 'Chief Banker', 0, 6, 'Compound Interest & Co. We turn small sums into slightly larger sums!'],
+    yard: ['Axel Bolt', 'Master Shipwright', 4, 0, 'Shipwrights since the dawn of Tuesday.'],
+    fuel: ['Pump-Bot 9000', 'Fuel Unit', 4, 0, 'BEEP. FUEL. BEEP. YOUR WALLET. BEEP.'],
+    office: ['Chad Sky-Lease', 'Penthouse Agent', 0, 1, 'Bro, this penthouse has a view of another penthouse.']
+  },
+  nihil: {
+    market: ['Honest Abe', 'Fence', 0, 5, 'Nothing here fell off a truck. It fell off several.'],
+    bank: ['Vault-Keeper Null', 'Vault-Keeper', 2, 0, 'Welcome to Null Bank. Your balance is exactly what we say it is.'],
+    yard: ['Zero-G Zed', 'Upside-Down Mechanic', 0, 3, 'I fix things upside down. It isn\'t better. It\'s just more fun.'],
+    fuel: ['Gasper', 'Fuel Jockey', 1, 0, 'Fuel is cheap. Air is not.'],
+    parlour: ['Madame Thin Hour', 'Croupier', 3, 6, 'Sit. Wager. Wonder. Leave poorer and wiser, or just poorer.'],
+    office: ['Fivefingers', 'Ness\'s Cousin', 0, 0, 'Slightly more honest than my cousin. Five fingers, five scams.']
+  },
+  quellin: {
+    market: ['Dr. Pippa Beaker', 'Procurement Officer', 1, 9, 'Welcome to Procurement! Everything is a sample and everything is for sale.'],
+    bank: ['Professor Ledgerwood', 'Bursar', 0, 1, 'The Bursar\'s Office: where grants go to retire.'],
+    yard: ['Gizmo', 'Lab Technician', 4, 0, 'I can add more speed! Maybe! I need a volunteer!'],
+    office: ['Phil from Grants', 'Grants Officer', 0, 9, 'Phil here! Land is just a grant waiting to happen!']
+  },
+  halcyra: {
+    market: ['Skybazaar Sal', 'Skybazaar Owner', 0, 2, 'Fresh from the wind! Everything floats, including the prices!'],
+    bank: ['Nimbus', 'Cloud-Teller', 3, 0, 'Your funds are held in high-pressure storage. Please don\'t breathe on them.'],
+    yard: ['Gale Wind-Wright', 'Wind-Wright', 0, 4, 'Faster? Sure! Just don\'t ask me to stop.'],
+    fuel: ['Fumes McGee', 'Gas-Tender', 5, 0, 'Cheapest gas in the sky. The only gas in the sky.'],
+    office: ['Cirrus', 'Platform Agent', 0, 10, 'Heavenly views, cloud-based foundations!']
+  }
+};
+NP.SIGNS = {
+  meridoa: { market: 'GOURD & GONE', bank: 'BANK OF BEANS', yard: 'HITCH & HAMMER', fuel: 'PUMP-A-PICKLE', cantina: 'THE MUDDY BOOT', office: 'DAISY REALTY' },
+  karthosu: { market: 'DUST & TRUST', bank: 'TOMB & TRUST', yard: 'CHARIOT REPAIR', fuel: 'NO FUEL (SORRY)', cantina: 'THE SAND TRAP', office: 'SPHINXY REALTY' },
+  ferrox: { market: 'SLAG HEAP MART', bank: 'CREDIT UNION OF THE DEEP', yard: 'SPANNER & SON', fuel: 'GUS\'S GAS', cantina: 'THE DRILL BIT', office: 'CLAIMS DEPT' },
+  kryndor: { market: 'SPIRE MART', bank: 'COMPOUND & CO', yard: 'BOLT SHIPYARD', fuel: 'FUEL-O-MATIC', cantina: 'LEVEL 413 LOUNGE', office: 'SKY-LEASE' },
+  nihil: { market: 'NO QUESTIONS MARKET', bank: 'NULL BANK', yard: 'UPSIDE-DOWN REPAIRS', fuel: 'AIR & GAS', cantina: 'THE LONG DARK', office: 'FIVEFINGERS BROKER', parlour: 'THIN HOURS' },
+  quellin: { market: 'PROCUREMENT LAB', bank: 'THE BURSAR', yard: 'GIZMO LABS', fuel: 'NO TANKS HERE', cantina: 'THE CAFETERIA', office: 'GRANTS OFFICE' },
+  halcyra: { market: 'SKYBAZAAR', bank: 'CLOUD & CO BANK', yard: 'WIND-WRIGHTS', fuel: 'FUMES & SON', cantina: 'THE STORM EYE', office: 'CIRRUS REALTY' }
+};
+NP.QUIP = {
+  market: 'Smells of cabbage and overcharging.', bank: 'Smells of money and mild regret.', yard: 'A shed of spanners and spare opinions.', fuel: 'Fumes with ambition.',
+  cantina: 'Sticky floors. Honest people, probably one.', alley: 'It is dark in there. Something is breathing.', jobs: 'Odd jobs. Very, very odd.', pad: 'Your ship. Still a ship, for now.',
+  office: 'A tiny booth full of big promises.', parlour: 'The lights flicker. Probably a bad omen.', closed: 'A sign says CLOSED. A smaller sign says "forever".', decor: 'Scenery. Nice, though.'
+};
+NP.LINES = {
+  market: {
+    greet: ['Welcome! Everything is for sale except my dignity, and that is on layaway.', 'Step right up! Touch nothing you cannot afford, which is everything.', 'A customer! Quick, hide the good stuff and show the overpriced stuff!', 'Prices are firm, except when they are not, and they are never not.'],
+    buy: ['{qty} {item}? Excellent choice! I would say that about anything, but still.', 'Sold! You drive a hard bargain. Not hard enough, but hard.', '{qty} {item}, in a bag I am also charging you for.', 'Pleasure doing business! Please do not check the weight.', '{item}! My second favourite word. The first is "cash".'],
+    sell: ['Hm, {qty} {item}. I have seen worse. Not today, but I have.', 'I will take it, I will take it! Do not look at what I am paying, it embarrasses us both.', 'Ooh, {item}! Slightly used, slightly damp, now slightly mine.', 'Thank you for the {item}. The cheque is in the mail. The mail is also me.', 'A fine {item} haul. I would pay more, but physically cannot.'],
+    broke: ['Credit? Ha. Ha. No.', 'Your wallet just made a very sad noise.', 'Come back with more coins or fewer expectations.'],
+    bye: ['Come again! Or do not! I will be here regardless, tragically.', 'Mind the door. It bites.', 'Safe travels! Not my problem if they are not!']
+  },
+  bank: {
+    greet: ['Please enjoy our complimentary anxiety.', 'Take a ticket. We have no tickets. Just stand there.', 'All deposits are insured by a very confident man named Dave.'],
+    deposit: ['Your {amt}c is safe with us! Mostly. Probably. It is in a drawer.', 'Deposited! It will earn interest at a rate we describe as "present".', '{amt}c, tucked into the vault. The vault is a shoebox. A secure shoebox.'],
+    withdraw: ['{amt}c out. Please count it. Then count it again. Then cry a little.', 'Withdrawing {amt}c! The money will miss us.', 'There you go, {amt}c. Try not to spend it on anything fun.'],
+    loan: ['A thousand credits, on a handshake and a deeply worrying contract.', 'Sign here, here, here, and in blood. Kidding! The blue pen is fine. Mostly.', 'Another loan! We love your optimism.'],
+    repay: ['Excellent! We love getting our money back.', '{amt}c repaid. The vault gives a happy little burp.', 'Every credit you repay makes a teller smile somewhere.'],
+    no: ['Computer says no.', 'Yes... no.', 'That would require money you do not have, which is a recurring theme.']
+  },
+  yard: {
+    greet: ['Ship is looking... fine. Ignore that noise it is making.', 'What can I bolt onto your hull today? Besides my hopes.', 'Bring her in! Gently! Not like last time!'],
+    upgrade: ['Done! I only used a little duct tape. The good kind.', 'Installed! If it hums, that is normal. If it screams, that is also normal.', 'That will hold! Probably! Do not test it!'],
+    closed: ['Closed! Come back never!', 'Sorry, we are out of all of it.', 'Gone to lunch. It has been a long lunch.']
+  },
+  fuel: {
+    greet: ['Fuel! The wet stuff for the go-fast bits!', 'Do not smoke. Do not spark. Do not breathe near the nozzle.', 'Fill her up and she will love you for about a week.'],
+    refuel: ['Glug glug glug... done! Mind the spill, it is flammable.', 'Topped up! That will be some money.', 'And she is full! Who is a thirsty ship? You are!'],
+    closed: ['No pumps here. Just a very sad hose.', 'No fuel on this rock. Try hoping.']
+  },
+  office: {
+    greet: ['Real estate! The only business where the floor is optional.', 'Location, location, and a bit of fraud!', 'Come in, come in. Do not read the small print, it is tiny and rude.'],
+    bought: ['Congratulations, you are a property mogul! The mogul bit is unlicensed.', 'Pleasure! The paperwork is in triplicate and also on fire. Normal.', 'You own it now! Whatever "it" turns out to be!'],
+    none: ['Nothing on offer today. Come back when my boss has a new scheme.', 'No listings. The last one escaped.']
+  },
+  cantina: { greet: ['Pull up a stool. It is slightly sticky, but loyal.', 'Buy a round and see who turns up.', 'Quiet night. The best sort of night to have an adventure.'] },
+  alley: { greet: ['It is dark. Something is breathing, and it is probably fine.', 'You peek into the alley. The alley peeks back.'] },
+  jobs: { greet: ['Odd jobs, odd pay. Do not ask.', 'Foreman Gruff nods at the board. "Quick work, quick coin. Do not break anything."'] }
+};
+NP.say = function (role, kind, vars) {
+  var pool = (NP.LINES[role] || {})[kind] || ['...'], s = GT.pick(pool);
+  vars = vars || {}; return s.replace(/\{(\w+)\}/g, function (m, k) { return vars[k] != null ? vars[k] : m; });
+};
+NP.row = function (pid, role) { return (NP.CAST[pid] || {})[role] || null; };
+NP.char = function (pid, role) {
+  var key = pid + '/' + role; if (NP.cache[key]) return NP.cache[key];
+  var row = NP.row(pid, role), over = row ? { sp: row[2], hair: row[3] } : {}, t = CH.fromSeed(key, over);
+  t.name = row ? row[0] : role; t.job = row ? row[1] : role; t.hello = row ? row[4] : '';
+  return (NP.cache[key] = t);
+};
+/* The encounter character on each planet is the one named in the story data. */
+NP.who = function (pid) { var w = GT.ENCOUNTER[pid].who.split(', '); return { name: w[0], job: w.slice(1).join(', ') }; };
+NP.who2 = function (pid) {
+  var key = pid + '/cantina'; if (NP.cache[key]) return NP.cache[key];
+  var w = NP.who(pid), t = CH.fromSeed(key, { sp: { meridoa: 0, karthosu: 5, ferrox: 0, kryndor: 0, nihil: 0, quellin: 0, halcyra: 0 }[pid], hair: { meridoa: 10, karthosu: 0, ferrox: 7, kryndor: 8, nihil: 3, quellin: 1, halcyra: 7 }[pid] });
+  t.name = w.name; t.job = w.job; return (NP.cache[key] = t);
+};
+NP.rival = function (ci) { var c = GT.COMPETITORS[ci], t = NP.cache['rival' + ci]; if (!t) { t = CH.fromSeed('rival' + c.name, { sp: [0, 4, 1, 5][ci], hair: [6, 8, 3, 5][ci] }); t.name = c.name; t.title = c.title; NP.cache['rival' + ci] = t; } return t; };
+
+/* Galactic Trader Deluxe. Part 21: the pixel engine. Everything on screen is built from the 16 EGA colours, drawn into small indexed buffers and scaled up with hard pixels.
+   Indices 0-15 are the EGA palette. Add PX.E (16) to a colour to make it glow at night. 255 is transparent. */
+var PX = { E: 16, T: 255 };
+PX.PAL = ['#000000', '#0000aa', '#00aa00', '#00aaaa', '#aa0000', '#aa00aa', '#aa5500', '#aaaaaa', '#555555', '#5555ff', '#55ff55', '#55ffff', '#ff5555', '#ff55ff', '#ffff55', '#ffffff'];
+PX.RGB = PX.PAL.map(function (h) { var n = parseInt(h.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; });
+/* named colours: K black, B blue, G green, C cyan, R red, M magenta, N brown, L light grey, D dark grey, then the bright ones */
+PX.K = 0; PX.B = 1; PX.G = 2; PX.C = 3; PX.R = 4; PX.M = 5; PX.N = 6; PX.L = 7; PX.D = 8; PX.LB = 9; PX.LG = 10; PX.LC = 11; PX.LR = 12; PX.LM = 13; PX.Y = 14; PX.W = 15;
+/* what each colour turns into after dark (anything drawn with PX.E added keeps its colour) */
+PX.NIGHT = [0, 0, 1, 1, 0, 1, 0, 8, 0, 1, 2, 3, 4, 5, 6, 7];
+PX.BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+/* a dither fill: level 0..16 mixes colour a into colour b */
+PX.dith = function (a, b, l) { return function (x, y) { return l > PX.BAYER[(y & 3) * 4 + (x & 3)] ? b : a; }; };
+PX.checker = function (a, b) { return function (x, y) { return (x + y) & 1 ? b : a; }; };
+
+PX.Buf = function (w, h, fill) { this.w = w; this.h = h; this.d = new Uint8Array(w * h); this.d.fill(fill === undefined ? 0 : fill); };
+(function (P) {
+  P.px = function (x, y, c) { x = x | 0; y = y | 0; if (x < 0 || y < 0 || x >= this.w || y >= this.h) return; if (typeof c === 'function') c = c(x, y); if (c < 0 || c === 255) return; this.d[y * this.w + x] = c; };
+  P.get = function (x, y) { return x < 0 || y < 0 || x >= this.w || y >= this.h ? 0 : this.d[y * this.w + x]; };
+  P.rect = function (x, y, w, h, c) { x = Math.round(x); y = Math.round(y); for (var j = 0; j < h; j++) for (var i = 0; i < w; i++) this.px(x + i, y + j, c); };
+  P.line = function (x0, y0, x1, y1, c) {
+    x0 = Math.round(x0); y0 = Math.round(y0); x1 = Math.round(x1); y1 = Math.round(y1);
+    var dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1, e = dx + dy, n = 0;
+    for (;;) { this.px(x0, y0, c); if ((x0 === x1 && y0 === y1) || n++ > 2000) break; var e2 = 2 * e; if (e2 >= dy) { e += dy; x0 += sx; } if (e2 <= dx) { e += dx; y0 += sy; } }
+  };
+  /* scanline polygon fill, even-odd. pts = [x0,y0,x1,y1,...] */
+  P.poly = function (pts, c) {
+    var n = pts.length / 2, miny = 1e9, maxy = -1e9, i, y;
+    for (i = 0; i < n; i++) { miny = Math.min(miny, pts[i * 2 + 1]); maxy = Math.max(maxy, pts[i * 2 + 1]); }
+    for (y = Math.max(0, Math.floor(miny)); y <= Math.min(this.h - 1, Math.ceil(maxy)); y++) {
+      var xs = [], yc = y + 0.5;
+      for (i = 0; i < n; i++) { var j = (i + 1) % n, ax = pts[i * 2], ay = pts[i * 2 + 1], bx = pts[j * 2], by = pts[j * 2 + 1]; if ((ay <= yc && by > yc) || (by <= yc && ay > yc)) xs.push(ax + (yc - ay) / (by - ay) * (bx - ax)); }
+      xs.sort(function (a, b) { return a - b; });
+      for (i = 0; i + 1 < xs.length; i += 2) for (var x = Math.round(xs[i]); x < Math.round(xs[i + 1]); x++) this.px(x, y, c);
+    }
+  };
+  P.ell = function (cx, cy, rx, ry, c) {
+    for (var y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++) { var t = (y + 0.5 - cy) / ry; if (t < -1 || t > 1) continue; var hw = rx * Math.sqrt(1 - t * t); for (var x = Math.round(cx - hw); x < Math.round(cx + hw); x++) this.px(x, y, c); }
+  };
+  P.ring = function (cx, cy, rx, ry, c) { var n = Math.max(12, Math.round((rx + ry) * 1.6)), pts = [], i; for (i = 0; i <= n; i++) pts.push(cx + Math.cos(i / n * 6.2832) * rx, cy + Math.sin(i / n * 6.2832) * ry); for (i = 0; i < n; i++) this.line(pts[i * 2], pts[i * 2 + 1], pts[i * 2 + 2], pts[i * 2 + 3], c); };
+  P.outline = function (pts, c) { var n = pts.length / 2; for (var i = 0; i < n; i++) { var j = (i + 1) % n; this.line(pts[i * 2], pts[i * 2 + 1], pts[j * 2], pts[j * 2 + 1], c); } };
+  /* vertical sky: bands of colours blended by dither. cols = [c0, c1, c2...] from top to bottom */
+  P.vgrad = function (x, y, w, h, cols) {
+    var seg = cols.length - 1;
+    for (var j = 0; j < h; j++) { var t = j / Math.max(1, h - 1) * seg, k = Math.min(seg - 1, Math.floor(t)), l = (t - k) * 16; for (var i = 0; i < w; i++) this.px(x + i, y + j, PX.BAYER[((y + j) & 3) * 4 + ((x + i) & 3)] < l ? cols[k + 1] : cols[k]); }
+  };
+  P.blit = function (src, x, y) { for (var j = 0; j < src.h; j++) for (var i = 0; i < src.w; i++) { var c = src.d[j * src.w + i]; if (c !== 255) this.px(x + i, y + j, c); } };
+  P.text = function (x, y, s, c, sc) { sc = sc || 1; s = String(s).toUpperCase(); var cx = x; for (var k = 0; k < s.length; k++) { var g = PX.FONT[s[k]] || PX.FONT['?']; for (var col = 0; col < 5; col++) for (var row = 0; row < 7; row++) if ((g[col] >> row) & 1) this.rect(cx + col * sc, y + row * sc, sc, sc, c); cx += 6 * sc; } return cx - x; };
+  for (var k in P) PX.Buf.prototype[k] = P[k];
+})({});
+PX.textW = function (s, sc) { return String(s).length * 6 * (sc || 1) - (sc || 1); };
+/* classic 5x7 font, five columns per glyph, least significant bit at the top */
+PX.FONT = (function () {
+  var raw = ' 0000000000|!00005f0000|"0007000700|#147f147f14|$242a7f2a12|%2313086462|&3649552250|\'0005030000|(001c224100|)0041221c00|*14083e0814|+08083e0808|,0050300000|-0808080808|.0060600000|/2010080402|03e5149453e|10042 7f4000|242615149 46|32141454b31|4181412 7f10|52745454539|63c4a494930|7017109 0503|83649494936|90649 49291e|:0036360000|;0056360000|<0814224100|=1414141414|>0041221408|?0201510906|@3249794 13e|A7e1111117e|B7f49494936|C3e41414122|D7f4141221c|E7f49494941|F7f09090901|G3e41494 97a|H7f0808087f|I00417f4100|J2040413f01|K7f08142241|L7f40404040|M7f020c027f|N7f0408107f|O3e4141413e|P7f09090906|Q3e4151215e|R7f09192946|S4649494931|T01017f0101|U3f4040403f|V1f2040201f|W3f4038403f|X6314081463|Y0708700807|Z6151494543|[007f414100|\\0204081020|]00417f0000|^0402010204|_4040404040'.replace(/ /g, '').split('|');
+  var f = {};
+  raw.forEach(function (r) { var ch = r[0], hex = r.slice(1); f[ch] = [0, 1, 2, 3, 4].map(function (i) { return parseInt(hex.substr(i * 2, 2), 16); }); });
+  f['0'] = [0x3e, 0x51, 0x49, 0x45, 0x3e]; f['1'] = [0x00, 0x42, 0x7f, 0x40, 0x00]; f['2'] = [0x42, 0x61, 0x51, 0x49, 0x46]; f['3'] = [0x21, 0x41, 0x45, 0x4b, 0x31]; f['4'] = [0x18, 0x14, 0x12, 0x7f, 0x10];
+  f['5'] = [0x27, 0x45, 0x45, 0x45, 0x39]; f['6'] = [0x3c, 0x4a, 0x49, 0x49, 0x30]; f['7'] = [0x01, 0x71, 0x09, 0x05, 0x03]; f['8'] = [0x36, 0x49, 0x49, 0x49, 0x36]; f['9'] = [0x06, 0x49, 0x49, 0x29, 0x1e];
+  f['G'] = [0x3e, 0x41, 0x49, 0x49, 0x7a]; f['J'] = [0x20, 0x40, 0x41, 0x3f, 0x01]; f['Q'] = [0x3e, 0x41, 0x51, 0x21, 0x5e]; f['@'] = [0x32, 0x49, 0x79, 0x41, 0x3e]; f['$'] = [0x24, 0x2a, 0x7f, 0x2a, 0x12];
+  f[' '] = [0, 0, 0, 0, 0]; return f;
+})();
+
+/* ---------- putting a buffer on screen ---------- */
+PX.render = function (buf, night, scale) {
+  scale = scale || 1; var cv = document.createElement('canvas'); cv.width = buf.w * scale; cv.height = buf.h * scale;
+  var cx = cv.getContext('2d'), im = cx.createImageData(cv.width, cv.height), o = im.data, x, y, c, i, sx, sy;
+  for (y = 0; y < cv.height; y++) for (x = 0; x < cv.width; x++) {
+    c = buf.d[((y / scale) | 0) * buf.w + ((x / scale) | 0)]; i = (y * cv.width + x) * 4;
+    if (c === 255) { o[i + 3] = 0; continue; }
+    if (c >= 16) c -= 16; else if (night) c = PX.NIGHT[c];
+    var rgb = PX.RGB[c]; o[i] = rgb[0]; o[i + 1] = rgb[1]; o[i + 2] = rgb[2]; o[i + 3] = 255;
+  }
+  cx.putImageData(im, 0, 0); return cv;
+};
+PX.cache = {};
+PX.url = function (key, buf, night) { var k = key + (night ? '/n' : '/d'); return PX.cache[k] || (PX.cache[k] = PX.render(buf, night).toDataURL()); };
+PX.img = function (url, w, h, cls, scale, extra) { return '<img class="pxi ' + (cls || '') + '" src="' + url + '" width="' + w + '" height="' + h + '" style="width:' + (w * (scale || 1)) + 'px;height:' + (h * (scale || 1)) + 'px"' + (extra || '') + ' alt="">'; };
+
+/* ---------- turning existing vector art (portraits, ships, icons) into EGA pixel art ---------- */
+PX.BLANK = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+PX.pend = {}; PX.sv = {};
+PX.hash = function (s) { var h = 5381; for (var i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return (h >>> 0).toString(36); };
+/* quantise an RGBA canvas onto the EGA palette. spread is the strength of the ordered dither. */
+PX.quant = function (cx, w, h, spread) {
+  var im = cx.getImageData(0, 0, w, h), d = im.data, x, y, i, k, best, bd, t, r, g, b;
+  for (y = 0; y < h; y++) for (x = 0; x < w; x++) {
+    i = (y * w + x) * 4; if (d[i + 3] < 110) { d[i + 3] = 0; continue; }
+    t = (PX.BAYER[(y & 3) * 4 + (x & 3)] / 16 - 0.47) * spread; r = d[i] + t; g = d[i + 1] + t; b = d[i + 2] + t; best = 0; bd = 1e9;
+    for (k = 0; k < 16; k++) { var q = PX.RGB[k], dr = r - q[0], dg = g - q[1], db = b - q[2], dd = dr * dr * 0.3 + dg * dg * 0.59 + db * db * 0.11; if (dd < bd) { bd = dd; best = k; } }
+    d[i] = PX.RGB[best][0]; d[i + 1] = PX.RGB[best][1]; d[i + 2] = PX.RGB[best][2]; d[i + 3] = 255;
+  }
+  cx.putImageData(im, 0, 0);
+};
+/* returns an <img> (or any tag via tag='image') that fills in with an EGA version of the svg a moment later. */
+PX.svg = function (svg, w, h, cls, scale, spread) {
+  var key = PX.hash(svg) + 'x' + w + 'x' + h, url = PX.cache['s' + key], tag = '<img class="pxi ' + (cls || '') + '" data-pk="' + key + '" src="' + (url || PX.BLANK) + '" width="' + w + '" height="' + h + '" style="width:' + (w * (scale || 1)) + 'px;height:' + (h * (scale || 1)) + 'px" alt="">';
+  if (!url && !PX.pend[key]) {
+    PX.pend[key] = 1; PX.sv[key] = [svg, w, h, spread === undefined ? 40 : spread];
+    PX.queue(key);
+  }
+  return tag;
+};
+PX.queue = function (key) {
+  var a = PX.sv[key], svg = a[0], w = a[1], h = a[2], im = new Image();
+  if (svg.indexOf('xmlns=') < 0) svg = svg.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg"');
+  svg = svg.replace(/<svg([^>]*?)>/, function (m, at) { at = at.replace(/\s(width|height)="[^"]*"/g, ''); return '<svg' + at + ' width="' + w * 6 + '" height="' + h * 6 + '">'; });
+  im.onload = function () {
+    try { var cv = document.createElement('canvas'); cv.width = w; cv.height = h; var cx = cv.getContext('2d'); cx.imageSmoothingEnabled = true; cx.imageSmoothingQuality = 'high'; cx.drawImage(im, 0, 0, w, h); PX.quant(cx, w, h, a[3]); PX.cache['s' + key] = cv.toDataURL(); delete PX.sv[key]; }
+    catch (e) { PX.cache['s' + key] = PX.BLANK; }
+    PX.apply(key);
+  };
+  im.onerror = function () { PX.cache['s' + key] = PX.BLANK; };
+  im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+};
+PX.apply = function (key) { var u = PX.cache['s' + key]; Array.prototype.forEach.call(document.querySelectorAll('[data-pk="' + key + '"]'), function (e) { if (e.tagName === 'image') e.setAttribute('href', u); else e.src = u; }); };
+
+/* Galactic Trader Deluxe. Part 22: the street. A one-point perspective boulevard in 16-colour EGA. The walls run away at about 28 degrees toward a vanishing point,
+   each planet has its own palette, building shapes and ornaments, and every building is painted flat and then warped onto its wall. */
+var SC = { W: 320, H: 180, VX: 186, VY: 76, INK: '#000000' };
+SC.night = function (s) { s = s || (typeof S !== 'undefined' ? S : null); return !!(s && s.visit && s.visit.night); };
+
+/* palettes: a lit wall, b shaded wall, r roof, t trim, k accent, g glass, sun. sky and nsky are top-to-bottom gradients. */
+SC.TH = {
+  meridoa:  { sky: [PX.LB, PX.LC, PX.W], nsky: [PX.K, PX.B, PX.B], ground: [PX.LG, PX.G], road: [PX.N, PX.Y], walk: [PX.L, PX.W], far: [PX.G, PX.LG], a: PX.Y, b: PX.N, r: PX.LR, t: PX.W, k: PX.LG, g: PX.LC, sun: PX.Y, orn: 'farm' },
+  karthosu: { sky: [PX.R, PX.LR, PX.Y], nsky: [PX.K, PX.B, PX.M], ground: [PX.Y, PX.N], road: [PX.Y, PX.L], walk: [PX.N, PX.Y], far: [PX.N, PX.R], a: PX.Y, b: PX.N, r: PX.N, t: PX.W, k: PX.LC, g: PX.K, sun: PX.LR, orn: 'ruin' },
+  ferrox:   { sky: [PX.D, PX.N, PX.LR], nsky: [PX.K, PX.K, PX.R], ground: [PX.D, PX.K], road: [PX.K, PX.D], walk: [PX.D, PX.L], far: [PX.D, PX.K], a: PX.L, b: PX.D, r: PX.R, t: PX.N, k: PX.LR, g: PX.Y, sun: PX.LR, orn: 'mine' },
+  kryndor:  { sky: [PX.B, PX.M, PX.LM], nsky: [PX.K, PX.B, PX.M], ground: [PX.D, PX.K], road: [PX.K, PX.D], walk: [PX.B, PX.D], far: [PX.B, PX.M], a: PX.LC, b: PX.B, r: PX.C, t: PX.LM, k: PX.Y, g: PX.W, sun: PX.W, orn: 'neon' },
+  nihil:    { sky: [PX.K, PX.K, PX.B], nsky: [PX.K, PX.K, PX.K], ground: [PX.D, PX.K], road: [PX.K, PX.B], walk: [PX.D, PX.L], far: [PX.D, PX.B], a: PX.L, b: PX.D, r: PX.D, t: PX.LM, k: PX.LC, g: PX.LM, sun: PX.LM, orn: 'void' },
+  quellin:  { sky: [PX.LC, PX.W, PX.W], nsky: [PX.K, PX.B, PX.C], ground: [PX.W, PX.L], road: [PX.L, PX.W], walk: [PX.W, PX.LC], far: [PX.LC, PX.C], a: PX.W, b: PX.LC, r: PX.LC, t: PX.LM, k: PX.LG, g: PX.C, sun: PX.W, orn: 'lab' },
+  halcyra:  { sky: [PX.LR, PX.Y, PX.W], nsky: [PX.B, PX.M, PX.LR], ground: [PX.W, PX.L], road: [PX.Y, PX.W], walk: [PX.W, PX.L], far: [PX.LR, PX.LM], a: PX.W, b: PX.LM, r: PX.LR, t: PX.Y, k: PX.LC, g: PX.LB, sun: PX.LR, orn: 'cloud' }
+};
+/* which building shape each planet uses for each service, and what decorations the rest wear */
+SC.KIT = {
+  meridoa:  { market: 'mush', bank: 'silo', yard: 'barn', fuel: 'silo', cantina: 'pod', office: 'barn', parlour: 'pod', decor: ['pod', 'silo', 'mush'] },
+  karthosu: { market: 'zig', bank: 'arch', yard: 'arch', fuel: 'arch', cantina: 'zig', office: 'zig', parlour: 'arch', decor: ['zig', 'arch', 'tower'] },
+  ferrox:   { market: 'box', bank: 'derrick', yard: 'derrick', fuel: 'silo', cantina: 'box', office: 'box', parlour: 'box', decor: ['derrick', 'silo', 'box'] },
+  kryndor:  { market: 'tower', bank: 'tower', yard: 'box', fuel: 'pod', cantina: 'tower', office: 'tower', parlour: 'tower', decor: ['tower', 'box', 'pod'] },
+  nihil:    { market: 'hex', bank: 'hex', yard: 'hex', fuel: 'pod', cantina: 'hex', office: 'hex', parlour: 'dome', decor: ['pod', 'hex', 'dome'] },
+  quellin:  { market: 'dome', bank: 'dome', yard: 'pod', fuel: 'silo', cantina: 'dome', office: 'pod', parlour: 'dome', decor: ['dome', 'pod', 'silo'] },
+  halcyra:  { market: 'balloon', bank: 'dome', yard: 'balloon', fuel: 'balloon', cantina: 'balloon', office: 'balloon', parlour: 'balloon', decor: ['balloon', 'pod', 'dome'] }
+};
+/* who stands where. L1..L4 run up the left wall (near to far), R1..R4 up the right, E closes the street. */
+SC.LAYOUT = {
+  meridoa:  { L: ['market', 'cantina', 'office', 'decor'], R: ['fuel', 'yard', 'alley', 'decor'], E: 'bank' },
+  karthosu: { L: ['bank', 'market', 'decor', 'alley'], R: ['cantina', 'yard', 'office', 'decor'], E: 'fuel' },
+  ferrox:   { L: ['yard', 'market', 'alley', 'decor'], R: ['fuel', 'cantina', 'office', 'decor'], E: 'bank' },
+  kryndor:  { L: ['market', 'fuel', 'cantina', 'decor'], R: ['bank', 'office', 'alley', 'decor'], E: 'yard' },
+  nihil:    { L: ['market', 'cantina', 'yard', 'decor'], R: ['fuel', 'office', 'alley', 'decor'], E: 'parlour', bank: 'L4' },
+  quellin:  { L: ['bank', 'cantina', 'decor', 'alley'], R: ['market', 'yard', 'office', 'decor'], E: 'fuel' },
+  halcyra:  { L: ['market', 'yard', 'office', 'decor'], R: ['cantina', 'fuel', 'alley', 'decor'], E: 'bank' }
+};
+SC.SLOTS = {
+  L1: { s: 'L', xa: -6, xb: 50, Hw: 150 }, L2: { s: 'L', xa: 54, xb: 86, Hw: 140 }, L3: { s: 'L', xa: 90, xb: 114, Hw: 130 }, L4: { s: 'L', xa: 118, xb: 136, Hw: 120 },
+  R1: { s: 'R', xa: 276, xb: 326, Hw: 150 }, R2: { s: 'R', xa: 244, xb: 272, Hw: 140 }, R3: { s: 'R', xa: 222, xb: 240, Hw: 130 }, R4: { s: 'R', xa: 208, xb: 218, Hw: 120 },
+  E: { s: 'E', xa: 144, xb: 204, Hw: 84 }
+};
+SC.baseL = function (x) { return SC.VY + (178 - SC.VY) * (SC.VX - x) / (SC.VX + 6); };
+SC.baseR = function (x) { return SC.VY + (150 - SC.VY) * (x - SC.VX) / (326 - SC.VX); };
+SC.scL = function (x) { return (SC.VX - x) / (SC.VX + 6); };
+SC.scR = function (x) { return (x - SC.VX) / (326 - SC.VX); };
+
+/* ---------- a facade: paint in flat local units (x 0..100 across, y 0..130 up), pixels land warped on the wall ---------- */
+SC.Fac = function (B, slot, night, rnd) {
+  var s = slot.s, xa = slot.xa, xb = slot.xb, ba = s === 'L' ? SC.baseL : s === 'R' ? SC.baseR : function () { return SC.VY + 8; }, sc = s === 'L' ? SC.scL : s === 'R' ? SC.scR : function () { return 1; };
+  this.B = B; this.xa = xa; this.xb = xb; this.ybA = ba(xa); this.ybB = ba(xb); this.hA = slot.Hw * sc(xa); this.hB = slot.Hw * sc(xb); this.night = night; this.rnd = rnd; this.mask = new Uint8Array(B.w * B.h);
+  this.px = (xb - xa) / 100;
+};
+(function (F) {
+  F.map = function (lx, ly) { var u = lx / 100; return [this.xa + u * (this.xb - this.xa), this.ybA + u * (this.ybB - this.ybA) - ly / 130 * (this.hA + u * (this.hB - this.hA))]; };
+  F.fill = function (x0, y0, x1, y1, test, col) {
+    var me = this, B = this.B, X0 = 1e9, X1 = -1e9, Y0 = 1e9, Y1 = -1e9;
+    [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].forEach(function (c) { var p = me.map(c[0], c[1]); X0 = Math.min(X0, p[0]); X1 = Math.max(X1, p[0]); Y0 = Math.min(Y0, p[1]); Y1 = Math.max(Y1, p[1]); });
+    X0 = Math.max(0, Math.floor(X0)); X1 = Math.min(B.w - 1, Math.ceil(X1)); Y0 = Math.max(0, Math.floor(Y0)); Y1 = Math.min(B.h - 1, Math.ceil(Y1));
+    var du = this.xb - this.xa;
+    for (var X = X0; X <= X1; X++) {
+      var u = (X + 0.5 - this.xa) / du, lx = u * 100; if (lx < x0 || lx >= x1) continue;
+      var yb = this.ybA + u * (this.ybB - this.ybA), h = this.hA + u * (this.hB - this.hA);
+      for (var Y = Y0; Y <= Y1; Y++) {
+        var ly = (yb - (Y + 0.5)) / h * 130; if (ly < y0 || ly >= y1 || !test(lx, ly)) continue;
+        var c = typeof col === 'function' ? col(lx, ly, X, Y) : col; if (c < 0) continue;
+        B.d[Y * B.w + X] = c; this.mask[Y * B.w + X] = 1;
+      }
+    }
+  };
+  F.R = function (x, y, w, h, c) { this.fill(x, y, x + w, y + h, function () { return true; }, c); };
+  F.E = function (cx, cy, rx, ry, c) { this.fill(cx - rx, cy - ry, cx + rx, cy + ry, function (x, y) { var a = (x - cx) / rx, b = (y - cy) / ry; return a * a + b * b <= 1; }, c); };
+  F.P = function (pts, c) {
+    var xs = [], ys = [], n = pts.length / 2, i; for (i = 0; i < n; i++) { xs.push(pts[i * 2]); ys.push(pts[i * 2 + 1]); }
+    this.fill(Math.min.apply(null, xs), Math.min.apply(null, ys), Math.max.apply(null, xs) + 0.01, Math.max.apply(null, ys) + 0.01, function (x, y) {
+      var inside = false; for (var a = 0, b = n - 1; a < n; b = a++) { if ((ys[a] > y) !== (ys[b] > y) && x < (xs[b] - xs[a]) * (y - ys[a]) / (ys[b] - ys[a]) + xs[a]) inside = !inside; } return inside;
+    }, c);
+  };
+  F.L = function (x0, y0, x1, y1, w, c) { var dx = x1 - x0, dy = y1 - y0, l = Math.hypot(dx, dy) || 1, nx = -dy / l * w / 2, ny = dx / l * w / 2; this.P([x0 + nx, y0 + ny, x1 + nx, y1 + ny, x1 - nx, y1 - ny, x0 - nx, y0 - ny], c); };
+  /* a run of text, baseline at y, hgt local units tall */
+  F.T = function (s, x, y, hgt, c, align) {
+    s = String(s).toUpperCase(); var cw = hgt * 6 / 7, tw = s.length * cw; if (align === 'c') x -= tw / 2;
+    this.fill(x, y, x + tw, y + hgt, function (lx, ly) {
+      var gx = (lx - x) / cw, ci = Math.floor(gx), col = Math.floor((gx - ci) * 6), row = 6 - Math.floor((ly - y) / hgt * 7); if (col > 4 || row < 0 || row > 6) return false;
+      var g = PX.FONT[s[ci]] || PX.FONT['?']; return ((g[col] >> row) & 1) === 1;
+    }, c);
+  };
+  F.gh = function (a, b, x0, x1) { return function (lx, ly, X, Y) { var t = Math.max(0, Math.min(1, (lx - x0) / (x1 - x0))) * 16; return PX.BAYER[(Y & 3) * 4 + (X & 3)] < t ? b : a; }; };
+  F.gv = function (a, b, y0, y1) { return function (lx, ly, X, Y) { var t = Math.max(0, Math.min(1, (ly - y0) / (y1 - y0))) * 16; return PX.BAYER[(Y & 3) * 4 + (X & 3)] < t ? b : a; }; };
+  F.wins = function (x, y, cols, rows, w, h, gx, gy, glass) {
+    for (var j = 0; j < rows; j++) for (var i = 0; i < cols; i++) { var lit = this.night && this.rnd() < 0.6; this.R(x + i * (w + gx), y + j * (h + gy), w, h, lit ? PX.E + PX.Y : glass); }
+  };
+  /* give the whole painted building a one pixel black edge */
+  F.edge = function () {
+    var B = this.B, m = this.mask, w = B.w, h = B.h, out = [], i, x, y;
+    for (y = 0; y < h; y++) for (x = 0; x < w; x++) { i = y * w + x; if (!m[i]) continue; if (x === 0 || y === 0 || x === w - 1 || y === h - 1 || !m[i - 1] || !m[i + 1] || !m[i - w] || !m[i + w]) out.push(i); }
+    out.forEach(function (j) { B.d[j] = 0; });
+  };
+  for (var k in F) SC.Fac.prototype[k] = F[k];
+})({});
+
+/* ---------- building shapes. Each paints into the facade and returns where the door and sign are. ---------- */
+SC.SH = {};
+SC.SH.box = function (f, t, o) {
+  var h = o.h || 74; f.R(6, 0, 88, h, f.gh(t.a, t.b, 6, 94)); f.R(2, h, 96, 7, t.t); f.R(8, h + 7, 84, 3, t.r);
+  f.wins(14, h - 36, 3, 2, 16, 11, 11, 7, t.g); f.R(38, 0, 24, 30, PX.K); f.R(41, 0, 18, 27, t.k); f.R(49, 0, 2, 27, PX.K);
+  return { dx: 38, dw: 24, dh: 30, sx: 8, sy: h - 6, sw: 84, sh: 12 };
+};
+SC.SH.tower = function (f, t, o) {
+  var h = 108; f.R(18, 0, 64, h, f.gh(t.a, t.b, 18, 82)); f.R(26, h, 48, 10, t.b); f.R(34, h + 10, 32, 8, t.a); f.L(50, h + 18, 50, h + 34, 2, t.t); f.R(48, h + 32, 4, 4, PX.E + PX.LR);
+  for (var j = 0; j < 7; j++) f.R(22, 40 + j * 9, 56, 3, j % 2 ? t.g : (f.night ? PX.E + PX.Y : t.g));
+  f.R(22, 12, 56, 2, t.t); f.R(38, 0, 24, 26, PX.K); f.R(41, 0, 18, 23, t.g);
+  return { dx: 38, dw: 24, dh: 26, sx: 20, sy: 30, sw: 60, sh: 11 };
+};
+SC.SH.dome = function (f, t, o) {
+  f.R(8, 0, 84, 34, f.gh(t.a, t.b, 8, 92)); f.R(5, 34, 90, 5, t.t); f.E(50, 38, 42, 44, f.gh(t.a, t.b, 8, 92)); f.R(0, 0, 100, 38, -1);
+  f.E(50, 40, 42, 40, f.gh(t.b === PX.LC ? PX.W : t.a, t.b, 12, 90)); for (var i = 0; i < 3; i++) f.L(50 + i * 14 - 14, 40, 50 + (i - 1) * 6, 80, 2, t.t);
+  f.E(36, 66, 8, 5, PX.W); f.L(50, 80, 50, 96, 2, t.t); f.E(50, 98, 4, 4, PX.E + PX.LR);
+  f.R(8, 0, 84, 34, f.gh(t.a, t.b, 8, 92)); f.wins(16, 14, 4, 1, 14, 10, 8, 0, t.g); f.R(38, 0, 24, 24, PX.K); f.R(41, 0, 18, 21, t.k); f.R(5, 34, 90, 4, t.t);
+  return { dx: 38, dw: 24, dh: 24, sx: 12, sy: 25, sw: 76, sh: 8 };
+};
+SC.SH.zig = function (f, t, o) {
+  f.R(4, 0, 92, 32, f.gh(t.a, t.b, 4, 96)); f.R(16, 32, 68, 26, f.gh(t.a, t.b, 16, 84)); f.R(30, 58, 40, 22, f.gh(t.a, t.b, 30, 70)); f.R(40, 80, 20, 14, t.t); f.R(46, 94, 8, 10, PX.E + t.k);
+  f.R(2, 30, 96, 3, t.r); f.R(14, 56, 72, 3, t.r); f.R(28, 78, 44, 3, t.r);
+  for (var i = 0; i < 6; i++) { f.R(10 + i * 14, 40, 6, 6, f.night ? PX.E + t.k : t.b); f.R(36 + (i % 2) * 18, 64, 5, 7, f.night ? PX.E + t.k : t.b); }
+  f.R(38, 0, 24, 26, PX.K); f.R(41, 0, 18, 22, PX.D); f.R(44, 0, 12, 18, PX.K);
+  return { dx: 38, dw: 24, dh: 26, sx: 8, sy: 33, sw: 84, sh: 9 };
+};
+SC.SH.silo = function (f, t, o) {
+  f.R(18, 0, 64, 84, f.gh(t.a, t.b, 18, 82)); f.E(50, 84, 32, 16, f.gh(t.a, t.b, 18, 82)); f.E(50, 92, 20, 8, t.t); f.L(50, 100, 50, 118, 2, t.t); f.E(50, 120, 5, 4, PX.E + PX.LR);
+  f.R(18, 54, 64, 3, t.r); f.R(18, 18, 64, 3, t.r); f.R(86, 0, 8, 70, f.gh(t.b, PX.D, 86, 94)); f.E(90, 70, 6, 4, t.t);
+  f.R(38, 0, 24, 28, PX.K); f.R(41, 0, 18, 25, t.k); f.R(48, 0, 4, 25, PX.K);
+  return { dx: 38, dw: 24, dh: 28, sx: 22, sy: 32, sw: 56, sh: 12 };
+};
+SC.SH.pod = function (f, t, o) {
+  f.L(30, 20, 18, 0, 5, t.b); f.L(70, 20, 82, 0, 5, t.b); f.L(50, 20, 50, 0, 5, t.b);
+  f.E(50, 64, 38, 46, f.gh(t.a, t.b, 12, 88)); f.E(50, 64, 38, 8, t.t); f.R(12, 62, 76, 5, t.t);
+  for (var i = 0; i < 3; i++) f.E(30 + i * 20, 84, 6, 6, f.night ? PX.E + PX.Y : t.g); f.E(50, 40, 12, 14, PX.K); f.E(50, 40, 9, 11, t.k);
+  return { dx: 40, dw: 20, dh: 24, sx: 14, sy: 56, sw: 72, sh: 12 };
+};
+SC.SH.mush = function (f, t, o) {
+  f.R(34, 0, 32, 66, f.gh(t.a, t.b, 34, 66)); f.E(50, 70, 48, 28, f.gh(t.r, t.b, 4, 96)); f.R(0, 0, 100, 66, -1);
+  f.R(34, 0, 32, 66, f.gh(t.a, t.b, 34, 66)); f.E(50, 70, 48, 28, t.r); f.E(34, 82, 7, 5, PX.W); f.E(64, 90, 6, 4, PX.W); f.E(72, 72, 5, 4, PX.W); f.E(22, 70, 5, 4, PX.W);
+  f.R(4, 62, 92, 4, t.b); f.R(38, 0, 24, 30, PX.K); f.R(41, 0, 18, 27, t.k);
+  return { dx: 38, dw: 24, dh: 30, sx: 36, sy: 34, sw: 28, sh: 9 };
+};
+SC.SH.hex = function (f, t, o) {
+  f.P([14, 4, 86, 4, 98, 30, 98, 56, 86, 82, 14, 82, 2, 56, 2, 30], f.gh(t.a, t.b, 2, 98)); f.P([22, 12, 78, 12, 88, 32, 88, 54, 78, 74, 22, 74, 12, 54, 12, 32], f.gh(t.b, PX.D, 12, 88));
+  for (var i = 0; i < 4; i++) f.E(22 + i * 19, 62, 6, 6, f.night ? PX.E + t.g : t.k); f.R(38, 0, 24, 22, PX.K); f.R(41, 0, 18, 19, t.t); f.R(49, 0, 2, 19, PX.K);
+  f.L(50, 82, 50, 102, 2, t.t); f.E(50, 106, 12, 5, t.t); f.R(8, 80, 16, 3, PX.Y); f.R(76, 80, 16, 3, PX.Y);
+  return { dx: 38, dw: 24, dh: 22, sx: 18, sy: 28, sw: 64, sh: 12 };
+};
+SC.SH.barn = function (f, t, o) {
+  f.R(8, 0, 84, 46, f.gh(t.a, t.b, 8, 92)); f.P([0, 44, 50, 90, 100, 44], t.r); f.P([12, 46, 50, 80, 88, 46], f.gh(t.b, t.r, 12, 88)); f.R(42, 52, 16, 16, PX.K); f.R(44, 54, 12, 12, t.g);
+  f.R(26, 0, 48, 34, PX.K); f.R(29, 0, 42, 31, t.b); f.L(29, 0, 71, 31, 2, t.a); f.L(29, 31, 71, 0, 2, t.a);
+  return { dx: 26, dw: 48, dh: 34, sx: 14, sy: 36, sw: 72, sh: 8 };
+};
+SC.SH.arch = function (f, t, o) {
+  f.P([4, 0, 96, 0, 96, 58, 82, 66, 60, 56, 36, 70, 14, 60, 4, 66], f.gh(t.a, t.b, 4, 96)); f.R(10, 0, 8, 62, t.t); f.R(82, 0, 8, 62, t.t); f.R(8, 58, 12, 5, t.a); f.R(80, 58, 12, 5, t.a);
+  f.E(50, 28, 17, 22, PX.K); f.R(33, 0, 34, 28, PX.K); for (var i = 0; i < 5; i++) { f.R(24 + i * 14, 48, 6, 4, f.night ? PX.E + t.k : t.b); }
+  f.R(70, 0, 12, 8, t.a); f.R(84, 0, 10, 5, t.b);
+  return { dx: 33, dw: 34, dh: 40, sx: 22, sy: 40, sw: 56, sh: 8 };
+};
+SC.SH.derrick = function (f, t, o) {
+  f.R(4, 0, 64, 40, f.gh(t.a, t.b, 4, 68)); f.R(0, 40, 72, 5, t.r); f.R(14, 0, 22, 26, PX.K); f.R(17, 0, 16, 23, t.k); f.wins(42, 18, 2, 1, 12, 10, 4, 0, t.g);
+  f.L(64, 45, 54, 118, 4, t.b); f.L(84, 45, 70, 118, 4, t.b); for (var i = 0; i < 6; i++) { f.L(60 - i * 1.2, 52 + i * 12, 78 - i * 2, 52 + i * 12, 2, t.t); f.L(60 - i * 1.2, 52 + i * 12, 79 - i * 2, 64 + i * 12, 2, t.b); }
+  f.P([50, 118, 76, 118, 70, 126, 56, 126], t.r); f.R(66, 126, 3, 4, PX.E + PX.LR);
+  f.R(80, 0, 10, 70, f.gh(t.a, t.b, 80, 90)); f.E(85, 72, 8, 3, PX.D); f.E(88, 82, 7, 5, PX.D); f.E(84, 92, 8, 5, PX.L);
+  return { dx: 14, dw: 22, dh: 26, sx: 4, sy: 41, sw: 64, sh: 10 };
+};
+SC.SH.balloon = function (f, t, o) {
+  f.E(50, 98, 36, 30, f.gh(t.r, t.b, 14, 86)); for (var i = 0; i < 5; i++) f.P([50 + (i - 2) * 14, 126, 50 + (i - 2) * 14 + 7, 126, 50 + (i - 2) * 6 + 3, 74, 50 + (i - 2) * 6, 74], i % 2 ? t.t : t.k); f.E(50, 98, 36, 30, -1);
+  f.L(30, 70, 34, 44, 1, PX.K); f.L(70, 70, 66, 44, 1, PX.K);
+  f.R(22, 4, 56, 40, f.gh(t.a, t.b, 22, 78)); f.R(18, 42, 64, 5, t.t); f.R(26, 22, 14, 10, f.night ? PX.E + PX.Y : t.g); f.R(60, 22, 14, 10, f.night ? PX.E + PX.Y : t.g); f.R(42, 4, 16, 18, PX.K); f.R(44, 4, 12, 16, t.k);
+  f.E(18, 4, 14, 6, PX.W); f.E(84, 4, 16, 7, PX.W); f.E(50, 0, 24, 6, PX.W);
+  return { dx: 42, dw: 16, dh: 18, sx: 24, sy: 34, sw: 52, sh: 8 };
+};
+SC.SH.decor = SC.SH.pod;
+
+/* ---------- what each service adds to its building ---------- */
+SC.FN = {};
+SC.FN.market = function (f, t, m) { for (var i = 0; i < 6; i++) f.P([10 + i * 13, m.dh + 10, 23 + i * 13, m.dh + 10, 25 + i * 13, m.dh + 2, 8 + i * 13, m.dh + 2], i % 2 ? PX.W : PX.R); f.R(4, 0, 12, 8, PX.N); f.R(84, 0, 12, 8, PX.N); f.E(10, 11, 5, 4, PX.Y); f.E(90, 11, 5, 4, PX.LG); };
+SC.FN.bank = function (f, t, m) { [14, 28, 66, 80].forEach(function (x) { f.R(x, 0, 6, 52, f.gh(PX.W, PX.L, x, x + 6)); f.R(x - 1, 52, 8, 3, PX.W); }); f.E(50, 60, 8, 8, PX.Y); f.R(48, 56, 4, 8, PX.N); };
+SC.FN.yard = function (f, t, m) { for (var i = 0; i < 6; i++) f.R(m.dx + i * 4, 0, 2, m.dh, i % 2 ? PX.Y : PX.K); f.L(90, 0, 90, 70, 3, PX.N); f.L(90, 70, 62, 84, 3, PX.N); f.L(62, 84, 62, 72, 1, PX.D); f.P([4, 78, 26, 84, 4, 90], PX.W); };
+SC.FN.fuel = function (f, t, m) { f.R(6, 0, 14, 24, PX.R); f.R(8, 14, 10, 6, PX.W); f.L(20, 18, 30, 6, 2, PX.K); f.E(78, 8, 9, 8, PX.D); f.E(78, 18, 9, 8, PX.D); f.R(70, 6, 16, 16, PX.D); f.R(72, 8, 12, 4, PX.LC); };
+SC.FN.cantina = function (f, t, m) { f.E(50, m.sy + 22, 12, 10, PX.E + PX.Y); f.R(44, m.sy + 12, 12, 8, PX.E + PX.W); f.R(56, m.sy + 16, 6, 5, PX.E + PX.Y); for (var i = 0; i < 7; i++) f.E(10 + i * 13, m.sy + 6 + (i % 2) * 3, 2, 2, PX.E + [PX.LR, PX.Y, PX.LG, PX.LC][i % 4]); f.R(4, 0, 6, 12, PX.N); f.R(90, 0, 6, 12, PX.N); };
+SC.FN.office = function (f, t, m) { f.R(74, 0, 3, 30, PX.N); f.R(62, 18, 34, 14, PX.W); f.R(62, 18, 34, 2, PX.R); f.T('SALE', 79, 21, 8, PX.R, 'c'); f.P([8, m.sy + 4, 28, m.sy + 4, 28, m.sy + 20, 8, m.sy + 20], PX.R); f.T('SOLD', 18, m.sy + 8, 8, PX.W, 'c'); };
+SC.FN.parlour = function (f, t, m) { f.P([0, 70, 14, 70, 10, 0, 0, 0], PX.R); f.P([100, 70, 86, 70, 90, 0, 100, 0], PX.R); for (var i = 0; i < 12; i++) f.E(8 + i * 8, m.sy + 12, 2, 2, PX.E + (i % 2 ? PX.Y : PX.LR)); f.R(38, 0, 24, m.dh, PX.R); f.R(41, 0, 18, m.dh - 3, PX.M); };
+SC.FN.alley = function (f, t, m) { f.R(10, 0, 18, 14, PX.D); f.R(12, 12, 14, 3, PX.L); f.E(50, 20, 3, 3, PX.E + PX.Y); f.E(60, 20, 3, 3, PX.E + PX.Y); f.R(66, 0, 20, 8, PX.N); for (var i = 0; i < 3; i++) f.E(78 + i * 4, 18 + i * 8, 4 - i, 3, PX.L); };
+SC.FN.decor = function () {};
+
+/* an ornament per world, scattered on the roofs and walls so no two planets feel alike */
+SC.ORN = {
+  farm: function (f, t, m, o) { f.E(14, 6, 7, 5, PX.LR); f.L(14, 10, 14, 13, 2, PX.G); f.E(88, 6, 6, 4, PX.Y); if (o.k % 2) { f.L(50, 84, 50, 104, 1, PX.N); f.L(40, 100, 60, 100, 1, PX.N); f.R(62, 96, 10, 6, PX.W); } },
+  ruin: function (f, t, m, o) { f.E(50, 112, 8, 6, PX.W); f.E(50, 112, 4, 4, PX.E + t.k); f.R(49, 109, 2, 6, PX.K); for (var i = 0; i < 3; i++) f.R(12 + i * 28, 4, 8, 6, PX.E + PX.LC); },
+  mine: function (f, t, m, o) { for (var i = 0; i < 3; i++) f.E(24 + i * 6, 96 + i * 12, 5 + i * 2, 4 + i, PX.L); f.R(10, 100, 5, 20, PX.D); f.R(8, 98, 9, 3, PX.R); if (o.k % 2) f.E(88, 100, 4, 4, PX.E + PX.LR); },
+  neon: function (f, t, m, o) { f.R(0, 46, 100, 2, PX.E + PX.LM); f.R(0, 90, 100, 2, PX.E + PX.LC); f.R(84, 96, 12, 18, PX.E + PX.Y); f.T('BAR', 90, 100, 7, PX.K, 'c'); },
+  void: function (f, t, m, o) { f.L(0, 40, 100, 52, 1, PX.D); f.L(0, 90, 100, 80, 1, PX.D); f.E(90, 98, 7, 7, PX.E + PX.LM); f.E(10, 104, 5, 5, PX.E + PX.LC); f.L(50, 108, 50, 124, 1, PX.L); },
+  lab: function (f, t, m, o) { f.E(50, 52, 56, 6, PX.LM); f.E(50, 52, 56, 6, -1); f.L(2, 52, 98, 52, 2, PX.LM); f.E(20, 108, 5, 5, PX.E + PX.LG); f.E(80, 100, 4, 4, PX.E + PX.LM); f.L(78, 96, 90, 118, 2, PX.L); f.E(92, 120, 5, 5, PX.W); },
+  cloud: function (f, t, m, o) { f.E(10, 0, 18, 6, PX.W); f.E(90, 2, 20, 7, PX.W); f.E(50, -2, 30, 8, PX.W); f.P([2, 112, 22, 112, 2, 124], PX.R); f.L(2, 112, 2, 130, 1, PX.K); }
+};
+
+/* ---------- the whole street ---------- */
+SC.stars = function (B, rnd, y1) { for (var i = 0; i < 70; i++) { var x = Math.floor(rnd() * B.w), y = Math.floor(rnd() * y1), c = rnd() < 0.2 ? PX.Y : PX.W; B.px(x, y, PX.E + c); if (rnd() < 0.08) { B.px(x + 1, y, PX.E + PX.L); B.px(x, y + 1, PX.E + PX.L); } } };
+SC.skyArt = function (B, pid, th, night, rnd) {
+  var cols = night ? th.nsky.map(function (c) { return c + PX.E; }) : th.sky; B.vgrad(0, 0, B.w, SC.VY + 14, cols);
+  if (night || pid === 'nihil') SC.stars(B, rnd, SC.VY + 8);
+  var sx = pid === 'kryndor' ? 40 : pid === 'karthosu' ? 270 : 252, sy = 30, r = pid === 'halcyra' ? 30 : pid === 'nihil' ? 26 : 14;
+  var disc = night ? [PX.E + PX.W, PX.E + PX.L] : [th.sun, PX.W];
+  if (pid === 'nihil') { B.ell(sx, sy, r + 4, r + 4, PX.E + PX.LM); B.ell(sx - 4, sy - 4, r, r, PX.E + PX.M); B.line(sx - 40, sy + 8, sx + 40, sy - 8, PX.E + PX.LC); }
+  else if (pid === 'halcyra') { B.ell(sx, sy, r, r, night ? PX.E + PX.LM : PX.LR); B.rect(sx - r, sy - 6, r * 2, 3, night ? PX.E + PX.M : PX.R); B.rect(sx - r + 4, sy + 6, r * 2 - 8, 3, night ? PX.E + PX.M : PX.W); B.line(sx - 44, sy + 4, sx + 44, sy - 6, night ? PX.E + PX.LC : PX.Y); }
+  else { B.ell(sx, sy, r, r, disc[0]); B.ell(sx - 3, sy - 3, r - 5, r - 5, disc[1]); if (night) B.ell(sx + 5, sy - 2, r - 3, r - 3, PX.E + PX.B); }
+  if (!night && pid !== 'nihil' && pid !== 'kryndor') [[50, 24], [130, 14], [214, 36]].forEach(function (c) { B.ell(c[0], c[1], 20, 4, PX.W); B.ell(c[0] + 10, c[1] - 3, 12, 4, PX.W); });
+  /* the far skyline, a different silhouette on every world */
+  var y0 = SC.VY + 4, col = night ? PX.D : th.far[0], x;
+  if (pid === 'meridoa') { for (x = 0; x < 330; x += 1) B.rect(x, y0 - 6 - Math.round(Math.sin(x / 22) * 5 + Math.sin(x / 9) * 2), 1, 12, th.far[(x >> 2) & 1]); B.rect(100, y0 - 22, 3, 22, PX.N); B.line(101, y0 - 22, 112, y0 - 28, PX.W); B.line(101, y0 - 22, 92, y0 - 16, PX.W); B.line(101, y0 - 22, 94, y0 - 30, PX.W); B.line(101, y0 - 22, 110, y0 - 14, PX.W); }
+  else if (pid === 'karthosu') { B.poly([0, y0, 20, y0 - 20, 50, y0 - 20, 70, y0], PX.N); B.poly([230, y0, 252, y0 - 26, 290, y0 - 26, 320, y0], PX.N); B.poly([150, y0, 170, y0 - 36, 174, y0 - 36, 194, y0], PX.R); B.rect(110, y0 - 40, 4, 40, PX.Y); B.poly([108, y0 - 40, 116, y0 - 40, 112, y0 - 50], PX.Y); }
+  else if (pid === 'ferrox') { for (x = 4; x < 320; x += 28) { B.rect(x, y0 - 30 - (x % 3) * 8, 6, 40, PX.D); B.ell(x + 3, y0 - 34 - (x % 3) * 8, 7, 4, PX.L); } B.poly([0, y0, 60, y0 - 16, 130, y0], PX.D); }
+  else if (pid === 'kryndor') { for (x = 0; x < 320; x += 12) B.rect(x, y0 - 14 - ((x * 7) % 5) * 14, 11, 80, (x >> 3) & 1 ? PX.B : PX.D); for (x = 0; x < 320; x += 12) if (night) for (var w = 0; w < 4; w++) B.px(x + 3, y0 - 8 - ((x * 7) % 5) * 14 + w * 6, PX.E + PX.Y); B.rect(50, y0 - 100, 3, 100, PX.D); B.px(51, y0 - 101, PX.E + PX.LR); }
+  else if (pid === 'nihil') { B.ring(100, 52, 70, 12, PX.E + PX.D); B.ring(100, 52, 74, 14, PX.E + PX.D); for (x = 20; x < 300; x += 40) B.rect(x, y0 - 8, 22, 8, PX.D); }
+  else if (pid === 'quellin') { for (x = 10; x < 320; x += 46) { B.ell(x + 12, y0, 16, 12, PX.LC); B.rect(x - 4, y0, 32, 10, PX.LC); } B.ring(60, 40, 22, 6, PX.W); B.rect(240, y0 - 40, 3, 40, PX.L); B.ell(241, y0 - 42, 6, 6, PX.LM); }
+  else { for (x = 0; x < 330; x += 26) B.ell(x, y0 + 2, 24, 8 + (x % 3) * 3, night ? PX.LM : PX.LM); B.ell(70, y0 - 8, 30, 6, PX.W); B.ell(290, y0 - 10, 34, 7, PX.W); }
+};
+SC.groundArt = function (B, pid, th, rnd) {
+  var VX = SC.VX, VY = SC.VY, i, k;
+  B.poly([0, VY, 330, VY, 330, 190, 0, 190], th.ground[0]);
+  for (i = 0; i < 700; i++) B.px(Math.floor(rnd() * 320), VY + Math.floor(rnd() * 104), th.ground[1]);
+  /* road */
+  var road = PX.checker(th.road[0], th.road[1]);
+  B.poly([-6, 178, VX, VY, 326, 150, 326, 182, -6, 182], function (x, y) { return PX.BAYER[(y & 3) * 4 + (x & 3)] < 5 ? th.road[1] : th.road[0]; });
+  B.poly([-6, 178, VX, VY, 46, 182, -6, 182], PX.checker(th.walk[0], th.walk[1])); B.line(-6, 178, VX, VY, PX.K); B.line(46, 182, VX, VY, PX.K);
+  B.poly([326, 150, VX, VY, 300, 182, 326, 182], PX.checker(th.walk[0], th.walk[1])); B.line(326, 150, VX, VY, PX.K); B.line(300, 182, VX, VY, PX.K);
+  /* centre dashes running into the distance */
+  for (k = 1.2; k < 4.4; k *= 1.28) { var cx = VX + (160 - VX) / k, cy = VY + (182 - VY) / k, wd = 5 / k + 1; B.poly([cx - wd, cy, cx + wd, cy, cx + wd * 0.7, cy - 1.5 / k - 0.5, cx - wd * 0.7, cy - 1.5 / k - 0.5], pid === 'nihil' ? PX.LC : PX.Y); }
+};
+SC.drawBoard = function (B, th, night) {
+  B.rect(84, 150, 3, 28, PX.N); B.rect(112, 150, 3, 28, PX.N); B.rect(76, 134, 46, 28, PX.N); B.rect(78, 136, 42, 24, PX.Y); B.rect(82, 140, 14, 8, PX.W); B.rect(100, 142, 16, 10, PX.LR); B.rect(84, 152, 12, 5, PX.LG); B.text(79, 125, 'JOBS', PX.W, 1); B.rect(76, 134, 46, 1, PX.K); B.rect(76, 161, 46, 1, PX.K); B.rect(76, 134, 1, 28, PX.K); B.rect(121, 134, 1, 28, PX.K);
+};
+SC.drawPad = function (B, night) {
+  B.ell(252, 166, 50, 11, PX.D); B.ell(252, 165, 46, 9, PX.L); B.ell(252, 165, 40, 7, PX.D); B.ring(252, 165, 34, 5, PX.Y); B.ring(252, 165, 24, 3, PX.Y);
+  for (var i = 0; i < 8; i++) { var a = i / 8 * 6.2832; B.px(252 + Math.cos(a) * 44, 165 + Math.sin(a) * 8, night ? PX.E + PX.LR : PX.R); }
+};
+
+SC.hubKey = function (s) { var p = GT.PLANETS[s.loc]; return p.id + '|' + (SC.night(s) ? 'n' : 'd') + '|' + (p.upgrades.length ? 'y' : '-') + (p.fuelSold ? 'f' : '-') + (p.gambling ? 'p' : '-'); };
+SC.build = function (s) {
+  var p = GT.PLANETS[s.loc], pid = p.id, th = SC.TH[pid], night = SC.night(s), kit = SC.KIT[pid], lay = SC.LAYOUT[pid], rnd = GT.seeded(CH.hash(pid + (night ? 'n' : 'd'))), sg = NP.SIGNS[pid], B = new PX.Buf(SC.W, SC.H);
+  SC.skyArt(B, pid, th, night, rnd); SC.groundArt(B, pid, th, rnd);
+  var slots = [], hits = [], used = {}, door = {};
+  var place = function (slotId, fn) { slots.push({ id: slotId, fn: fn }); };
+  ['L1', 'L2', 'L3', 'L4'].forEach(function (id, i) { place(id, lay.L[i]); }); ['R1', 'R2', 'R3', 'R4'].forEach(function (id, i) { place(id, lay.R[i]); }); place('E', lay.E);
+  if (lay.bank) { slots.forEach(function (sl) { if (sl.id === lay.bank) sl.fn = 'bank'; }); }
+  if (!p.gambling) slots.forEach(function (sl) { if (sl.fn === 'parlour') sl.fn = 'decor'; });
+  /* paint far to near */
+  var order = ['E', 'L4', 'R4', 'L3', 'R3', 'L2', 'R2', 'L1', 'R1'];
+  order.forEach(function (id) {
+    var sl = slots.filter(function (x) { return x.id === id; })[0], g = SC.SLOTS[id], fn = sl.fn, closed = (fn === 'yard' && !p.upgrades.length) || (fn === 'fuel' && !p.fuelSold);
+    var shape = fn === 'decor' ? kit.decor[(id.charCodeAt(0) + id.charCodeAt(1 % id.length)) % kit.decor.length] : fn === 'alley' ? 'box' : kit[fn] || 'box', k = id.charCodeAt(0) + (id.length > 1 ? +id[1] : 0);
+    var t = { a: th.a, b: th.b, r: th.r, t: th.t, k: th.k, g: th.g };
+    if (fn === 'decor' || fn === 'alley') { t.a = th.b; t.b = PX.D; }
+    if (closed) { t.a = PX.L; t.b = PX.D; t.k = PX.D; }
+    var f = new SC.Fac(B, g, night, rnd), m = SC.SH[shape](f, t, { h: 56 + (k % 3) * 8 }); m.k = k;
+    if (fn === 'alley') { f.R(m.dx, 0, m.dw, m.dh, PX.K); }
+    if (SC.FN[fn]) SC.FN[fn](f, t, m);
+    SC.ORN[th.orn](f, t, m, { k: k });
+    if (fn !== 'decor' && fn !== 'alley' && g.s !== 'R' || (g.s === 'R' && g.xb - g.xa > 20 && fn !== 'decor')) {
+      var label = closed ? (fn === 'yard' ? 'CLOSED' : 'NO FUEL') : sg[fn] || fn.toUpperCase();
+      f.R(m.sx, m.sy - m.sh + 2, m.sw, m.sh, PX.K); f.R(m.sx + 1, m.sy - m.sh + 3, m.sw - 2, m.sh - 2, night ? PX.E + PX.N : PX.W);
+      var hg = m.sh - 4, cw = hg * 6 / 7, maxc = Math.floor((m.sw - 6) / cw); label = label.length > maxc ? label.slice(0, maxc) : label;
+      f.T(label, m.sx + m.sw / 2, m.sy - m.sh + 5, hg, closed ? PX.R : PX.K, 'c');
+    }
+    f.edge();
+    var a = g.xa, b = g.xb, ya = f.ybA, yb2 = f.ybB, ha = f.hA, hb = f.hB;
+    if (fn !== 'decor') {
+      var dxm = (g.xa + g.xb) / 2, dir = g.s === 'L' ? 1 : g.s === 'R' ? -1 : 0, sc2 = g.s === 'L' ? SC.scL(dxm) : g.s === 'R' ? SC.scR(dxm) : 0.3, base = g.s === 'L' ? SC.baseL(dxm) : g.s === 'R' ? SC.baseR(dxm) : SC.VY + 8;
+      door[fn] = { x: Math.round(dxm + dir * 7 * sc2), y: Math.round(base + 5 + 4 * sc2), s: Math.max(0.3, sc2) };
+      hits.push({ fn: fn, closed: closed, pts: [a, ya, b, yb2, b, yb2 - hb * 1.08, a, ya - ha * 1.08], label: closed ? (fn === 'yard' ? 'The Shipyard is closed' : 'There is no fuel dock here') : null });
+    }
+  });
+  SC.drawPad(B, night); SC.drawBoard(B, th, night);
+  door.jobs = { x: 100, y: 176, s: 1 }; door.pad = { x: 214, y: 166, s: 1 };
+  hits.push({ fn: 'jobs', pts: [74, 124, 124, 124, 124, 164, 74, 164] }); hits.push({ fn: 'pad', pts: [200, 146, 304, 146, 304, 176, 200, 176] });
+  return { buf: B, hits: hits, door: door };
+};
+SC.hubCache = {};
+SC.LABELS = { market: 'Go to the Market', bank: 'Go to the Bank', yard: 'Go to the Shipyard', fuel: 'Go to the Fuel Dock', cantina: 'Go to the Cantina', alley: 'Poke around the Back Alley', office: 'Visit Real Estate', parlour: 'Enter the Parlour of Thin Hours', jobs: 'Check the Odd Jobs board', pad: 'Go to the Launch Pad (Star Map)' };
+SC.hub = function (s) {
+  var key = SC.hubKey(s), r = SC.hubCache[key]; if (!r) { r = SC.hubCache[key] = SC.build(s); r.url = PX.render(r.buf, SC.night(s)).toDataURL(); }
+  SC.door = r.door; var sg = NP.SIGNS[GT.PLANETS[s.loc].id], o = '<div class="scene" id="scene"><img class="pxi bgimg" src="' + r.url + '" width="' + SC.W + '" height="' + SC.H + '" alt=""><svg class="ov" viewBox="0 0 ' + SC.W + ' ' + SC.H + '" id="ov" role="group" aria-label="' + GT.esc(GT.PLANETS[s.loc].name) + ' street">';
+  r.hits.forEach(function (h) {
+    var lab = h.label || SC.LABELS[h.fn] || h.fn; if (h.fn === 'office' && s.visit.offer) lab = 'Visit Real Estate (an offer awaits!)';
+    o += '<g class="hs' + (h.closed ? ' closed' : '') + '" data-hs="' + h.fn + '" data-label="' + GT.esc(lab) + '" tabindex="0" role="button" aria-label="' + GT.esc(lab) + '"><polygon points="' + h.pts.map(function (v) { return v.toFixed(1); }).join(' ') + '"/></g>';
+  });
+  var hull = GT.SHIPS.filter(function (x) { return x.id === s.shipId; })[0], px = ui.px && ui.px.x != null ? ui.px : SC.door.pad, sc = Math.max(0.3, Math.min(1, px.s || 1));
+  o += PX.shipSprite(hull, 'svgimg', 246, 150, 44, 26, s);
+  if (s.game && s.game.multi) GT.othersHere(s).forEach(function (q, k) { var h2 = GT.SHIPS.filter(function (x) { return x.id === q.shipId; })[0]; o += PX.shipSprite(h2, 'svgimg other', 214 + k * 30, 148 - k * 4, 30, 18, q); });
+  o += '<g id="player" style="transform: translate(' + px.x + 'px,' + px.y + 'px) scale(' + sc.toFixed(2) + ')">' + (s.char ? PX.svgImage(CH.sprite(s.char).replace(/^<g/, '<svg viewBox="-6 -2 112 176"><g').replace(/<\/g>$/, '</g></svg>'), -8, -30, 16, 30, 'pl') : '') + '</g></svg></div>';
+  return o;
+};
+/* a small ship picture at a place in the scene (as an svg <image> that fills in once drawn) */
+PX.svgImage = function (svg, x, y, w, h, cls, spread) {
+  var key = PX.hash(svg) + 'x' + w + 'x' + h, url = PX.cache['s' + key];
+  if (!url && !PX.pend[key]) { PX.pend[key] = 1; PX.sv[key] = [svg, w, h, spread === undefined ? 40 : spread]; PX.queue(key); }
+  return '<image class="' + (cls || '') + '" data-pk="' + key + '" x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" href="' + (url || PX.BLANK) + '" style="image-rendering:pixelated"/>';
+};
+PX.shipSprite = function (hull, cls, x, y, w, h) { return PX.svgImage(UI.shipSVG(hull.id, hull.hue), x, y, w, h, cls, 40); };
+
+var ui={px:null};window.GT=GT;</script>

@@ -61,7 +61,7 @@ NP.SIGNS = {
 NP.QUIP = {
   market: 'Smells of cabbage and overcharging.', bank: 'Smells of money and mild regret.', yard: 'A shed of spanners and spare opinions.', fuel: 'Fumes with ambition.',
   cantina: 'Sticky floors. Honest people, probably one.', alley: 'It is dark in there. Something is breathing.', jobs: 'Odd jobs. Very, very odd.', pad: 'Your ship. Still a ship, for now.',
-  office: 'A tiny booth full of big promises.', parlour: 'The lights flicker. Probably a bad omen.', closed: 'A sign says CLOSED. A smaller sign says "forever".', decor: 'Scenery. Nice, though.'
+  office: 'A glass office full of big promises and small print.', parlour: 'The lights flicker. Probably a bad omen.', closed: 'A sign says CLOSED. A smaller sign says "forever".', decor: 'Scenery. Nice, though.'
 };
 NP.LINES = {
   market: {
@@ -91,7 +91,7 @@ NP.LINES = {
   },
   office: {
     greet: ['Real estate! The only business where the floor is optional.', 'Location, location, and a bit of fraud!', 'Come in, come in. Do not read the small print, it is tiny and rude.'],
-    bought: ['Congratulations, you are a property mogul! The mogul bit is unlicensed.', 'Pleasure! The paperwork is in triplicate and also on fire. Normal.', 'You own it now! Whatever "it" turns out to be!'],
+    bought: ['Congratulations, you are a real estate mogul! The mogul bit is unlicensed.', 'Pleasure! The paperwork is in triplicate and also on fire. Normal.', 'You own it now! Whatever "it" turns out to be!'],
     none: ['Nothing on offer today. Come back when my boss has a new scheme.', 'No listings. The last one escaped.']
   },
   cantina: { greet: ['Pull up a stool. It is slightly sticky, but loyal.', 'Buy a round and see who turns up.', 'Quiet night. The best sort of night to have an adventure.'] },

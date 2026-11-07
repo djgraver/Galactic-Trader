@@ -40,8 +40,8 @@
   };
 
   /* ---------- rival traders ---------- */
-  GT.tickComps = function (s) {
-    var nw = GT.networth(s);
+  GT.tickComps = function (s, nwOverride) {
+    var nw = typeof nwOverride === 'number' ? nwOverride : GT.networth(s);
     s.comps.forEach(function (c) {
       var rate = c.rate * R(0.35, 1.65);
       if (nw > c.wealth * 1.5) rate *= 1.12; else if (c.wealth > nw * 1.6) rate *= 0.85;
@@ -62,7 +62,7 @@
     if (act === 'assist' && !GT.canAssist(s)) { GT.log(s, 'You reach for your credit chit, find it far too light to help ' + nm + ', and quietly decide to ignore them instead.', 'info'); act = 'ignore'; }
     if (act === 'sabotage') {
       st.sabotage++;
-      var win = GT.rand() < (perf === undefined ? 0.30 + luck * 0.4 : 0.18 + 0.27 * perf + luck * 0.3);
+      var win = GT.rand() < (perf === undefined ? 0.30 + luck * 0.4 : 0.18 + 0.27 * perf + luck * 0.3) + GT.speedEdge(s);
       if (win) {
         var hit = c.wealth * R(0.04, 0.09); c.wealth -= hit; st.sabotageWon++; GT.addRep(s, 4);
         GT.log(s, 'You slip into ' + nm + '\'s hold and quietly dump a third of their fuel mix. By morning they have lost about <b>' + fmt(hit) + 'c</b> in delays and repairs, and nobody saw you. <span class="fx">(+4 reputation)</span>', 'event');

@@ -62,8 +62,6 @@ GT.PLANETS = [
 GT.SHIPS = [
   { id: 'wayfarer', name: 'Wayfarer', cargo: 45, speed: 1.4, fuel: 100, hue: '#4fd2ff',
     desc: 'A sturdy all-rounder with a patched hull and a loyal crew of two. It does nothing brilliantly and nothing badly.' },
-  { id: 'gnat', name: 'Gnat', cargo: 28, speed: 2.2, fuel: 85, hue: '#ff7ad9',
-    desc: 'Tiny, quick and thrifty with fuel. You can carry a lot of value in a very small hold, if you stay lucky.' },
   { id: 'barge', name: 'Behemoth Barge', cargo: 75, speed: 0.9, fuel: 130, hue: '#ffc24d',
     desc: 'A flying warehouse. It crawls between worlds but hauls more cargo than anything else on the lanes.' },
   { id: 'stargazer', name: 'Stargazer', cargo: 34, speed: 1.6, fuel: 190, hue: '#b07cff',

@@ -172,6 +172,6 @@
       }
     });
     s.mods.forEach(function (x) { x.turns--; });
-    s.mods = s.mods.filter(function (x) { return x.turns > 0; });
+    for (var q = s.mods.length - 1; q >= 0; q--) if (s.mods[q].turns <= 0) s.mods.splice(q, 1);
   };
 })();

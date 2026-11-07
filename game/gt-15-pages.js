@@ -1,4 +1,4 @@
-/* Galactic Trader Deluxe. Part 15: the rest of the locations. Shipyard, fuel dock, cantina, alley, property booth, parlour, odd jobs board, launch pad and ship. */
+/* Galactic Trader Deluxe. Part 15: the rest of the locations. Shipyard, fuel dock, cantina, alley, real estate, parlour, odd jobs board, launch pad and ship. */
 
 /* ---------- shipyard ---------- */
 PAGES.yard = function () {
@@ -41,7 +41,7 @@ PAGES.alley = function () {
   return frame('alley', 'alley', h + storyCard(S.visit.explored, 'explore', 'You already poked around', 'Explore the Alley', 'explore') + '</div>');
 };
 
-/* ---------- property booth: facilities ---------- */
+/* ---------- real estate: facilities ---------- */
 PAGES.office = function () {
   var v = S.visit, own = S.owned[S.loc], h = '<div class="panel"><h2 class="hd">' + esc(NP.SIGNS[plan().id].office) + '</h2>';
   if (v.offer) {

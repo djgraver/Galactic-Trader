@@ -53,7 +53,8 @@ CH.fromName = function (name, salt) {
   t.title = CH.ADJ[(h >>> 3) % CH.ADJ.length] + ' ' + CH.NOUN[(h >>> 11) % CH.NOUN.length];
   t.catch = CH.CATCH[(h >>> 7) % CH.CATCH.length];
   t.story = 'Raised by ' + CH.A[(h >>> 5) % 8] + ' on ' + CH.B[(h >>> 9) % 8] + ', ' + name + ' learned to ' + CH.C[(h >>> 13) % 8] + '. Their only regret is ' + CH.D[(h >>> 17) % 8] + '.';
-  t.fate = [['Letters', letters.length], ['Vowels', vowels], ['Lucky number', sum % 97 + 3], ['Species', CH.SPECIES[t.sp].label], ['Smells faintly of', CH.SMELL[(h >>> 19) % 8]], ['Destiny grade', grade]];
+  t.hidden = { letters: letters.length, vowels: vowels };
+  t.fate = [['Lucky number', sum % 97 + 3], ['Species', CH.SPECIES[t.sp].label], ['Smells faintly of', CH.SMELL[(h >>> 19) % 8]], ['Destiny grade', grade]];
   return t;
 };
 CH.fromSeed = function (seed, over) { var t = CH.build(GT.seeded(CH.hash(seed)), over); t.name = seed; return t; };

@@ -1,162 +1,209 @@
-/* Galactic Trader Deluxe. Part 13: scenery. Every planet gets a wonky cartoon street, and each shop a backdrop for its inside. */
-var SC = { W: 900, H: 420, FEET: 396 };
-SC.INK = '#1d0f33';
+/* Galactic Trader 3. Part 13: scenery. Every planet has its own architecture, drawn in 16 EGA colours with 1-pixel black outlines.
+   Buildings are drawn into small buffers, outlined, then placed on a street that climbs away from the viewer at 30 degrees. */
+var SC = { W: 320, H: 200, HOR: 58, SLOPE: 0.577, X0: 30, Y0: 190 };
+var UI = UI || {};
+var K_ = PX.K, B_ = PX.B, G_ = PX.G, C_ = PX.C, R_ = PX.R, M_ = PX.M, N_ = PX.N, L_ = PX.L, D_ = PX.D, LB_ = PX.LB, LG_ = PX.LG, LC_ = PX.LC, LR_ = PX.LR, LM_ = PX.LM, Y_ = PX.Y, W_ = PX.W, E_ = PX.E;
+
+/* Planet themes. w: three wall colours, dk: shade, tr: trim, rf: roof, gl: glow (lights up at night), sky: [top, bottom] with dither, gnd, road, curb, sun. */
 SC.TH = {
-  meridoa:  { sky: ['#7fd6ff', '#e4f8ff'], nsky: ['#1b1b5a', '#6a3a8a'], far: '#8fd48a', ground: '#78c043', ground2: '#58a02c', walk: '#ecdca8', wall: ['#ff9a3d', '#ffd23d', '#ff6f91'], roof: '#c0392b', sun: '#fff06a', decor: 'windmill' },
-  karthosu: { sky: ['#ffb36b', '#ffe6b0'], nsky: ['#2a1450', '#8a3a5a'], far: '#d99a5a', ground: '#e0b070', ground2: '#c08a45', walk: '#f6dfa8', wall: ['#e8b86d', '#d98c4a', '#f0d08a'], roof: '#8d5a2b', sun: '#ff7a3d', decor: 'obelisk' },
-  ferrox:   { sky: ['#c0654a', '#ffb98f'], nsky: ['#2b1030', '#7a2a3a'], far: '#8a5040', ground: '#8a6a58', ground2: '#5a3f34', walk: '#b8a290', wall: ['#8a8f9a', '#c06a3a', '#7a7f8a'], roof: '#3a3f4a', sun: '#ffd23d', decor: 'drill' },
-  kryndor:  { sky: ['#7a4dff', '#ffa6dc'], nsky: ['#10063a', '#4a1a7a'], far: '#5a3aa8', ground: '#4e4e86', ground2: '#34345a', walk: '#c4c5ee', wall: ['#4fd2ff', '#ff5fa8', '#ffd23d'], roof: '#2a2a5a', sun: '#ffffff', decor: 'spire' },
-  nihil:    { sky: ['#1a0b3b', '#5a3a8a'], nsky: ['#05030f', '#1f0f46'], far: '#3a2470', ground: '#3e2e62', ground2: '#241540', walk: '#8a70c4', wall: ['#b07cff', '#6a4aa8', '#ff5fa8'], roof: '#1a0b3b', sun: '#c08aff', decor: 'dish' },
-  quellin:  { sky: ['#ffd1ec', '#e8f6ff'], nsky: ['#1a1050', '#7a3aa0'], far: '#f0b0dc', ground: '#e8f0ff', ground2: '#c0d0f4', walk: '#ffffff', wall: ['#ff7ad9', '#7ad9ff', '#d9ff7a'], roof: '#ff5fa8', sun: '#ffffff', decor: 'dome' },
-  halcyra:  { sky: ['#ffd23d', '#fff4b8'], nsky: ['#3a1050', '#b04a5a'], far: '#ffb060', ground: '#ffc24d', ground2: '#e09a2a', walk: '#fff2c4', wall: ['#ff8a3d', '#ffd23d', '#5ad0ff'], roof: '#d35400', sun: '#ff7a3d', decor: 'ring' }
+  meridoa:  { style: 'gourd',    sky: [LC_, W_], gnd: [G_, LG_, 5], gnd2: G_, road: [N_, Y_, 3], curb: Y_, w: [Y_, LR_, LG_], dk: N_, lt: W_, tr: G_, rf: G_, gl: Y_, sun: Y_, far: [LG_, G_], decor: 'windmill' },
+  karthosu: { style: 'ziggurat', sky: [LR_, Y_], gnd: [Y_, N_, 4], gnd2: N_, road: [L_, Y_, 4], curb: W_, w: [Y_, W_, L_], dk: N_, lt: W_, tr: R_, rf: N_, gl: LR_, sun: R_, far: [N_, LR_], decor: 'dunes' },
+  ferrox:   { style: 'forge',    sky: [N_, R_, 6], gnd: [D_, K_, 4], gnd2: K_, road: [D_, L_, 3], curb: Y_, w: [L_, D_, N_], dk: K_, lt: W_, tr: Y_, rf: D_, gl: LR_, sun: Y_, far: [D_, K_], decor: 'rig' },
+  kryndor:  { style: 'spire',    sky: [B_, LM_, 6], gnd: [D_, B_, 4], gnd2: B_, road: [K_, D_, 4], curb: LC_, w: [B_, LB_, C_], dk: K_, lt: LC_, tr: LM_, rf: B_, gl: Y_, sun: W_, far: [B_, M_], decor: 'skyline' },
+  nihil:    { style: 'hull',     sky: [K_, B_, 3], gnd: [D_, B_, 4], gnd2: K_, road: [B_, D_, 4], curb: LC_, w: [L_, D_, M_], dk: K_, lt: W_, tr: LC_, rf: D_, gl: LC_, sun: LM_, far: [B_, M_], decor: 'ring' },
+  quellin:  { style: 'bubble',   sky: [LM_, W_, 6], gnd: [W_, LC_, 4], gnd2: LC_, road: [L_, W_, 4], curb: LM_, w: [W_, LC_, LM_], dk: C_, lt: W_, tr: LM_, rf: LC_, gl: LC_, sun: W_, far: [LM_, LC_], decor: 'domes' },
+  halcyra:  { style: 'float',    sky: [Y_, W_, 5], gnd: [W_, Y_, 4], gnd2: Y_, road: [LR_, Y_, 4], curb: W_, w: [LR_, Y_, W_], dk: R_, lt: W_, tr: R_, rf: R_, gl: Y_, sun: LR_, far: [LR_, W_], decor: 'giant' }
 };
-SC.night = function () { var t = document.documentElement.getAttribute('data-theme'); if (t === 'night' || t === 'dark') return true; if (t === 'day' || t === 'light') return false; return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches); };
+SC.night = function () { return !!(S && S.visit && S.visit.night); };
+SC.nightOld = function () { return !!(typeof S !== 'undefined' && S && S.night); };
+SC.roadY = function (x) { return SC.Y0 - SC.SLOPE * (x - SC.X0); };
+SC.roadH = function (x) { return Math.max(3, 26 - 23 * (x - SC.X0) / 215); };
 
-/* ---------- little drawing helpers ---------- */
-SC.st = function (w) { return ' stroke="' + SC.INK + '" stroke-width="' + (w || 4) + '" stroke-linejoin="round" stroke-linecap="round"'; };
-SC.poly = function (pts, fill, w) { return '<polygon points="' + pts + '" fill="' + fill + '"' + SC.st(w) + '/>'; };
-SC.rect = function (x, y, w, h, fill, rx, sw) { return '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="' + (rx || 0) + '" fill="' + fill + '"' + SC.st(sw) + '/>'; };
-SC.circ = function (x, y, r, fill, sw) { return '<circle cx="' + x + '" cy="' + y + '" r="' + r + '" fill="' + fill + '"' + SC.st(sw) + '/>'; };
-SC.txt = function (x, y, s, size, fill, rot, maxW) { var tl = maxW ? ' textLength="' + Math.round(Math.min(maxW, s.length * size * 0.47)) + '" lengthAdjust="spacingAndGlyphs"' : ''; return '<text x="' + x + '" y="' + y + '" text-anchor="middle"' + tl + ' font-family="Bangers, Impact, sans-serif" font-size="' + size + '" letter-spacing="1" fill="' + fill + '" stroke="' + SC.INK + '" stroke-width="' + Math.max(2, size / 7) + '" paint-order="stroke" stroke-linejoin="round"' + (rot ? ' transform="rotate(' + rot + ' ' + x + ' ' + y + ')"' : '') + '>' + GT.esc(s) + '</text>'; };
-SC.wonky = function (cx, base, w, h, fill, lean, shade) {
-  var l = cx - w / 2, r = cx + w / 2, d = UI.shade(fill, -0.25);
-  return SC.poly(l + ',' + base + ' ' + r + ',' + base + ' ' + (r + lean) + ',' + (base - h) + ' ' + (l - lean * 0.6) + ',' + (base - h), fill) +
-    '<polygon points="' + (r - w * 0.18) + ',' + base + ' ' + r + ',' + base + ' ' + (r + lean) + ',' + (base - h) + ' ' + (r - w * 0.18 + lean * 0.9) + ',' + (base - h) + '" fill="' + d + '" opacity=".6"/>';
+/* ---------- small helpers ---------- */
+SC.newB = function (w, h) { var b = new PX.Buf(w, h); b.d.fill(255); return b; };
+SC.outline = function (b) {
+  var w = b.w, h = b.h, s = b.d.slice(), x, y, i;
+  for (y = 0; y < h; y++) for (x = 0; x < w; x++) { i = y * w + x; if (s[i] === 255 && ((x > 0 && s[i - 1] !== 255) || (x < w - 1 && s[i + 1] !== 255) || (y > 0 && s[i - w] !== 255) || (y < h - 1 && s[i + w] !== 255))) b.d[i] = 0; }
+  return b;
 };
-SC.hs = function (kind, label, inner, closed) { return '<g class="hs' + (closed ? ' closed' : '') + '" data-hs="' + kind + '" data-label="' + GT.esc(label) + '" tabindex="0" role="button" aria-label="' + GT.esc(label) + '">' + inner + '</g>'; };
-SC.win = function (x, y, w, h, on) { return SC.rect(x, y, w, h, on ? '#fff0a0' : '#7ad0ff', 3, 3) + '<line x1="' + (x + w / 2) + '" y1="' + y + '" x2="' + (x + w / 2) + '" y2="' + (y + h) + '" stroke="' + SC.INK + '" stroke-width="2"/>'; };
+SC.shBox = function (b, x, y, w, h, c, dk, lt) { b.rect(x, y, w, h, c); var sw = Math.max(2, w >> 2); b.rect(x + w - sw, y, sw, h, [c, dk, 8]); if (lt !== undefined) { b.rect(x, y, 1, h, lt); b.rect(x, y, w, 1, lt); } };
+SC.shEll = function (b, cx, cy, rx, ry, c, dk, lt) { b.ellipse(cx, cy, rx, ry, dk); b.ellipse(cx - rx * 0.14, cy - ry * 0.04, rx * 0.86, ry * 0.97, c); b.ellipse(cx - rx * 0.12, cy - ry * 0.04, rx * 0.5, ry * 0.5, [c, lt, 5]); };
+SC.win = function (b, x, y, w, h, lit, glass) { b.rect(x, y, w, h, K_); b.rect(x + 1, y + 1, w - 2, h - 2, lit ? E_ + Y_ : (glass === undefined ? LC_ : glass)); };
+SC.round = function (b, x, y, r, lit, rim) { b.ellipse(x, y, r + 1, r + 1, rim === undefined ? N_ : rim); b.ellipse(x, y, r, r, lit ? E_ + Y_ : LC_); };
+SC.door = function (b, x, y, w, h, arch, c) {
+  var l = Math.round(x - w / 2); b.rect(l, y - h, w, h, K_); if (arch) { b.ellipse(x, y - h + 1, w / 2, w / 2, K_); }
+  b.rect(l + 1, y - h + 1, w - 2, h - 1, c === undefined ? D_ : c); if (arch) b.ellipse(x, y - h + 2, w / 2 - 1, w / 2 - 1, c === undefined ? D_ : c);
+  b.rect(l + w - 3, y - Math.round(h * 0.45), 1, 2, Y_);
+};
+SC.sign = function (b, cx, y, w, text, bg, fg) {
+  var tw = PX.textW(text), t = text; while (tw > w - 3 && t.length > 2) { t = t.slice(0, -1); tw = PX.textW(t); }
+  w = Math.max(w, tw + 3); var l = Math.round(cx - w / 2); b.rect(l, y, w, 9, K_); b.rect(l + 1, y + 1, w - 2, 7, bg + E_); b.text(Math.round(cx - tw / 2), y + 1, t, fg + E_, 1);
+};
+SC.rnd = function (seed) { return GT.seeded(CH.hash(String(seed))); };
 
-/* ---------- buildings. Each takes the centre x and the base line. ---------- */
-SC.B = {};
-SC.B.market = function (cx, base, th, sign) {
-  var w = 190, h = 150, l = cx - w / 2, o = SC.wonky(cx, base, w, h, th.wall[1], 6);
-  var aw = ''; for (var i = 0; i < 8; i++) aw += SC.poly((l + 4 + i * 23) + ',' + (base - 100) + ' ' + (l + 27 + i * 23) + ',' + (base - 100) + ' ' + (l + 29 + i * 23) + ',' + (base - 72) + ' ' + (l + 2 + i * 23) + ',' + (base - 72), i % 2 ? '#fff' : '#ff3d8b', 3);
-  var fruit = ''; ['#ff5a4f', '#ffd23d', '#7bd957', '#ff8a2a', '#c25cff', '#ff5a4f', '#ffd23d'].forEach(function (c, k) { fruit += SC.circ(l + 18 + k * 25, base - 40, 10, c, 3); });
-  return o + SC.rect(l + 8, base - 32, w - 16, 30, '#a0642a', 3) + fruit + SC.rect(l + 20, base - 132, w - 40, 26, '#fff3cf', 5) + SC.txt(cx, base - 112, sign, 22, '#ff3d8b', 0, w - 44) + aw + SC.circ(l + 14, base - 140, 7, '#ffd23d', 3);
+/* ---------- architecture: one kit per planet, two variants each ---------- */
+SC.K = {};
+/* Meridoa: fat gourd houses with leafy stalks */
+SC.K.gourd = function (b, o) {
+  var T = o.T, x = o.ox, y = o.oy, w = o.w, h = o.h, c = T.w[o.k % 3], i, k;
+  if (o.v === 0) {
+    var ry = h * 0.5, cy = y - ry;
+    SC.shEll(b, x, cy, w / 2, ry, c, T.dk, W_);
+    for (k = -2; k <= 2; k++) { if (!k) continue; var f = k * 0.24, hh = ry * Math.sqrt(1 - f * f) - 3; b.vline(Math.round(x + f * w), Math.round(cy - hh), Math.round(hh * 2), [c, T.dk, 7]); }
+    b.rect(x - 1, y - h - 5, 3, 7, G_); b.ellipse(x + 6, y - h - 3, 6, 2, LG_); b.ellipse(x - 6, y - h - 2, 5, 2, G_);
+    SC.round(b, Math.round(x - w * 0.24), Math.round(cy - ry * 0.25), 3, o.lit); SC.round(b, Math.round(x + w * 0.24), Math.round(cy - ry * 0.25), 3, o.lit);
+    b.rect(Math.round(x - w * 0.24) - 3, Math.round(cy - ry * 0.25) + 5, 7, 2, G_); b.put(Math.round(x - w * 0.24) - 2, Math.round(cy - ry * 0.25) + 4, LR_); b.put(Math.round(x - w * 0.24) + 1, Math.round(cy - ry * 0.25) + 4, Y_);
+    return { door: { x: x, y: y, w: Math.max(9, w * 0.22 | 0), h: Math.round(h * 0.36), arch: 1 }, sign: { x: x, y: Math.round(cy - ry * 0.7), w: Math.round(w * 0.7) } };
+  }
+  var ry1 = h * 0.34, ry2 = h * 0.24;
+  SC.shEll(b, x, y - ry1, w / 2, ry1, c, T.dk, W_); SC.shEll(b, x + w * 0.06, y - h + ry2 + 2, w * 0.33, ry2, T.w[(o.k + 1) % 3], T.dk, W_);
+  b.rect(x + w * 0.06 - 1, y - h - 4, 3, 7, G_); b.ellipse(x + w * 0.06 + 6, y - h - 2, 6, 2, LG_);
+  SC.round(b, x + w * 0.06, y - h + ry2, 3, o.lit); SC.round(b, Math.round(x - w * 0.26), Math.round(y - ry1 * 1.3), 3, o.lit); SC.round(b, Math.round(x + w * 0.26), Math.round(y - ry1 * 1.3), 3, o.lit);
+  return { door: { x: x, y: y, w: Math.max(9, w * 0.22 | 0), h: Math.round(h * 0.3), arch: 1 }, sign: { x: x, y: Math.round(y - ry1 * 1.15), w: Math.round(w * 0.66) } };
 };
-SC.B.bank = function (cx, base, th, sign) {
-  var w = 124, h = 140, l = cx - w / 2, cols = '';
-  for (var i = 0; i < 4; i++) cols += SC.rect(l + 10 + i * 28, base - h + 38, 14, h - 50, '#fff8e8', 3);
-  return SC.wonky(cx, base, w, h, th.wall[2], 4) + SC.poly((l - 8) + ',' + (base - h) + ' ' + (cx + 2) + ',' + (base - h - 44) + ' ' + (l + w + 8) + ',' + (base - h), '#d9d2f0') + SC.circ(cx, base - h - 12, 14, '#ffd23d', 3) + SC.txt(cx, base - h - 6, 'c', 20, '#1d0f33') + cols +
-    SC.rect(l + 8, base - h + 20, w - 16, 18, '#fff3cf', 3) + SC.txt(cx, base - h + 35, sign, 13, '#6a2c91', 0, w - 24) + '<path d="M' + (cx - 16) + ',' + base + ' L' + (cx - 16) + ',' + (base - 38) + ' Q' + cx + ',' + (base - 56) + ' ' + (cx + 16) + ',' + (base - 38) + ' L' + (cx + 16) + ',' + base + 'Z" fill="#2a2a4a"' + SC.st(3) + '/>' + SC.circ(cx, base - 28, 9, '#c0c8d8', 3) + '<line x1="' + (cx - 6) + '" y1="' + (base - 28) + '" x2="' + (cx + 6) + '" y2="' + (base - 28) + '" stroke="' + SC.INK + '" stroke-width="3"/>';
+/* Karth-Osu: sandstone ziggurats and carved gates */
+SC.K.ziggurat = function (b, o) {
+  var T = o.T, x = o.ox, y = o.oy, w = o.w, h = o.h, c = T.w[o.k % 3], i;
+  if (o.v === 0) {
+    var h1 = Math.round(h * 0.45), h2 = Math.round(h * 0.28), h3 = Math.round(h * 0.2), w2 = Math.round(w * 0.74), w3 = Math.round(w * 0.46);
+    SC.shBox(b, x - w / 2, y - h1, w, h1, c, T.dk, W_); SC.shBox(b, x - w2 / 2, y - h1 - h2, w2, h2, c, T.dk, W_); SC.shBox(b, x - w3 / 2, y - h1 - h2 - h3, w3, h3, c, T.dk, W_);
+    for (i = 0; i < w - 6; i += 4) { b.rect(x - w / 2 + 3 + i, y - h1 + 2, 2, 2, T.dk); if (i < w2 - 6) b.rect(x - w2 / 2 + 3 + i, y - h1 - h2 + 2, 2, 2, T.dk); }
+    b.poly([[x - 4, y - h1 - h2 - h3], [x + 4, y - h1 - h2 - h3], [x, y - h1 - h2 - h3 - 7]], Y_); b.put(x, y - h1 - h2 - h3 - 3, R_);
+    b.rect(x + w2 / 2 - 3, y - h1 - h2 + 5, 3, 6, [K_, T.dk, 8]); SC.win(b, x - w3 / 2 + 4, y - h1 - h2 - h3 + 5, 4, 5, o.lit, K_); SC.win(b, x + w3 / 2 - 8, y - h1 - h2 - h3 + 5, 4, 5, o.lit, K_);
+    return { door: { x: x, y: y, w: Math.max(9, w * 0.2 | 0), h: Math.round(h1 * 0.8), arch: 0 }, sign: { x: x, y: y - h1 - 8, w: Math.round(w * 0.74) } };
+  }
+  var cw = Math.max(7, w * 0.16 | 0), lh = h - 6;
+  SC.shBox(b, x - w / 2, y - lh, cw, lh, c, T.dk, W_); SC.shBox(b, x + w / 2 - cw, y - lh, cw, lh, c, T.dk, W_);
+  SC.shBox(b, x - w / 2 - 2, y - h, w + 4, 8, T.w[(o.k + 1) % 3], T.dk, W_); for (i = 0; i < w; i += 5) b.rect(x - w / 2 + i, y - h + 2, 2, 3, T.dk);
+  SC.shBox(b, x - w / 2 + cw, y - lh + 10, w - cw * 2, lh - 10, [c, T.dk, 4], T.dk);
+  b.poly([[x - w / 2 - 2, y - h], [x + w / 2 + 2, y - h], [x, y - h - 9]], [T.w[(o.k + 1) % 3], T.dk, 4]); b.ellipse(x, y - h - 4, 3, 3, R_);
+  return { door: { x: x, y: y, w: Math.max(10, (w - cw * 2) * 0.5 | 0), h: Math.round(lh * 0.55), arch: 0 }, sign: { x: x, y: y - h + 10, w: Math.round(w * 0.74) } };
 };
-SC.B.yard = function (cx, base, th, sign, closed) {
-  var w = 116, h = 92, l = cx - w / 2, door = '';
-  for (var i = 0; i < 5; i++) door += '<line x1="' + (l + 14) + '" y1="' + (base - 56 + i * 11) + '" x2="' + (l + w - 14) + '" y2="' + (base - 56 + i * 11) + '" stroke="' + SC.INK + '" stroke-width="2"/>';
-  return SC.wonky(cx, base, w, h, th.wall[0], 5) + SC.poly((l - 8) + ',' + (base - h) + ' ' + (l + w + 12) + ',' + (base - h) + ' ' + (l + w) + ',' + (base - h - 22) + ' ' + (l + 6) + ',' + (base - h - 18), th.roof) +
-    SC.rect(l + 14, base - 58, w - 28, 58, closed ? '#6a6a7a' : '#4a4a62', 3) + door + SC.rect(l + 10, base - h + 6, w - 20, 16, '#fff3cf', 4) + SC.txt(cx, base - h + 19, sign, 12, '#ff8a1f', 0, w - 28) +
-    '<path d="M' + (l + w + 6) + ',' + (base - h - 10) + ' L' + (l + w + 30) + ',' + (base - h - 50) + ' L' + (l + w + 50) + ',' + (base - h - 44)  + '" fill="none"' + SC.st(5) + '/><line x1="' + (l + w + 44) + '" y1="' + (base - h - 46) + '" x2="' + (l + w + 44) + '" y2="' + (base - h - 18) + '" stroke="' + SC.INK + '" stroke-width="3"/>' + SC.circ(l - 14, base - 10, 12, '#2a2a3a', 3) + SC.circ(l - 14, base - 10, 5, '#8a8a9a', 2) +
-    (closed ? SC.rect(cx - 44, base - 40, 88, 24, '#fff3cf', 3) + SC.txt(cx, base - 22, 'CLOSED', 22, '#e0263f', -6) : '<polygon points="' + (cx + 4) + ',' + (base - 20) + ' ' + (cx + 12) + ',' + (base - 32) + ' ' + (cx + 14) + ',' + (base - 18) + '" fill="#ffd23d"/>');
+/* Ferrox: riveted foundries, stacks and derricks */
+SC.K.forge = function (b, o) {
+  var T = o.T, x = o.ox, y = o.oy, w = o.w, h = o.h, c = T.w[o.k % 3], i, bh = Math.round(h * 0.66);
+  if (o.v === 0) {
+    SC.shBox(b, x - w / 2, y - bh, w, bh, c, T.dk, W_);
+    for (i = 8; i < w - 4; i += 9) b.vline(x - w / 2 + i, y - bh + 1, bh - 2, [c, K_, 6]);
+    for (i = 3; i < w - 3; i += 6) { b.put(x - w / 2 + i, y - bh + 3, W_); b.put(x - w / 2 + i, y - 8, W_); }
+    for (i = 0; i < 3; i++) b.poly([[x - w / 2 + i * w / 3, y - bh], [x - w / 2 + (i + 1) * w / 3, y - bh], [x - w / 2 + i * w / 3, y - bh - 8]], c);
+    var sx = x + w / 2 - 12; SC.shBox(b, sx, y - bh - 24, 8, 26, D_, K_, L_); b.rect(sx - 1, y - bh - 26, 10, 3, Y_); b.rect(sx + 1, y - bh - 26, 2, 3, K_); b.rect(sx + 5, y - bh - 26, 2, 3, K_);
+    b.ellipse(sx + 6, y - bh - 32, 6, 4, [L_, D_, 6]); b.ellipse(sx + 12, y - bh - 40, 5, 3, [D_, L_, 6]);
+    for (i = 0; i < w - 6; i += 4) b.rect(x - w / 2 + 3 + i, y - 4, 2, 3, i % 8 ? K_ : Y_);
+    b.rect(x - w / 2 + 6, y - bh + 6, 12, 3, E_ + LR_); b.rect(x - w / 2 + 6, y - bh + 10, 8, 2, E_ + Y_);
+    return { door: { x: x - 2, y: y - 4, w: Math.max(12, w * 0.3 | 0), h: Math.round(bh * 0.6), arch: 0 }, sign: { x: x - 4, y: y - bh + 14, w: Math.round(w * 0.62) } };
+  }
+  b.dome(x, y, w / 2, bh, c); b.dome(x - w * 0.12, y - 3, w * 0.35, bh * 0.8, [c, W_, 4]); b.dome(x + w * 0.22, y, w * 0.3, bh * 0.9, [c, T.dk, 8]);
+  var tx = x + w / 2 - 6; b.line(tx, y, tx - 6, y - h, K_); b.line(tx + 8, y, tx + 2, y - h, K_); for (i = 0; i < 6; i++) { var yy = y - 4 - i * (h / 6.5); b.line(tx - i * 1 + (i % 2 ? 0 : 8), yy, tx + 8 - i * 1 - (i % 2 ? 8 : 0), yy - h / 6.5, T.tr); }
+  b.rect(tx - 7, y - h - 3, 16, 3, Y_); b.rect(tx - 2, y - h - 7, 6, 4, D_);
+  for (i = 0; i < 4; i++) b.rect(x - w / 2 + 4 + i * 9, y - bh * 0.55, 5, 2, E_ + LR_);
+  return { door: { x: x - w * 0.12, y: y, w: Math.max(12, w * 0.28 | 0), h: Math.round(bh * 0.5), arch: 0 }, sign: { x: x - w * 0.1, y: y - bh * 0.85, w: Math.round(w * 0.6) } };
 };
-SC.B.fuel = function (cx, base, th, sign, closed) {
-  var w = 70, h = 112, l = cx - w / 2, hz = '';
-  for (var i = 0; i < 4; i++) hz += SC.poly((l + i * 18) + ',' + (base - 30) + ' ' + (l + 10 + i * 18) + ',' + (base - 30) + ' ' + (l + 20 + i * 18) + ',' + (base - 8) + ' ' + (l + 10 + i * 18) + ',' + (base - 8), '#ffd23d', 2);
-  return SC.wonky(cx, base, w, h, th.wall[1], 3) + '<ellipse cx="' + cx + '" cy="' + (base - h) + '" rx="' + (w / 2 + 6) + '" ry="22" fill="' + th.wall[2] + '"' + SC.st() + '/><ellipse cx="' + (cx - 10) + '" cy="' + (base - h - 8) + '" rx="12" ry="6" fill="#fff" opacity=".5"/>' +
-    SC.rect(l + 8, base - h + 18, w - 16, 20, '#fff3cf', 4) + SC.txt(cx, base - h + 33, sign.length > 9 ? sign.slice(0, 9) : sign, 12, '#1d0f33', 0, w - 20) + SC.rect(l + 8, base - 70, w - 16, 28, '#2a2a4a', 4) + SC.circ(cx, base - 56, 8, closed ? '#8a8a9a' : '#58ff9a', 3) + hz +
-    '<path d="M' + (l + w) + ',' + (base - 60) + ' Q' + (l + w + 26) + ',' + (base - 20) + ' ' + (l + w + 6) + ',' + (base + 2) + '" fill="none"' + SC.st(5) + '/>' +
-    (closed ? SC.rect(cx - 36, base - 100, 72, 22, '#fff3cf', 3) + SC.txt(cx, base - 83, 'NO FUEL', 18, '#e0263f', 7) : '');
+/* Kryndor Spire: neon towers and holo-signs */
+SC.K.spire = function (b, o) {
+  var T = o.T, x = o.ox, y = o.oy, w = o.w, h = o.h, c = T.w[o.k % 3], i, j, r = SC.rnd('sp' + o.k);
+  var bw = Math.round(w * 0.78), bh = Math.round(h * 0.74);
+  if (o.v === 0) {
+    SC.shBox(b, x - bw / 2, y - bh, bw, bh, c, T.dk, T.lt); var w2 = Math.round(bw * 0.6), h2 = Math.round(h * 0.22);
+    SC.shBox(b, x - w2 / 2, y - bh - h2, w2, h2, T.w[(o.k + 1) % 3], T.dk, T.lt); b.vline(x, y - bh - h2 - 12, 12, L_); b.put(x, y - bh - h2 - 13, E_ + LR_);
+    b.rect(x - bw / 2, y - bh, bw, 1, E_ + LM_); b.rect(x - w2 / 2, y - bh - h2, w2, 1, E_ + LC_);
+    for (j = 0; j < Math.floor((bh - 22) / 6); j++) for (i = 0; i < Math.floor((bw - 4) / 5); i++) if (r() < 0.62) SC.win(b, x - bw / 2 + 3 + i * 5, y - bh + 4 + j * 6, 3, 3, r() < 0.5 || o.lit, B_);
+    for (j = 0; j < 3; j++) for (i = 0; i < Math.floor((w2 - 2) / 5); i++) b.rect(x - w2 / 2 + 2 + i * 5, y - bh - h2 + 3 + j * 6, 3, 3, r() < 0.6 ? E_ + Y_ : B_);
+    return { door: { x: x, y: y, w: Math.max(9, bw * 0.24 | 0), h: Math.round(bh * 0.28), arch: 0 }, sign: { x: x, y: y - Math.round(bh * 0.42), w: Math.round(bw * 0.9) } };
+  }
+  b.poly([[x - bw / 2, y], [x - bw / 2, y - bh + 6], [x + bw / 2, y - bh - h * 0.2], [x + bw / 2, y]], c); b.poly([[x + bw / 2 - 6, y], [x + bw / 2 - 6, y - bh - h * 0.19 + 3], [x + bw / 2, y - bh - h * 0.2], [x + bw / 2, y]], [c, T.dk, 8]);
+  b.line(x - bw / 2, y - bh + 6, x + bw / 2, y - bh - h * 0.2, E_ + LC_);
+  for (j = 0; j < 4; j++) for (i = 0; i < Math.floor((bw - 4) / 5); i++) if (r() < 0.7) SC.win(b, x - bw / 2 + 3 + i * 5, y - bh + 10 + j * 6 - i, 3, 3, r() < 0.5 || o.lit, B_);
+  b.ring(x, y - bh - h * 0.24, 10, 3, E_ + LM_); b.ring(x, y - bh - h * 0.24, 7, 2, E_ + LC_); b.put(x, y - bh - h * 0.24, E_ + W_);
+  return { door: { x: x, y: y, w: Math.max(9, bw * 0.24 | 0), h: Math.round(bh * 0.28), arch: 0 }, sign: { x: x, y: y - Math.round(bh * 0.45), w: Math.round(bw * 0.9) } };
 };
-SC.B.cantina = function (cx, base, th, sign) {
-  var w = 130, h = 124, l = cx - w / 2;
-  return SC.wonky(cx, base, w, h, th.wall[2], -5) + SC.poly((l - 8) + ',' + (base - h) + ' ' + (l + w + 6) + ',' + (base - h) + ' ' + (l + w) + ',' + (base - h - 20) + ' ' + (l + 6) + ',' + (base - h - 16), th.roof) +
-    '<rect x="' + (l + 10) + '" y="' + (base - h + 8) + '" width="' + (w - 20) + '" height="26" rx="13" fill="#1a0b3b"' + SC.st(4) + '/><text x="' + cx + '" y="' + (base - h + 28) + '" text-anchor="middle" font-family="Bangers, Impact" font-size="17" textLength="' + Math.min(w - 40, sign.length * 8) + '" lengthAdjust="spacingAndGlyphs" fill="#7cfff0" stroke="#7cfff0" stroke-width=".6" style="filter:drop-shadow(0 0 4px #7cfff0)">' + GT.esc(sign) + '</text>' +
-    SC.win(l + 12, base - 78, 28, 26, true) + SC.win(l + w - 40, base - 78, 28, 26, true) + SC.rect(cx - 17, base - 50, 15, 36, '#a0642a', 3) + SC.rect(cx + 2, base - 50, 15, 36, '#a0642a', 3) + SC.rect(cx - 17, base - 14, 34, 14, '#fff3cf', 2, 2) + SC.circ(l - 8, base - 12, 11, '#8a4a1a', 3);
+/* Nihil Station: bolted hull modules with portholes and airlocks */
+SC.K.hull = function (b, o) {
+  var T = o.T, x = o.ox, y = o.oy, w = o.w, h = o.h, c = T.w[o.k % 3], i, bh = Math.round(h * 0.6);
+  if (o.v === 0) {
+    SC.shBox(b, x - w / 2, y - bh, w, bh, c, T.dk, W_); b.ellipse(x - w / 2, y - bh / 2, 4, bh / 2, c); b.ellipse(x + w / 2, y - bh / 2, 4, bh / 2, [c, T.dk, 8]);
+    for (i = 6; i < w - 2; i += 7) b.vline(x - w / 2 + i, y - bh, bh, [c, K_, 6]);
+    for (i = 0; i < Math.floor((w - 8) / 8); i++) SC.round(b, x - w / 2 + 8 + i * 8, y - bh + 6, 2, true, K_);
+    b.rect(x - 14, y - bh - 7, 2, 7, L_); b.ellipse(x - 13, y - bh - 9, 7, 3, W_); b.vline(x + w / 2 - 8, y - bh - 14, 14, D_); b.put(x + w / 2 - 8, y - bh - 15, E_ + LR_);
+    b.rect(x - w / 2 - 9, y - 12, 12, 5, L_); b.rect(x - w / 2 - 9, y - 12, 12, 1, W_);
+    return { door: { x: x, y: y, w: Math.max(10, w * 0.22 | 0), h: Math.round(bh * 0.6), arch: 1 }, sign: { x: x, y: y - bh + 14, w: Math.round(w * 0.78) } };
+  }
+  var r = Math.round(Math.min(w * 0.42, h * 0.5)), cy = y - r - 4;
+  b.rect(x - r + 2, y - 6, 3, 6, D_); b.rect(x + r - 5, y - 6, 3, 6, D_); b.rect(x - r - 2, y - 2, 8, 2, L_); b.rect(x + r - 6, y - 2, 8, 2, L_);
+  SC.shEll(b, x, cy, r, r, c, T.dk, W_); b.rect(x - r, cy - 1, r * 2, 3, [D_, c, 8]); for (i = -1; i <= 1; i += 2) { b.rect(x + i * (r + 2) - 3, cy - r - 8, 7, 14, [B_, LB_, 6]); b.vline(x + i * (r + 2), cy - r - 8, 14, K_); }
+  for (i = -2; i <= 2; i++) if (i) SC.round(b, x + i * 6, cy - 6, 2, true, K_);
+  return { door: { x: x, y: y - 4, w: Math.max(9, r * 0.5 | 0), h: Math.round(r * 0.7), arch: 1 }, sign: { x: x, y: cy - r * 0.45, w: Math.round(r * 1.5) } };
 };
-SC.B.alley = function (cx, base) {
-  var w = 56, h = 104, l = cx - w / 2;
-  return SC.poly(l + ',' + base + ' ' + (l + w) + ',' + base + ' ' + (l + w) + ',' + (base - h) + ' ' + l + ',' + (base - h), '#0c0618') + '<ellipse cx="' + (cx - 8) + '" cy="' + (base - 58) + '" rx="4" ry="6" fill="#ffe14a"/><ellipse cx="' + (cx + 8) + '" cy="' + (base - 58) + '" rx="4" ry="6" fill="#ffe14a"/>' +
-    SC.rect(l + 4, base - 20, 16, 20, '#6a6a7a', 3) + '<path d="M' + (l - 4) + ',' + (base - h) + ' L' + (l - 4) + ',' + base + ' M' + (l + w + 4) + ',' + (base - h) + ' L' + (l + w + 4) + ',' + base + '" stroke="' + SC.INK + '" stroke-width="6"/>' + SC.txt(cx, base - h - 8, '???', 18, '#ffe14a', -4);
+/* Quellin Reach: glass domes, flasks and floating atoms */
+SC.K.bubble = function (b, o) {
+  var T = o.T, x = o.ox, y = o.oy, w = o.w, h = o.h, c = T.w[o.k % 3], i;
+  if (o.v === 0) {
+    var ry = Math.round(h * 0.75), rx = Math.round(w * 0.5);
+    b.dome(x, y, rx, ry, [LC_, W_, 6]); b.dome(x - rx * 0.12, y, rx * 0.8, ry * 0.8, [LC_, W_, 10]);
+    for (i = -2; i <= 2; i++) { var f = i / 3, hh = ry * Math.sqrt(1 - f * f); b.line(x + f * rx, y, x + f * rx * 0.85, y - hh + 1, W_); }
+    b.dome(x, y - ry * 0.55, rx * 0.84, ry * 0.45, [LC_, W_, 9]); b.rect(x - rx, y - 3, rx * 2, 3, C_);
+    b.rect(x + rx * 0.2, y - 18, 9, 14, [LG_, W_, 3]); b.rect(x + rx * 0.2 + 3, y - 22, 3, 5, W_); b.put(x + rx * 0.2 + 2, y - 10, E_ + W_); b.put(x + rx * 0.2 + 6, y - 14, E_ + W_);
+    b.ellipse(x - rx * 0.55, y - 10, 6, 5, LM_); b.ring(x - rx * 0.55, y - 10, 6, 5, M_);
+    b.ring(x + rx * 0.5, y - ry - 6, 6, 2, E_ + LM_); b.put(x + rx * 0.5, y - ry - 6, E_ + W_);
+    return { door: { x: x, y: y, w: Math.max(9, w * 0.2 | 0), h: Math.round(ry * 0.45), arch: 1 }, sign: { x: x, y: y - Math.round(ry * 0.72), w: Math.round(w * 0.72) } };
+  }
+  var r = Math.round(w * 0.42), cy = y - r, nh = Math.round(h * 0.34), nw = Math.max(8, w * 0.26 | 0);
+  b.rect(x - nw / 2, y - 2 * r - nh + 4, nw, nh, [LC_, W_, 6]); b.rect(x - nw / 2 - 1, y - 2 * r - nh + 1, nw + 2, 3, N_);
+  b.ellipse(x, cy, r, r, [LC_, W_, 6]); b.ellipse(x, cy + r * 0.3, r * 0.92, r * 0.7, c); b.rect(x - r, cy + r * 0.1, r * 2, 2, W_);
+  for (i = 0; i < 5; i++) b.put(x - r * 0.6 + i * r * 0.3, cy + r * 0.2 + (i * 5 % 7), W_);
+  b.ring(x, y - 2 * r - nh - 6, 7, 3, E_ + LM_); b.ring(x, y - 2 * r - nh - 6, 3, 7, E_ + LC_);
+  return { door: { x: x, y: y, w: Math.max(9, r * 0.5 | 0), h: Math.round(r * 0.8), arch: 1 }, sign: { x: x, y: y - r * 1.35, w: Math.round(r * 1.6) } };
 };
-SC.B.parlour = function (cx, base, th, sign) {
-  var w = 96, h = 132, l = cx - w / 2, star = '';
-  for (var i = 0; i < 10; i++) { var a = i * Math.PI / 5, rr = i % 2 ? 20 : 34; star += (cx + Math.cos(a) * rr).toFixed(1) + ',' + (base - h + 40 + Math.sin(a) * rr).toFixed(1) + ' '; }
-  return SC.wonky(cx, base, w, h, '#4a2a8a', 4) + SC.poly(star.trim(), '#ff3d8b', 3) + SC.circ(cx, base - h + 40, 12, '#fff', 3) + SC.circ(cx, base - h + 40, 5, '#1d0f33', 2) + SC.rect(l + 8, base - 52, w - 16, 52, '#1a0b3b', 8) + SC.txt(cx, base - 36, sign, 15, '#7cfff0', 0, w - 26) + '<path d="M' + (l + 8) + ',' + (base - 52) + ' Q' + (cx - 14) + ',' + (base - 30) + ' ' + (l + 28) + ',' + base + ' M' + (l + w - 8) + ',' + (base - 52) + ' Q' + (cx + 14) + ',' + (base - 30) + ' ' + (l + w - 28) + ',' + base + '" fill="#8a1a4a"' + SC.st(3) + '/>';
+/* Halcyra: gas-bag houses tethered over the cloud deck */
+SC.K.float = function (b, o) {
+  var T = o.T, x = o.ox, y = o.oy, w = o.w, h = o.h, c = T.w[o.k % 3], i, gy = y - 10;
+  var ch = Math.round(h * 0.34), cw = Math.round(w * 0.62);
+  b.ellipse(x - w * 0.34, y - 1, 12, 4, W_); b.ellipse(x + w * 0.3, y - 1, 14, 5, W_); b.ellipse(x, y, w * 0.34, 5, [W_, LC_, 3]);
+  if (o.v === 0) {
+    var rx = Math.round(w * 0.46), ry = Math.round(h * 0.34), cy = y - h + ry;
+    b.ellipse(x, cy, rx, ry, c); for (i = -3; i <= 3; i++) { var f = i / 3.4, hh = ry * Math.sqrt(1 - f * f); b.vline(Math.round(x + f * rx), Math.round(cy - hh + 1), Math.round(hh * 2 - 1), i % 2 ? [c, T.w[(o.k + 1) % 3], 16] : [c, W_, 5]); }
+    b.ellipse(x - rx * 0.3, cy - ry * 0.35, rx * 0.25, ry * 0.2, [c, W_, 8]); b.line(x - cw / 2, y - ch - 10, x - rx * 0.55, cy + ry * 0.6, N_); b.line(x + cw / 2, y - ch - 10, x + rx * 0.55, cy + ry * 0.6, N_);
+    SC.shBox(b, x - cw / 2, y - ch - 10, cw, ch, T.w[(o.k + 2) % 3], T.dk, W_); b.rect(x - cw / 2 - 2, y - ch - 12, cw + 4, 3, T.rf);
+    SC.win(b, x - cw / 2 + 4, y - ch - 5, 5, 5, o.lit); SC.win(b, x + cw / 2 - 9, y - ch - 5, 5, 5, o.lit);
+    b.line(x - 2, y - 10, x - 3, y - 1, N_); b.line(x + 2, y - 10, x + 3, y - 1, N_);
+    return { door: { x: x, y: y - 10, w: Math.max(8, cw * 0.22 | 0), h: Math.round(ch * 0.62), arch: 1 }, sign: { x: x, y: Math.round(cy - 3), w: Math.round(rx * 1.5) } };
+  }
+  var bw = Math.round(w * 0.8), cy2 = y - ch - 14;
+  [-0.3, 0, 0.3].forEach(function (f, n) { var bx = Math.round(x + f * w), by = y - h + 8 + (n === 1 ? -3 : 3); b.ellipse(bx, by, 9, 11, [c, T.w[(o.k + n) % 3], n === 1 ? 16 : 5]); b.ellipse(bx - 2, by - 3, 3, 4, [c, W_, 8]); b.line(bx, by + 11, x + f * bw * 0.3, cy2 - 2, N_); });
+  SC.shBox(b, x - bw / 2, y - ch - 10, bw, ch, T.w[(o.k + 2) % 3], T.dk, W_); b.poly([[x - bw / 2 - 4, y - ch - 9], [x + bw / 2 + 4, y - ch - 9], [x + bw / 2 - 2, y - ch - 17], [x - bw / 2 + 2, y - ch - 17]], T.rf);
+  SC.win(b, x - bw / 2 + 4, y - ch - 5, 5, 5, o.lit); SC.win(b, x + bw / 2 - 9, y - ch - 5, 5, 5, o.lit); b.line(x - 2, y - 10, x - 3, y - 1, N_); b.line(x + 2, y - 10, x + 3, y - 1, N_);
+  return { door: { x: x, y: y - 10, w: Math.max(8, bw * 0.2 | 0), h: Math.round(ch * 0.62), arch: 0 }, sign: { x: x, y: y - ch - 26 + 14, w: Math.round(bw * 0.8) } };
 };
-SC.DECOR = {
-  windmill: function (x, b) { return SC.poly((x - 16) + ',' + b + ' ' + (x + 16) + ',' + b + ' ' + (x + 8) + ',' + (b - 120) + ' ' + (x - 8) + ',' + (b - 120), '#fff3cf') + '<g transform="translate(' + x + ' ' + (b - 120) + ')">' + [0, 90, 180, 270].map(function (a) { return '<polygon points="0,0 -8,-60 8,-60" fill="#ff6f91"' + SC.st(3) + ' transform="rotate(' + (a + 20) + ')"/>'; }).join('') + SC.circ(0, 0, 8, '#ffd23d', 3) + '</g>'; },
-  obelisk: function (x, b) { return SC.poly((x - 18) + ',' + b + ' ' + (x + 18) + ',' + b + ' ' + (x + 8) + ',' + (b - 150) + ' ' + x + ',' + (b - 172) + ' ' + (x - 8) + ',' + (b - 150), '#f0d08a') + '<circle cx="' + x + '" cy="' + (b - 100) + '" r="7" fill="#ff7a3d"' + SC.st(3) + '/>'; },
-  drill: function (x, b) { return SC.poly((x - 26) + ',' + b + ' ' + (x + 26) + ',' + b + ' ' + (x + 6) + ',' + (b - 140) + ' ' + (x - 6) + ',' + (b - 140), '#8a8f9a') + SC.poly((x - 16) + ',' + (b - 140) + ' ' + (x + 16) + ',' + (b - 140) + ' ' + x + ',' + (b - 170), '#ffd23d') + '<line x1="' + (x - 20) + '" y1="' + (b - 20) + '" x2="' + (x + 8) + '" y2="' + (b - 110) + '" stroke="' + SC.INK + '" stroke-width="3"/>'; },
-  spire: function (x, b) { return SC.poly((x - 22) + ',' + b + ' ' + (x + 22) + ',' + b + ' ' + (x + 6) + ',' + (b - 200) + ' ' + x + ',' + (b - 230) + ' ' + (x - 6) + ',' + (b - 200), '#4fd2ff') + SC.circ(x, b - 150, 18, '#fff3cf', 3) + SC.rect(x - 4, b - 170, 8, 12, '#ff3d8b', 2, 2); },
-  dish: function (x, b) { return SC.rect(x - 6, b - 100, 12, 100, '#6a4aa8', 2) + '<ellipse cx="' + x + '" cy="' + (b - 108) + '" rx="46" ry="16" fill="#c08aff"' + SC.st() + ' transform="rotate(-18 ' + x + ' ' + (b - 108) + ')"/>' + SC.circ(x + 14, b - 134, 6, '#ff3d8b', 3); },
-  dome: function (x, b) { return '<path d="M' + (x - 60) + ',' + b + ' Q' + (x - 60) + ',' + (b - 110) + ' ' + x + ',' + (b - 110) + ' Q' + (x + 60) + ',' + (b - 110) + ' ' + (x + 60) + ',' + b + 'Z" fill="#ffffff" fill-opacity=".85"' + SC.st() + '/><line x1="' + x + '" y1="' + (b - 110) + '" x2="' + x + '" y2="' + b + '" stroke="' + SC.INK + '" stroke-width="3"/>' + SC.circ(x - 20, b - 30, 12, '#7bd957', 3) + SC.circ(x + 22, b - 36, 9, '#ff7ad9', 3); },
-  ring: function (x, b) { return '<ellipse cx="' + x + '" cy="' + (b - 120) + '" rx="64" ry="14" fill="#ffd23d"' + SC.st() + '/>' + SC.circ(x, b - 150, 22, '#ff8a3d', 3) + '<line x1="' + (x - 40) + '" y1="' + (b - 120) + '" x2="' + (x - 40) + '" y2="' + b + '" stroke="' + SC.INK + '" stroke-width="3"/><line x1="' + (x + 40) + '" y1="' + (b - 120) + '" x2="' + (x + 40) + '" y2="' + b + '" stroke="' + SC.INK + '" stroke-width="3"/>'; }
-};
-SC.SLOT = { yard: 70, bank: 195, market: 360, alley: 495, cantina: 595, fuel: 715, parlour: 830, jobs: 60, office: 275, pad: 800 };
 
-/* ---------- the hub street ---------- */
-SC.hub = function (s) {
-  var p = GT.PLANETS[s.loc], th = SC.TH[p.id], sg = NP.SIGNS[p.id], night = SC.night(), sky = night ? th.nsky : th.sky, rnd = GT.seeded(CH.hash(p.id)), o = '';
-  o += '<svg class="scene" viewBox="0 0 ' + SC.W + ' ' + SC.H + '" preserveAspectRatio="xMidYMax meet" id="scene" role="group" aria-label="' + GT.esc(p.name) + ' street"><defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + sky[0] + '"/><stop offset="1" stop-color="' + sky[1] + '"/></linearGradient></defs>';
-  o += '<rect width="' + SC.W + '" height="320" fill="url(#sky)"/>';
-  if (night) for (var k = 0; k < 50; k++) o += '<circle cx="' + (rnd() * SC.W).toFixed(0) + '" cy="' + (rnd() * 200).toFixed(0) + '" r="' + (rnd() < .15 ? 2.2 : 1.2) + '" fill="#fff" opacity="' + (0.4 + rnd() * 0.6).toFixed(2) + '"/>';
-  o += SC.circ(760, 70, 34, night ? '#f4f1ff' : th.sun, 4);
-  if (p.ring) o += '<ellipse cx="760" cy="70" rx="64" ry="12" fill="none" stroke="' + SC.INK + '" stroke-width="5" transform="rotate(-18 760 70)"/>';
-  [[120, 60, 1], [420, 40, .8], [640, 100, .7]].forEach(function (c) { o += '<g transform="translate(' + c[0] + ' ' + c[1] + ') scale(' + c[2] + ')" opacity="' + (night ? .35 : .95) + '"><ellipse cx="0" cy="0" rx="46" ry="16" fill="#fff"' + SC.st(3) + '/><ellipse cx="22" cy="-10" rx="26" ry="14" fill="#fff"' + SC.st(3) + '/></g>'; });
-  var sx = -20; while (sx < SC.W + 20) { var bw = 40 + rnd() * 60, bh = 60 + rnd() * 110; o += SC.poly(sx + ',300 ' + (sx + bw) + ',300 ' + (sx + bw + 4) + ',' + (300 - bh) + ' ' + (sx - 3) + ',' + (300 - bh - 8), night ? UI.shade(th.far, -0.55) : th.far, 3); sx += bw - 4; }
-  o += SC.DECOR[th.decor](p.id === 'kryndor' ? 285 : 430, 300);
-  o += '<rect x="0" y="300" width="' + SC.W + '" height="120" fill="' + th.ground + '"/><rect x="0" y="300" width="' + SC.W + '" height="6" fill="' + SC.INK + '"/>' + SC.poly('0,338 900,338 900,372 0,372', th.walk, 4) + '<rect x="0" y="372" width="900" height="48" fill="' + th.ground2 + '"/>';
-  for (var d = 0; d < 9; d++) o += '<rect x="' + (d * 110 + 20) + '" y="398" width="54" height="7" rx="3" fill="' + th.walk + '" opacity=".8"/>';
-  var closedYard = !p.upgrades.length, closedFuel = !p.fuelSold, hasParlour = p.gambling;
-  o += SC.hs('yard', closedYard ? 'The Shipyard is closed' : 'Go to the Shipyard', SC.B.yard(SC.SLOT.yard, 305, th, sg.yard, closedYard), closedYard);
-  o += SC.hs('alley', 'Poke around the Back Alley', SC.B.alley(SC.SLOT.alley, 312));
-  if (!hasParlour) o += SC.DECOR[th.decor] && '';
-  o += SC.hs('bank', 'Go to the Bank', SC.B.bank(SC.SLOT.bank, 338, th, sg.bank));
-  o += SC.hs('market', 'Go to the Market', SC.B.market(SC.SLOT.market, 338, th, sg.market));
-  o += SC.hs('cantina', 'Go to the ' + sg.cantina.replace(/\b\w/g, function (c) { return c; }), SC.B.cantina(SC.SLOT.cantina, 338, th, sg.cantina));
-  o += SC.hs('fuel', closedFuel ? 'There is no fuel dock here' : 'Go to the Fuel Dock', SC.B.fuel(SC.SLOT.fuel, 338, th, sg.fuel, closedFuel), closedFuel);
-  if (hasParlour) o += SC.hs('parlour', 'Enter the Parlour of Thin Hours', SC.B.parlour(SC.SLOT.parlour, 338, th, sg.parlour));
-  else o += SC.circ(830, 320, 0, 'none', 0) + '<g opacity=".95">' + SC.rect(796, 280, 70, 58, th.wall[0], 6) + SC.win(808, 292, 18, 20, true) + SC.win(836, 292, 18, 20, false) + '</g>';
-  /* foreground */
-  o += SC.hs('jobs', 'Check the Odd Jobs board', SC.rect(34, 346, 6, 56, '#8a5a2a', 2, 3) + SC.rect(78, 346, 6, 56, '#8a5a2a', 2, 3) + SC.rect(24, 322, 72, 46, '#c8884a', 4) + SC.rect(32, 330, 22, 16, '#fff', 2, 2) + SC.rect(58, 332, 26, 20, '#ffd23d', 2, 2) + SC.rect(36, 350, 20, 12, '#ff9ac8', 2, 2) + SC.txt(60, 316, 'ODD JOBS', 15, '#fff3cf'));
-  var offer = !!s.visit.offer, owned = !!s.owned[s.loc];
-  o += SC.hs('office', offer ? 'Visit the property booth (an offer awaits!)' : 'Visit the property booth', SC.rect(246, 346, 58, 54, '#6aa0ff', 5) + SC.poly('232,346 318,346 304,324 246,324', '#ff3d8b') + SC.rect(256, 356, 38, 22, '#fff3cf', 3) + SC.txt(275, 372, 'DEEDS', 12, '#1d0f33') + (offer ? SC.circ(275, 312, 13, '#ffd23d', 3) + SC.txt(275, 319, '!', 20, '#e0263f') : owned ? SC.circ(275, 312, 11, '#7bd957', 3) + SC.txt(275, 318, 'OK', 11, '#1d0f33') : ''));
-  var hull = GT.SHIPS.filter(function (x) { return x.id === s.shipId; })[0];
-  o += SC.hs('pad', 'Go to the Launch Pad (Star Map)', '<ellipse cx="800" cy="394" rx="96" ry="18" fill="#2a2a4a"' + SC.st() + '/><ellipse cx="800" cy="394" rx="70" ry="12" fill="none" stroke="#ffd23d" stroke-width="3" stroke-dasharray="10 8"/>' + UI.shipSVG(hull.id, hull.hue).replace('<svg viewBox', '<svg x="722" y="318" width="156" height="91" viewBox'));
-  /* rivals who happen to be in town stand about, minding their own business */
-  var rv = s.comps.map(function (c, i) { return c.loc === s.loc ? i : -1; }).filter(function (i) { return i >= 0; });
-  rv.forEach(function (ci, k) { var rc = NP.rival(ci); o += '<g transform="translate(' + (150 + k * 46) + ' 322) scale(.5)">' + CH.sprite(rc) + '</g>' + SC.txt(150 + k * 46 + 25, 318, rc.name.split(' ')[0], 11, '#ffe14a'); });
-  /* the player */
-  var px = s.char ? (typeof ui !== 'undefined' && ui.px != null ? ui.px : SC.SLOT.pad - 70) : 600;
-  o += '<g id="player" style="transform: translate(' + (px - 28) + 'px, ' + (SC.FEET - 92) + 'px) scale(.55)">' + (s.char ? CH.sprite(s.char) : '') + '</g></svg>';
-  return o;
+/* ---------- what each shop adds to its front ---------- */
+SC.PROP = {
+  market: function (b, o, i) { var x = o.ox, y = o.oy; [-1, 1].forEach(function (s, n) { var cx = x + s * Math.round(o.w * 0.42); b.rect(cx - 5, y - 8, 11, 8, N_); b.rect(cx - 5, y - 4, 11, 1, K_); [[-3, LR_], [0, Y_], [3, LG_]].forEach(function (p) { b.rect(cx + p[0] - 1, y - 11, 3, 3, p[1]); }); }); },
+  bank: function (b, o, i) { var x = o.ox, y = o.oy, px = x + Math.round(o.w * 0.4); b.ellipse(px, y - 2, 5, 2, Y_); b.ellipse(px, y - 4, 5, 2, Y_); b.ellipse(px, y - 6, 5, 2, [Y_, W_, 6]); b.put(px - 2, y - 6, K_); b.vline(x - Math.round(o.w * 0.5), y - 18, 18, W_); b.rect(x - Math.round(o.w * 0.5) + 1, y - 18, 7, 4, E_ + LM_); },
+  cantina: function (b, o, i) { var x = o.ox, y = o.oy, mx = x - Math.round(o.w * 0.5) + 3, my = y - Math.round(o.h * 0.55); b.rect(mx, my, 8, 9, E_ + LM_); b.rect(mx + 1, my + 2, 6, 6, K_); b.rect(mx + 1, my, 6, 2, E_ + W_); b.rect(mx + 8, my + 2, 3, 5, E_ + LM_); b.rect(mx + 9, my + 3, 1, 3, K_); b.ellipse(x + Math.round(o.w * 0.44), y - 5, 5, 6, N_); b.hline(x + Math.round(o.w * 0.44) - 5, y - 6, 10, K_); },
+  yard: function (b, o, i) { var x = o.ox, y = o.oy, cx = x + Math.round(o.w * 0.5) + 3; b.vline(cx, y - 30, 30, Y_); b.hline(cx - 14, y - 30, 15, Y_); b.vline(cx - 14, y - 30, 8, L_); b.rect(cx - 17, y - 22, 7, 5, D_); b.rect(x - Math.round(o.w * 0.5) - 2, y - 5, 9, 5, L_); },
+  fuel: function (b, o, i) { var x = o.ox, y = o.oy; [-1, 1].forEach(function (s) { var cx = x + s * Math.round(o.w * 0.5) + (s > 0 ? 6 : -6); b.rect(cx - 3, y - 15, 7, 15, LR_); b.rect(cx - 2, y - 13, 5, 4, LC_); b.rect(cx - 3, y - 15, 7, 1, W_); b.line(cx + 4, y - 11, cx + 8, y - 6, K_); }); b.rect(x - 14, y - 2, 28, 2, [Y_, K_, 8]); },
+  office: function (b, o, i) { var x = o.ox, y = o.oy, px = x + Math.round(o.w * 0.5) + 6; b.vline(px, y - 22, 22, N_); b.rect(px - 8, y - 26, 17, 11, W_); b.box(px - 8, y - 26, 17, 11, K_); b.text(px - 7, y - 24, 'SALE', R_, 1); b.poly([[px - 5, y - 18], [px, y - 22], [px + 5, y - 18]], LR_); },
+  parlour: function (b, o, i) { var x = o.ox, y = o.oy, k; for (k = 0; k < o.w; k += 4) { b.put(x - o.w / 2 + k, y - o.h + 1, E_ + (k % 8 ? LR_ : Y_)); b.put(x - o.w / 2 + k, y - 1, E_ + (k % 8 ? Y_ : LR_)); }},
+  decor: function (b, o, i) { var x = o.ox, y = o.oy; b.line(x - Math.round(o.w * 0.5), y - Math.round(o.h * 0.4), x + Math.round(o.w * 0.5), y - Math.round(o.h * 0.5), L_); b.rect(x - 8, y - Math.round(o.h * 0.4), 4, 6, LR_); b.rect(x + 2, y - Math.round(o.h * 0.44), 4, 6, W_); }
 };
+SC.ROLEK = { market: 0, bank: 1, cantina: 2, yard: 3, fuel: 4, office: 5, parlour: 6, decor: 7 };
 
-/* ---------- inside backdrops for the shop pages ---------- */
-SC.backdrop = function (kind, pid) {
-  var th = SC.TH[pid], wall = { market: th.wall[1], bank: '#e8e0ff', yard: th.wall[0], fuel: th.wall[2], cantina: '#7a3a9a', alley: '#5a4a6a', office: '#8ac0ff', parlour: '#3a1a6a', jobs: '#c8884a', cell: th.wall[1] }[kind] || th.wall[1], o = '', i;
-  o += '<svg class="bg" viewBox="0 0 900 560" preserveAspectRatio="xMidYMax meet" aria-hidden="true"><rect x="-1500" y="-300" width="3900" height="1000" fill="' + wall + '"/>';
-  for (i = 0; i < 12; i++) o += '<circle cx="' + (i * 80 + 20) + '" cy="' + ((i * 53) % 400 + 30) + '" r="6" fill="#fff" opacity=".12"/>';
-  o += '<rect x="-1500" y="430" width="3900" height="330" fill="' + UI.shade(wall, -0.4) + '"' + SC.st(5) + '/>';
-  if (kind === 'market') { for (i = 0; i < 3; i++) { o += SC.rect(300, 90 + i * 100, 580, 14, '#a0642a', 3); for (var j = 0; j < 9; j++) o += SC.circ(330 + j * 62, 78 + i * 100, 13, ['#ff5a4f', '#ffd23d', '#7bd957', '#c25cff', '#ff8a2a'][(i + j) % 5], 3); } for (i = 0; i < 9; i++) o += SC.poly((300 + i * 64) + ',0 ' + (364 + i * 64) + ',0 ' + (364 + i * 64) + ',44 ' + (332 + i * 64) + ',62 ' + (300 + i * 64) + ',44', i % 2 ? '#fff' : '#ff3d8b', 4); }
-  else if (kind === 'bank') { for (i = 0; i < 4; i++) o += SC.rect(320 + i * 150, 30, 40, 400, '#fff8e8', 5); o += SC.circ(560, 250, 120, '#9aa4b8', 6) + SC.circ(560, 250, 84, '#c0c8d8', 5) + SC.circ(560, 250, 22, '#ffd23d', 4); for (i = 0; i < 6; i++) o += '<line x1="560" y1="250" x2="' + (560 + Math.cos(i * 1.047) * 84) + '" y2="' + (250 + Math.sin(i * 1.047) * 84) + '" stroke="' + SC.INK + '" stroke-width="7"/>'; for (i = 0; i < 6; i++) o += SC.circ(330 + i * 70, 440 - (i % 2) * 8, 22, '#ffd23d', 4); }
-  else if (kind === 'yard') { o += SC.rect(300, 40, 580, 330, '#c9a070', 6); for (i = 0; i < 7; i++) o += '<path d="M' + (340 + i * 80) + ',90 l30,-20 l-4,60z" fill="#8a94aa"' + SC.st(3) + '/>' + SC.circ(360 + i * 80, 200, 24, '#ffd23d', 4) + SC.rect(350 + i * 80, 250, 22, 80, '#6a6a7a', 4); o += SC.circ(600, 400, 54, '#4a4a62', 6) + SC.circ(600, 400, 20, '#ff8a1f', 4); }
-  else if (kind === 'fuel') { for (i = 0; i < 3; i++) o += SC.rect(360 + i * 160, 140, 80, 290, '#fff3cf', 8) + SC.rect(375 + i * 160, 170, 50, 60, '#1d2a4a', 5) + SC.circ(400 + i * 160, 200, 12, '#58ff9a', 3) + '<path d="M' + (440 + i * 160) + ',260 Q' + (490 + i * 160) + ',330 ' + (460 + i * 160) + ',420" fill="none" stroke="' + SC.INK + '" stroke-width="9"/>'; for (i = 0; i < 6; i++) o += SC.poly((300 + i * 100) + ',60 ' + (350 + i * 100) + ',60 ' + (320 + i * 100) + ',100 ' + (270 + i * 100) + ',100', '#ffd23d', 4); }
-  else if (kind === 'cantina') { for (i = 0; i < 6; i++) o += SC.rect(330 + i * 90, 110, 26, 80, ['#7bd957', '#ff5a4f', '#ffd23d', '#4fd2ff'][i % 4], 8) + SC.rect(336 + i * 90, 92, 14, 20, '#fff', 3); o += SC.rect(300, 200, 580, 12, '#a0642a', 3) + SC.rect(300, 330, 600, 100, '#a0642a', 6) + '<rect x="560" y="30" width="200" height="44" rx="22" fill="#1a0b3b"' + SC.st() + '/><text x="660" y="60" text-anchor="middle" font-family="Bangers" font-size="30" fill="#7cfff0">OPEN</text>'; for (i = 0; i < 4; i++) o += '<ellipse cx="' + (360 + i * 150) + '" cy="470" rx="30" ry="10" fill="#ff3d8b"' + SC.st() + '/>'; }
-  else if (kind === 'alley') { for (i = 0; i < 8; i++) for (var j2 = 0; j2 < 6; j2++) o += '<rect x="' + (i * 120 - (j2 % 2) * 60) + '" y="' + (j2 * 72) + '" width="116" height="68" fill="#7a5a6a" stroke="' + SC.INK + '" stroke-width="3"/>'; o += SC.rect(600, 250, 200, 180, '#3a8a5a', 8) + SC.rect(590, 232, 220, 28, '#2a6a44', 6) + '<path d="M340,0 L340,260 Q340,300 400,300" fill="none" stroke="' + SC.INK + '" stroke-width="16"/>' + SC.circ(780, 70, 40, '#f4f1ff', 4); }
-  else if (kind === 'office') { for (i = 0; i < 4; i++) o += SC.rect(320 + i * 140, 70, 110, 140, '#fff3cf', 4) + SC.poly((330 + i * 140) + ',150 ' + (375 + i * 140) + ',110 ' + (420 + i * 140) + ',150', '#e0263f', 3) + SC.rect(345 + i * 140, 150, 60, 44, '#ffd23d', 3); o += SC.rect(300, 330, 580, 40, '#8a5a2a', 5); }
-  else if (kind === 'parlour') { o += '<path d="M300,0 Q380,260 300,430 L420,430 Q480,260 420,0Z M880,0 Q800,260 880,430 L760,430 Q700,260 760,0Z" fill="#8a1a4a"' + SC.st(5) + '/>'; for (i = 0; i < 6; i++) o += '<circle cx="660" cy="220" r="' + (20 + i * 22) + '" fill="none" stroke="' + ['#ff3d8b', '#7cfff0', '#ffe14a'][i % 3] + '" stroke-width="6" opacity="' + (0.9 - i * 0.12).toFixed(2) + '"/>'; for (i = 0; i < 5; i++) o += SC.rect(330 + i * 110, 400, 10, 34, '#fff3cf', 2) + '<ellipse cx="' + (335 + i * 110) + '" cy="392" rx="6" ry="10" fill="#ffd23d"/>'; }
-  else { o += SC.rect(320, 60, 520, 300, '#c8884a', 8); for (i = 0; i < 8; i++) o += SC.rect(350 + (i % 4) * 120, 90 + Math.floor(i / 4) * 120, 90, 90, ['#fff', '#ffd23d', '#ff9ac8', '#9ae0ff'][i % 4], 4); }
-  return o + '</svg>';
-};
-
-/* ---------- little icons ---------- */
-UI.itemIcon = function (i, cls) {
-  var s = SC.st(3), b = '';
-  if (i === 0) b = '<rect x="9" y="12" width="30" height="28" rx="5" fill="#d8dfe8"' + s + '/><rect x="9" y="20" width="30" height="14" fill="#ff5a4f"' + s + '/><ellipse cx="24" cy="12" rx="15" ry="5" fill="#f4f7fb"' + s + '/>';
-  else if (i === 1) b = '<polygon points="6,38 42,38 36,26 12,26" fill="#aab4c4"' + s + '/><polygon points="12,26 36,26 32,14 16,14" fill="#c8d0dc"' + s + '/><line x1="16" y1="31" x2="26" y2="31" stroke="#fff" stroke-width="3"/>';
-  else if (i === 2) b = '<rect x="6" y="12" width="36" height="28" rx="5" fill="#fff"' + s + '/><rect x="19" y="18" width="10" height="16" fill="#e0263f"/><rect x="16" y="21" width="16" height="10" fill="#e0263f"/><rect x="16" y="6" width="16" height="8" rx="3" fill="#7bd957"' + s + '/>';
-  else if (i === 3) b = '<rect x="12" y="8" width="24" height="8" rx="3" fill="#8a5a2a"' + s + '/><path d="M10,16 L38,16 L36,40 L12,40Z" fill="#ff8a1f"' + s + '/><circle cx="20" cy="28" r="3" fill="#ffd23d"/><circle cx="29" cy="32" r="3" fill="#fff3cf"/><circle cx="27" cy="23" r="2.5" fill="#ffd23d"/>';
-  else if (i === 4) b = '<rect x="10" y="10" width="28" height="28" rx="4" fill="#2faa5a"' + s + '/><rect x="17" y="17" width="14" height="14" rx="2" fill="#1d0f33"/><path d="M4,16 h6 M4,24 h6 M4,32 h6 M38,16 h6 M38,24 h6 M38,32 h6" stroke="' + SC.INK + '" stroke-width="3"/><circle cx="24" cy="24" r="3" fill="#ffd23d"/>';
-  else if (i === 5) b = '<circle cx="24" cy="25" r="16" fill="#6a2ca0"' + s + '/><path d="M12,24 Q24,10 36,24 Q24,38 12,24Z" fill="#c08aff"/><circle cx="24" cy="24" r="5" fill="#1d0f33"/><circle cx="38" cy="8" r="2.5" fill="#fff"/><circle cx="8" cy="12" r="2" fill="#ffe14a"/>';
-  else b = '<path d="M14,8 h20 l-3,10 q10,6 4,18 q-2,6 -11,6 q-9,0 -11,-6 q-6,-12 4,-18z" fill="#ffd23d"' + s + '/><circle cx="24" cy="26" r="5" fill="#e0263f"' + s + '/><path d="M16,13 h16" stroke="#fff" stroke-width="2.5" opacity=".7"/>';
-  return '<svg class="itemicon ' + (cls || '') + '" viewBox="0 0 48 48" aria-hidden="true">' + b + '</svg>';
-};
-UI.icon = function (k) {
-  var s = SC.st(3);
-  return '<svg viewBox="0 0 24 24" aria-hidden="true">' + ({
-    coin: '<circle cx="12" cy="12" r="9" fill="#ffd23d"' + s + '/><text x="12" y="16.5" text-anchor="middle" font-family="Bangers" font-size="13" fill="#1d0f33">c</text>',
-    fuel: '<rect x="4" y="5" width="11" height="16" rx="2" fill="#ff8a1f"' + s + '/><rect x="6.5" y="8" width="6" height="4" fill="#fff"/><path d="M15,10 L19,10 L19,17" fill="none"' + s + '/>',
-    crate: '<rect x="3" y="6" width="18" height="15" rx="2" fill="#c8884a"' + s + '/><path d="M3,13 H21 M12,6 V21" stroke="' + SC.INK + '" stroke-width="2"/>',
-    star: '<polygon points="12,2 15,9 22,9.5 16.5,14.5 18,22 12,18 6,22 7.5,14.5 2,9.5 9,9" fill="#ffd23d"' + s + '/>'
-  })[k] + '</svg>';
+/* Draw one building into its own buffer. Returns the buffer with the door and sign positions. */
+SC.ROLEWORD = { market: ['MARKET', 'SHOP'], bank: ['BANK'], cantina: ['CANTINA', 'BAR'], yard: ['SHIPYARD', 'YARD'], fuel: ['FUEL DOCK', 'FUEL'], office: ['REAL ESTATE', 'REALTY', 'SALES'], parlour: ['PARLOUR', 'CARDS'], decor: [] };
+SC.fit = function (list, w) { for (var i = 0; i < list.length; i++) if (PX.textW(list[i]) <= w - 3) return list[i]; return list[list.length - 1]; };
+SC.build = function (T, role, w, h, o2) {
+  o2 = o2 || {};
+  var W = w + 34, H = h + 46, bb = SC.newB(W, H), o = { T: T, ox: W >> 1, oy: H - 3, w: w, h: h, k: SC.ROLEK[role] || 0, v: (SC.ROLEK[role] || 0) % 2, lit: !!o2.lit }, info;
+  info = SC.K[T.style](bb, o);
+  if (o2.closed) {
+    SC.door(bb, info.door.x, info.door.y, info.door.w, info.door.h, info.door.arch, K_);
+    for (var k = 0; k < 3; k++) bb.line(info.door.x - info.door.w / 2 - 2, info.door.y - 4 - k * 5, info.door.x + info.door.w / 2 + 2, info.door.y - 9 - k * 5, N_);
+    SC.sign(bb, info.sign.x, info.sign.y, info.sign.w, SC.fit(['CLOSED', 'SHUT'], info.sign.w), R_, W_);
+  } else {
+    SC.door(bb, info.door.x, info.door.y, info.door.w, info.door.h, info.door.arch);
+    if (role !== 'decor') SC.sign(bb, info.sign.x, info.sign.y, info.sign.w, SC.fit([o2.text || ''].concat(SC.ROLEWORD[role]).filter(Boolean), info.sign.w), T.tr, [Y_, W_, LC_, LM_, LG_, LR_, LB_].indexOf(T.tr) >= 0 ? K_ : W_);
+    if (SC.PROP[role]) SC.PROP[role](bb, o, info);
+  }
+  SC.outline(bb);
+  return { b: bb, ox: o.ox, oy: o.oy, door: info.door, sign: info.sign };
 };

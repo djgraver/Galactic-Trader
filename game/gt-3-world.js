@@ -59,6 +59,22 @@
   GT.minJump = function (s) { var m = 1e9; GT.PLANETS.forEach(function (p, i) { if (i !== s.loc) m = Math.min(m, GT.jumpCost(s, i)); }); return m; };
   GT.stranded = function (s) { return s.ship.fuel < GT.minJump(s); };
 
+  /* ---------- what speed does ----------
+     1. Fuel: burn per jump falls with the square root of speed.
+     2. Evasion: each 0.1 of warp above 0.9 gives a 2.5% chance to outrun a bad travel event (cap 45%).
+     3. Initiative: in a shared game the fastest ship moves first each round, so it gets first pick of the markets.
+     4. Getaway: a quick ship makes cleaner escapes when it sabotages a rival. */
+  GT.evadeChance = function (s) { return clamp((GT.effSpeed(s) - 0.9) * 0.25, 0, 0.45); };
+  GT.speedEdge = function (s) { return clamp((GT.effSpeed(s) - 1) * 0.05, -0.01, 0.12); };
+  GT.fuelRatio = function (s) { return 1 / Math.sqrt(GT.effSpeed(s)); };
+  GT.DODGES = [
+    'Your sensors catch trouble ahead and the engines do the rest. At warp {speed} you slip past before it can lay a finger on you.',
+    'Something nasty lunges at your hull. Your warp {speed} laughs and leaves it eating your exhaust.',
+    'Alarms start to wail, but you are already gone. Nothing outruns trouble like a fast ship.',
+    'A hazard drifts across your lane and the autopilot swerves with a squeal. The crew spill their tea, and nothing else is lost.',
+    'The pirates barely finish their sentence before you are a dot on their scope. Speed pays.'
+  ];
+
   GT.canJump = function (s, to) { return !s.over && !s.pending && to !== s.loc && to >= 0 && s.ship.fuel >= GT.jumpCost(s, to); };
 
   GT.jump = function (s, to, towed, opts) {
@@ -70,20 +86,21 @@
     GT.log(s, (towed ? 'A tanker tug hooks onto you and drags you out of <b>' + A.name + '</b>. ' : 'Departed <b>' + A.name + '</b>, bound for ' + B.name + '. ') + (cost ? 'Burned ' + cost + ' PC of fuel.' : ''), 'info');
     if (towed) { s.credits -= GT.CFG.TOW_COST; s.stats.tows++; s.stats.eventLoss += GT.CFG.TOW_COST; GT.log(s, 'The tug crew bills you for the rescue: <b>-' + GT.CFG.TOW_COST + 'c</b>.', 'loss', -GT.CFG.TOW_COST); }
     var ev = (opts && Object.prototype.hasOwnProperty.call(opts, 'event')) ? opts.event : ((GT.rand() < GT.CFG.TRAVEL_EVENT && GT.TRAVEL) ? GT.pickEntry(GT.TRAVEL, s) : null);
+    if (ev && ev.g < 0 && !towed && !(opts && opts.noEvade) && GT.rand() < GT.evadeChance(s)) {
+      s.stats.evaded = (s.stats.evaded || 0) + 1;
+      GT.log(s, GT.pick(GT.DODGES).replace('{speed}', GT.effSpeed(s).toFixed(1)), 'event'); s.log[0].dodge = true; ev = null;
+    }
     if (ev) { var fx = GT.applyEffect(s, ev); s.stats.events++; GT.log(s, (opts && opts.note ? opts.note + ' ' : '') + ev.t + fx.detail, fx.kind, fx.money); }
     s.turn++;
     s.ship.damage.forEach(function (d) { d.turns--; });
     s.ship.damage = s.ship.damage.filter(function (d) { return d.turns > 0; });
-    GT.tickMarkets(s); GT.tickComps(s);
+    /* In a shared game the world ticks once per round (GT.endRound), not once per captain. */
+    if (!s.multi) { GT.tickMarkets(s); GT.tickComps(s); }
     if (s.stats.jumps % GT.CFG.INTEREST_EVERY === 0) GT.interest(s);
     s.loc = to; s.dest = null; GT.rollTrends(s);
-    s.visit = { explored: false, encountered: false, offer: null, flags: {} };
+    s.visit = { explored: false, encountered: false, offer: null, flags: {}, night: GT.rand() < 0.5 };
     GT.log(s, 'Arrived at <b>' + B.name + '</b> (' + B.type + ').', 'info');
-    s.mods.forEach(function (m) { if (m.p === to) GT.log(s, m.text, 'info'); });
-    if (s.owned[to]) GT.collectFees(s, to);
-    if (!s.owned[to] && GT.rand() < GT.CFG.FACILITY_OFFER) GT.makeOffer(s, to);
-    var here = s.comps.filter(function (c) { return c.loc === to; });
-    if (here.length && GT.rand() < GT.CFG.COMP_EVENT) { var c = GT.pick(here); s.pending = { type: 'comp', ci: s.comps.indexOf(c), mood: GT.pick(GT.MOODS) }; }
+    if (s.multi) s.arrivalPending = true; else GT.arrivalHooks(s, to);
     s.stats.peak = Math.max(s.stats.peak, GT.networth(s));
     GT.checkEnd(s);
     return true;
@@ -96,6 +113,17 @@
     return best;
   };
   GT.tow = function (s) { if (!GT.stranded(s) || s.over || s.pending) return false; return GT.jump(s, GT.towTarget(s), true); };
+
+  /* Everything that happens when you step off the ship: fees, a facility offer, a rival at the dock. */
+  GT.arrivalHooks = function (s, to) {
+    s.mods.forEach(function (m) { if (m.p === to) GT.log(s, m.text, 'info'); });
+    if (s.owned[to]) GT.collectFees(s, to);
+    if (!s.owned[to] && !GT.ownedByOther(s, to) && GT.rand() < GT.CFG.FACILITY_OFFER) GT.makeOffer(s, to);
+    var here = s.comps.filter(function (c) { return c.loc === to; });
+    if (here.length && GT.rand() < GT.CFG.COMP_EVENT) { var c = GT.pick(here); s.pending = { type: 'comp', ci: s.comps.indexOf(c), mood: GT.pick(GT.MOODS) }; }
+  };
+  GT.ownedByOther = function (s, p) { return !!(s.game && s.game.players.some(function (o) { return o !== s && o.owned[p]; })); };
+  GT.othersHere = function (s) { return s.game ? s.game.players.filter(function (o) { return o !== s && o.loc === s.loc && !(o.over && !o.over.won); }) : []; };
 
   GT.interest = function (s) {
     if (s.bank > 0) { var g = Math.round(s.bank * GT.CFG.DEPOSIT_RATE); s.bank += g; s.stats.interestEarned += g; GT.log(s, 'The bank pays <b>' + (GT.CFG.DEPOSIT_RATE * 100) + '%</b> interest on your deposit: <b>+' + fmt(g) + 'c</b> added to your account.', 'gain', g); }

@@ -125,7 +125,7 @@ function runOne(shipId, seed, mode) {
 }
 
 function stats(arr) { arr.sort((a, b) => a - b); const q = p => arr[Math.min(arr.length - 1, Math.floor(p * arr.length))]; return { min: q(0), p25: q(.25), med: q(.5), p75: q(.75), max: q(1) }; }
-const ships = ['wayfarer', 'gnat', 'barge', 'stargazer', 'cutlass'];
+const ships = ['wayfarer', 'barge', 'stargazer', 'cutlass'];
 for (const sh of (process.env.SHIP ? [process.env.SHIP] : ships)) {
   const rs = []; for (let k = 1; k <= SEEDS; k++) rs.push(runOne(sh, k * 7919, MODE));
   const w = rs.filter(r => r.won), l = rs.filter(r => r.lost);

@@ -1,10 +1,21 @@
 /* Galactic Trader Deluxe. Part 14: UI core. State, helpers, sound, HUD, the router, and the hub, market and bank pages. */
-var S = null;
+var S = null, G = null;
 var ui = { ship: 'wayfarer', name: '', salt: 0, cap: null, page: 'hub', qty: {}, dep: 0, wd: 0, rep: 0, dest: null, more: 0, say: {}, px: null, walking: false, busy: false, last: null, scroll: {}, sentence: '' };
 var $ = function (id) { return document.getElementById(id); };
 var esc = GT.esc, fmt = GT.fmt;
 function reduced() { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }
 function plan() { return GT.PLANETS[S.loc]; }
+/* what warp speed buys, used everywhere speed is shown */
+function speedFacts(sp) { var fake = { ship: { speed: sp, damage: [] } }; return { fuel: Math.round(GT.fuelRatio(fake) * 100), dodge: Math.round(GT.evadeChance(fake) * 100) }; }
+function speedBlurb(sp) { var f = speedFacts(sp); return 'Burns ' + f.fuel + '% fuel &middot; dodges ' + f.dodge + '% of road hazards'; }
+function speedHTML(s) {
+  var es = GT.effSpeed(s), f = speedFacts(es), rank = s.game && s.game.multi ? s.game.order.indexOf(s.seat) + 1 : 0, h = '<ul class="speedlist">';
+  h += '<li><b>Fuel economy:</b> at warp ' + es.toFixed(1) + ' you burn <b>' + f.fuel + '%</b> of the baseline fuel per jump (100% is warp 1.0).</li>';
+  h += '<li><b>Dodging hazards:</b> <b>' + f.dodge + '%</b> chance to outrun each bad event on the road. Barges crawl straight into trouble; fast hulls slip past.</li>';
+  h += '<li><b>Turn order:</b> ' + (rank ? 'in a shared game the fastest ship moves first each round. You are number <b>' + rank + '</b> this round.' : 'in a shared game, the fastest ship moves first each round and gets the first pick of the markets.') + '</li>';
+  h += '<li><b>Getaway:</b> a quick ship makes cleaner escapes when sabotaging a rival (+' + Math.round(GT.speedEdge(s) * 100) + '% success).</li></ul>';
+  return h + '<div class="dim" style="font-size:12px">Engine damage cuts warp for a few jumps. The Warp Engine upgrade adds +0.2.</div>';
+}
 function btn(label, act, ok, cls, extra) { return '<button class="btn ' + (cls || '') + '" data-act="' + act + '"' + (extra || '') + (ok && !(S && S.over) ? '' : ' disabled') + '>' + label + '</button>'; }
 function bar(frac, cls) { return '<span class="bar"><i class="' + (cls || '') + '" style="width:' + Math.round(Math.max(0, Math.min(1, frac)) * 100) + '%"></i></span>'; }
 function repLabel(r) { return r >= 75 ? 'Legend' : r >= 40 ? 'Respected' : r >= 10 ? 'Known' : r > -10 ? 'Unknown' : r > -30 ? 'Suspect' : 'Notorious'; }
@@ -50,19 +61,27 @@ function greet(role) {
 
 /* ---------- the stat strip under every screen ---------- */
 function hud() {
+  turnbar();
   var es = GT.effSpeed(S), used = GT.cargoUsed(S), nw = GT.networth(S), h = '';
   h += '<span class="who-mini">' + face(S.char) + '<b>' + esc(S.name) + '</b></span>';
   h += '<span class="chip" title="Credits in your pocket">' + UI.icon('coin') + '<b class="num">' + fmt(S.credits) + 'c</b></span>';
   h += '<span class="chip" title="Deposit minus loan">Bank <b class="num ' + (S.loan ? 'bad' : '') + '">' + fmt(S.bank) + 'c' + (S.loan ? ' / owe ' + fmt(S.loan) + 'c' : '') + '</b></span>';
   h += '<span class="chip" title="Fuel">' + UI.icon('fuel') + bar(S.ship.fuel / S.ship.fuelMax, 'f') + '<b class="num">' + S.ship.fuel + '/' + S.ship.fuelMax + ' PC</b></span>';
   h += '<span class="chip" title="Cargo hold">' + UI.icon('crate') + bar(used / S.ship.cargoMax, '') + '<b class="num">' + used + '/' + S.ship.cargoMax + '</b></span>';
-  h += '<span class="chip" title="Engine warp speed">Warp <b class="num">' + es.toFixed(1) + '</b></span>';
+  h += '<span class="chip" title="' + esc(plainText(speedBlurb(es))) + '. Faster ships also move first in multiplayer.">Warp <b class="num">' + es.toFixed(1) + '</b></span>';
   h += '<span class="chip" title="Reputation cuts your tax and tilts luck">' + UI.icon('star') + '<b class="num">' + S.rep + '</b> <span class="dim">' + repLabel(S.rep) + '</span></span>';
-  h += '<span class="chip" title="Turn">Turn <b class="num">' + S.turn + '</b></span>';
+  h += '<span class="chip" title="Jumps so far">' + (G.multi ? 'Round' : 'Turn') + ' <b class="num">' + (G.multi ? G.round : S.turn) + '</b></span>';
   h += '<span class="chip" title="Credits plus bank minus loan. Win at ' + fmt(GT.CFG.WIN) + 'c">Worth <b class="num">' + fmt(nw) + 'c</b>' + bar(nw / GT.CFG.WIN, 'w') + '<span class="dim">' + fmt(GT.CFG.WIN) + 'c</span></span>';
   $('stats').innerHTML = h;
 }
-var PAGE_NAMES = { hub: '', market: 'the Market', bank: 'the Bank', yard: 'the Shipyard', fuel: 'the Fuel Dock', cantina: 'the Cantina', alley: 'the Back Alley', office: 'the Property Booth', parlour: 'the Parlour of Thin Hours', jobs: 'the Odd Jobs Board', pad: 'the Launch Pad', ship: 'Your Ship' };
+function turnbar() {
+  var el = $('turnbar'); if (!el) return; if (!G || !G.multi) { el.hidden = true; return; }
+  var h = '<span class="tb-r">ROUND ' + G.round + '</span>';
+  G.order.forEach(function (k, i) { var p = G.players[k], cls = p === S ? 'now' : i < G.cur ? 'done' : ''; h += '<span class="tb-p ' + cls + '" title="' + esc(p.name) + ': worth ' + fmt(GT.networth(p)) + 'c, warp ' + GT.effSpeed(p).toFixed(1) + '"><i>' + (i + 1) + '</i> ' + esc(p.name) + '</span>'; });
+  G.players.forEach(function (p) { if (p.over && !p.over.won) h += '<span class="tb-p out" title="Ruined">' + esc(p.name) + ' (out)</span>'; });
+  el.innerHTML = h; el.hidden = false;
+}
+var PAGE_NAMES = { hub: '', market: 'the Market', bank: 'the Bank', yard: 'the Shipyard', fuel: 'the Fuel Dock', cantina: 'the Cantina', alley: 'the Back Alley', office: 'Real Estate', parlour: 'the Parlour of Thin Hours', jobs: 'the Odd Jobs Board', pad: 'the Launch Pad', ship: 'Your Ship' };
 
 /* ---------- router ---------- */
 var PAGES = {};
