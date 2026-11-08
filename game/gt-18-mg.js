@@ -35,6 +35,11 @@ MG.run = function (id, done, opts) {
 };
 MG.keyName = function (e) { if (MG.state === 'intro' && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); MG.begin(); return null; } var k = e.key; return { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down', ' ': 'space', a: 'left', d: 'right', w: 'up', s: 'down', z: 'left', m: 'right', Enter: 'space' }[k] || (/^[a-z]$/i.test(k) ? k.toLowerCase() : null); };
 MG.begin = function () { $('mg-card').hidden = true; MG.state = 'count'; MG.cd = 2.6; SFX.play('blip'); };
+/* every frame is redrawn on a 320 x 200 grid and snapped to the 16 EGA colours */
+MG.ega = function (c) {
+  var o = MG.off || (MG.off = document.createElement('canvas')); if (o.width !== 320) { o.width = 320; o.height = 200; MG.offx = o.getContext('2d', { willReadFrequently: true }); }
+  var ox = MG.offx; ox.drawImage(MG.cv, 0, 0, 320, 200); PX.snap(ox, 320, 200); c.setTransform(1, 0, 0, 1, 0, 0); c.imageSmoothingEnabled = false; c.drawImage(o, 0, 0, MG.W, MG.H);
+};
 MG.loop = function (now) {
   var g = MG.g, G = MG.G, c = MG.cx, dt = Math.min(0.05, (now - MG.last) / 1000); MG.last = now; if (!g || !MG.state) return;
   if (MG.state === 'count') { var n0 = Math.ceil(MG.cd); MG.cd -= dt; if (Math.ceil(MG.cd) !== n0 && MG.cd > 0) SFX.play('blip'); if (MG.cd <= 0) { MG.state = 'play'; SFX.play('tick'); } }
@@ -46,7 +51,8 @@ MG.loop = function (now) {
   }
   c.save(); if (G.shake > 0) c.translate((Math.random() - 0.5) * G.shake, (Math.random() - 0.5) * G.shake);
   g.draw(c, G, MG.inp); G.fx.forEach(function (f) { c.globalAlpha = Math.max(0, 1 - f.t / 0.9); MG.T(c, f.txt, f.x, f.y, 26, f.col); c.globalAlpha = 1; }); c.restore();
-  if (MG.state === 'count') { c.fillStyle = 'rgba(10,4,30,.45)'; c.fillRect(0, 0, MG.W, MG.H); MG.T(c, MG.cd > 0.5 ? String(Math.ceil(MG.cd)) : 'GO!', MG.W / 2, MG.H / 2, 120, '#ffe14a'); }
+  if (MG.state === 'count') { c.fillStyle = 'rgba(0,0,0,.5)'; c.fillRect(0, 0, MG.W, MG.H); MG.T(c, MG.cd > 0.5 ? String(Math.ceil(MG.cd)) : 'GO!', MG.W / 2, MG.H / 2, 120, '#ffe14a'); }
+  MG.ega(c);
   $('mg-s').textContent = Math.round(G.score); var tb = $('mg-t'); if (tb) { var fr = Math.max(0, 1 - G.t / g.dur); tb.style.width = (fr * 100) + '%'; tb.style.background = fr < 0.25 ? 'var(--bad)' : fr < 0.5 ? 'var(--mustard)' : 'var(--lime)'; }
   MG.raf = requestAnimationFrame(MG.loop);
 };
@@ -55,7 +61,7 @@ MG.finish = function () {
   if (g.perf) { MG.res.perf = g.perf(G); card.innerHTML = '<h2 class="hd">' + (G.over === 'caught' ? 'CAUGHT!' : 'Done!') + '</h2><p>' + esc(g.outro(G)) + '</p><div class="acts" style="justify-content:flex-end"><button class="btn big pink" data-mg="collect">Continue</button></div>'; SFX.play(MG.res.perf > 0.5 ? 'win' : 'bad'); return; }
   SFX.play(r >= 2 ? 'win' : r === 1 ? 'coin' : 'lose');
   var S0 = GT.scale(S), pay = Math.round(S0 * GT.JOB_PAY[r] / 5) * 5, col = ['#9a9ab5', '#d08a4a', '#cfd8e8', '#ffd23d'][r];
-  card.innerHTML = '<h2 class="hd">' + (G.over ? 'Game over!' : 'Time\'s up!') + '</h2><div style="font:76px/1 var(--display);letter-spacing:.06em;color:' + col + ';text-shadow:3px 3px 0 var(--ink),-2px -2px 0 var(--ink),2px -2px 0 var(--ink),-2px 2px 0 var(--ink);text-align:center;transform:rotate(-3deg)">' + GT.RATINGS[r].toUpperCase() + '</div><p style="text-align:center;margin:6px 0">Score <b class="num">' + sc + '</b> &middot; Bronze ' + g.goals[0] + ' &middot; Silver ' + g.goals[1] + ' &middot; Gold ' + g.goals[2] + '</p><div class="acts" style="justify-content:flex-end"><button class="btn big pink" data-mg="collect">' + (pay ? 'Collect your pay' : 'Walk away') + '</button></div>';
+  card.innerHTML = '<h2 class="hd">' + (G.over ? 'Game over!' : 'Time\'s up!') + '</h2><div style="font:32px/1 var(--display);color:' + col + ';text-shadow:3px 3px 0 var(--ink),-2px -2px 0 var(--ink),2px -2px 0 var(--ink),-2px 2px 0 var(--ink);text-align:center;transform:rotate(-3deg)">' + GT.RATINGS[r].toUpperCase() + '</div><p style="text-align:center;margin:6px 0">Score <b class="num">' + sc + '</b> &middot; Bronze ' + g.goals[0] + ' &middot; Silver ' + g.goals[1] + ' &middot; Gold ' + g.goals[2] + '</p><div class="acts" style="justify-content:flex-end"><button class="btn big pink" data-mg="collect">' + (pay ? 'Collect your pay' : 'Walk away') + '</button></div>';
 };
 MG.close = function () {
   MG.state = ''; cancelAnimationFrame(MG.raf); document.removeEventListener('keydown', MG.kd); document.removeEventListener('keyup', MG.ku); window.removeEventListener('resize', MG.fit);

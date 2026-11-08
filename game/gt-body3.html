@@ -1,0 +1,22 @@
+<div id="app">
+  <header id="bar">
+    <div class="logo">GALACTIC TRADER</div>
+    <div class="where" id="where"></div>
+    <div class="ibs">
+      <button class="ib" data-act="go-ship" data-label="Look at your captain and your ship">SHIP</button>
+      <button class="ib" data-act="log" data-label="Read the flight log">LOG</button>
+      <button class="ib" data-act="info" data-label="How to play" aria-label="How to play">?</button>
+      <button class="ib" id="bSound" data-act="sound" data-label="Sound on or off">SND</button>
+      <button class="ib" data-act="new" data-label="Start a new game">NEW</button>
+    </div>
+  </header>
+  <div class="turnbar" id="turnbar" hidden></div>
+  <main id="stage"></main>
+  <footer id="hud"><div id="sentence" aria-live="polite"></div><div class="stats" id="stats"></div></footer>
+</div>
+<div class="screen" id="start" hidden></div>
+<div class="screen" id="pass" hidden></div>
+<div class="flight" id="flight" hidden></div>
+<div class="mg" id="mg" hidden></div>
+<div class="modal" id="modal" hidden></div>
+<div class="toast" id="toast" hidden role="status"></div>

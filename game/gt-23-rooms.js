@@ -26,7 +26,6 @@ PX.planetPic = function (p, w, h) {
   PX.ball(B, Math.round(w / 2), Math.round(h / 2), Math.round(h * 0.34), p.id, p.type, p.ring); return { buf: B, key: key };
 };
 UI.drawPlanet = function (cv, p) { var pp = PX.planetPic(p, 160, 90), c = PX.render(pp.buf, false, 1); cv.width = 160; cv.height = 90; cv.getContext('2d').drawImage(c, 0, 0); cv.style.imageRendering = 'pixelated'; };
-FL.ball = function (p) { var pp = PX.planetPic(p, 1, 1), B = new PX.Buf(80, 64, PX.T), r = 26; PX.ball(B, 40, 32, r, p.id, p.type, p.ring); return PX.img(PX.url('ball/' + p.id, B, false), 80, 64, 'ballimg', 1, ' style="width:100%;height:auto"').replace(/ style="width:[^"]*"/, ''); };
 
 /* ---------- shop banners ---------- */
 SC.RK = {

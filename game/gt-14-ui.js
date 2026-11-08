@@ -1,6 +1,6 @@
 /* Galactic Trader Deluxe. Part 14: UI core. State, helpers, sound, HUD, the router, and the hub, market and bank pages. */
 var S = null, G = null;
-var ui = { ship: 'wayfarer', name: '', salt: 0, cap: null, page: 'hub', qty: {}, dep: 0, wd: 0, rep: 0, dest: null, more: 0, say: {}, px: null, walking: false, busy: false, last: null, scroll: {}, sentence: '' };
+var ui = { setup: null, page: 'hub', qty: {}, dep: 0, wd: 0, rep: 0, dest: null, more: 0, say: {}, px: null, SEATCOL: [PX.LC, PX.LG, PX.Y, PX.LM], walking: false, busy: false, last: null, scroll: {}, sentence: '' };
 var $ = function (id) { return document.getElementById(id); };
 var esc = GT.esc, fmt = GT.fmt;
 function reduced() { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); }
@@ -20,7 +20,7 @@ function btn(label, act, ok, cls, extra) { return '<button class="btn ' + (cls |
 function bar(frac, cls) { return '<span class="bar"><i class="' + (cls || '') + '" style="width:' + Math.round(Math.max(0, Math.min(1, frac)) * 100) + '%"></i></span>'; }
 function repLabel(r) { return r >= 75 ? 'Legend' : r >= 40 ? 'Respected' : r >= 10 ? 'Known' : r > -10 ? 'Unknown' : r > -30 ? 'Suspect' : 'Notorious'; }
 function qtyOf(i) { return Math.max(1, ui.qty[i] || 1); }
-function face(t) { return '<svg viewBox="-60 -104 120 128" aria-hidden="true"><g transform="scale(' + t.size.toFixed(2) + ')">' + CH.head(t) + '</g></svg>'; }
+function face(t) { return PX.svg('<svg viewBox="-60 -104 120 128"><g transform="scale(' + t.size.toFixed(2) + ')">' + CH.head(t) + '</g></svg>', 18, 19, 'face', 2, 44); }
 function logHTML(n, skip) { var h = ''; S.log.slice(skip || 0, (skip || 0) + n).forEach(function (e) { h += '<div class="le ' + e.kind + '"><span class="tn">[Turn ' + e.turn + ']</span> ' + e.text + '</div>'; }); return h; }
 function newLogs(top) { var out = []; for (var i = 0; i < S.log.length && S.log[i] !== top; i++) out.push(S.log[i]); return out.reverse(); }
 function plainText(html) { var d = document.createElement('div'); d.innerHTML = html; return d.textContent || ''; }
@@ -100,9 +100,9 @@ function leave() { go('hub'); }
 
 /* ---------- hub: the street, with the flight log beside it ---------- */
 PAGES.hub = function () {
-  var p = plan(), t = GT.taxInfo(S, S.loc), th = SC.TH[p.id], night = SC.night();
-  var h = '<div class="hub"><div class="scenebox" style="background:' + (night ? th.nsky[0] : th.sky[0]) + '">' + SC.hub(S) + '</div><div class="logbox">';
-  h += '<div class="panel pinfo"><div class="row"><h3 class="hd" style="color:' + p.color + '">' + esc(p.name) + '</h3><span class="tax" title="' + esc(GT.discText(t)) + '">Tax ' + (t.rate * 100).toFixed(1) + '%</span></div><div class="dim" style="font-size:12px">' + p.type + ' &middot; say it: ' + esc(p.say) + '</div><p style="margin:6px 0 0;font-size:13px">' + esc(p.desc) + '</p></div>';
+  var p = plan(), t = GT.taxInfo(S, S.loc), night = SC.night();
+  var h = '<div class="hub"><div class="scenebox">' + SC.hub(S) + '</div><div class="logbox">';
+  h += '<div class="panel pinfo"><div class="row"><h3 class="hd" style="color:' + p.color + '">' + esc(p.name) + '</h3><span class="tax" title="' + esc(GT.discText(t)) + '">Tax ' + (t.rate * 100).toFixed(1) + '%</span></div><div class="dim" style="font-size:12px">' + p.type + ' &middot; say it: ' + esc(p.say) + ' &middot; ' + (night ? 'night' : 'day') + '</div><p style="margin:6px 0 0;font-size:13px">' + esc(p.desc) + '</p></div>';
   h += '<div class="panel lg"><div class="row"><h3 class="hd">Flight log</h3><button class="btn gold" data-act="log">Full log</button></div><div class="log">' + logHTML(14) + '</div></div></div></div>';
   return h;
 };
@@ -110,8 +110,8 @@ PAGES.hub = function () {
 /* ---------- frame shared by every shop page ---------- */
 function frame(kind, role, body) {
   var pid = plan().id, c = castOf(role), h = '<div class="loc">' + SC.backdrop(kind, pid) + '<div class="in"><div class="cast">';
-  if (c) h += '<div class="card">' + CH.portrait(c) + '<div class="cn">' + esc(c.name) + '</div><div class="cj">' + esc(c.job || c.title || '') + '</div></div>';
-  else h += '<div class="card"><svg class="portrait" viewBox="0 0 160 160" aria-hidden="true"><rect width="160" height="160" rx="12" fill="#0c0618"/><ellipse cx="58" cy="76" rx="9" ry="13" fill="#ffe14a"/><ellipse cx="102" cy="76" rx="9" ry="13" fill="#ffe14a"/><circle cx="60" cy="79" r="3.5" fill="#000"/><circle cx="104" cy="79" r="3.5" fill="#000"/><path d="M50,112 Q80,128 110,112" fill="none" stroke="#ffe14a" stroke-width="4" stroke-linecap="round"/></svg><div class="cn">???</div><div class="cj">Something in the dark</div></div>';
+  if (c) h += '<div class="card">' + UI.portrait(c) + '<div class="cn">' + esc(c.name) + '</div><div class="cj">' + esc(c.job || c.title || '') + '</div></div>';
+  else h += '<div class="card">' + PX.svg('<svg viewBox="0 0 160 160"><rect width="160" height="160" rx="12" fill="#0c0618"/><ellipse cx="58" cy="76" rx="9" ry="13" fill="#ffe14a"/><ellipse cx="102" cy="76" rx="9" ry="13" fill="#ffe14a"/><circle cx="60" cy="79" r="3.5" fill="#000"/><circle cx="104" cy="79" r="3.5" fill="#000"/><path d="M50,112 Q80,128 110,112" fill="none" stroke="#ffe14a" stroke-width="4" stroke-linecap="round"/></svg>', 40, 40, 'portrait', 2, 40) + '<div class="cn">???</div><div class="cj">Something in the dark</div></div>';
   h += '<div class="talk"><button class="btn big blue" data-act="leave" data-label="Walk back to the street">Back to the street</button></div></div>';
   h += '<div class="main"><div class="bubble"><span class="nm">' + esc(c ? c.name : 'Narrator') + '</span><span id="say">' + esc(ui.say[role] || '') + '</span></div>' + body + '</div></div></div>';
   return h;
@@ -141,8 +141,8 @@ PAGES.market = function () {
 PAGES.bank = function () {
   var left = GT.CFG.INTEREST_EVERY - (S.stats.jumps % GT.CFG.INTEREST_EVERY), sg = NP.SIGNS[plan().id].bank;
   var h = '<div class="panel"><h2 class="hd">' + esc(sg) + '</h2><div class="grid2">';
-  h += '<div class="panel" style="background:var(--paper)"><div class="dim">Your deposit <span style="font-size:12px">(' + (GT.CFG.DEPOSIT_RATE * 100) + '% interest)</span></div><div style="font:44px var(--display);letter-spacing:.05em;color:var(--good)" class="num">' + fmt(S.bank) + 'c</div></div>';
-  h += '<div class="panel" style="background:var(--paper)"><div class="dim">Your loan <span style="font-size:12px">(' + (GT.CFG.LOAN_RATE * 100) + '% interest)</span></div><div style="font:44px var(--display);letter-spacing:.05em" class="num ' + (S.loan ? 'bad' : '') + '">' + fmt(S.loan) + 'c</div></div></div>';
+  h += '<div class="panel" style="background:var(--paper)"><div class="dim">Your deposit <span style="font-size:12px">(' + (GT.CFG.DEPOSIT_RATE * 100) + '% interest)</span></div><div style="font:18px var(--display);color:var(--good)" class="num">' + fmt(S.bank) + 'c</div></div>';
+  h += '<div class="panel" style="background:var(--paper)"><div class="dim">Your loan <span style="font-size:12px">(' + (GT.CFG.LOAN_RATE * 100) + '% interest)</span></div><div style="font:18px var(--display)" class="num ' + (S.loan ? 'bad' : '') + '">' + fmt(S.loan) + 'c</div></div></div>';
   h += '<div class="dim" style="font-size:12px;margin:8px 0">Interest is added every ' + GT.CFG.INTEREST_EVERY + ' jumps (next in ' + left + '). Loans come in fixed ' + fmt(GT.CFG.LOAN_STEP) + 'c chunks, up to ' + fmt(GT.CFG.LOAN_CAP) + 'c. You carry ' + fmt(S.credits) + 'c.</div>';
   h += '<div class="up-row"><div class="row" style="justify-content:flex-start"><input class="val" id="in-dep" type="number" min="0" step="1" value="' + ui.dep + '" aria-label="Deposit amount"></div>' + btn('Deposit', 'deposit', ui.dep > 0 && ui.dep <= S.credits, 'green') + '</div>';
   h += '<div class="up-row"><div class="row" style="justify-content:flex-start"><input class="val" id="in-wd" type="number" min="0" step="1" value="' + ui.wd + '" aria-label="Withdraw amount"></div>' + btn('Withdraw', 'withdraw', ui.wd > 0 && ui.wd <= S.bank, 'blue') + '</div>';

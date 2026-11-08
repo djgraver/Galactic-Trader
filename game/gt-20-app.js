@@ -1,9 +1,8 @@
 /* Galactic Trader Deluxe. Part 20: actions, hotspots, events and boot. */
-function setTheme(t) { document.documentElement.setAttribute('data-theme', t); try { localStorage.setItem('gt-theme', t); } catch (e) {} syncBar(); if (S && ui.page === 'hub') render(); }
-function syncBar() { var b = $('bTheme'); if (b) b.textContent = SC.night() ? 'DAY' : 'NIGHT'; var s = $('bSound'); if (s) s.textContent = SFX.on ? 'SND' : 'MUTE'; }
+function syncBar() { var s = $('bSound'); if (s) s.textContent = SFX.on ? 'SND' : 'MUTE'; }
 function settle() {
-  if (S.over && !ui.endShown) { ui.endShown = true; SFX.play(S.over.won ? 'win' : 'lose'); endModal(); }
-  else if (!S.over && S.pending && $('modal').hidden && $('mg').hidden && $('flight').hidden) compModal();
+  if (G && G.over && !ui.endShown) { ui.endShown = true; SFX.play(G.over.won ? 'win' : 'lose'); endModal(); }
+  else if (S && !S.over && S.pending && $('modal').hidden && $('mg').hidden && $('flight').hidden && $('pass').hidden) compModal();
 }
 function sfxFor(kind) { SFX.play(kind === 'gain' ? 'win' : kind === 'loss' ? 'bad' : 'pop'); }
 function lastEntry(top) { var n = newLogs(top); return n.length ? n[n.length - 1] : null; }
@@ -11,10 +10,10 @@ function lastEntry(top) { var n = newLogs(top); return n.length ? n[n.length - 1
 /* walk the captain to a door, then open the place */
 var HS_PAGE = { market: 'market', bank: 'bank', yard: 'yard', fuel: 'fuel', cantina: 'cantina', alley: 'alley', office: 'office', parlour: 'parlour', jobs: 'jobs', pad: 'pad' };
 function walkTo(kind, done) {
-  var pl = $('player'), x = SC.SLOT[kind], from = ui.px != null ? ui.px : SC.SLOT.pad - 70; ui.px = x; ui.walking = true;
-  if (!pl || reduced()) { ui.walking = false; done(); return; }
-  var dur = Math.max(0.3, Math.min(1.1, Math.abs(x - from) / 650));
-  pl.style.transitionDuration = dur + 's'; pl.classList.add('walking'); pl.style.transform = 'translate(' + (x - 28) + 'px,' + (SC.FEET - 92) + 'px) scale(.55)';
+  var pl = $('player'), d = SC.door && SC.door[kind], from = ui.px && ui.px.x != null ? ui.px : (SC.door && SC.door.pad);
+  if (!pl || !d || !from || reduced()) { if (d) ui.px = { x: d.x, y: d.y, s: d.s }; ui.walking = false; done(); return; }
+  var dist = Math.hypot(d.x - from.x, d.y - from.y), dur = Math.max(0.3, Math.min(1.1, dist / 170)); ui.px = { x: d.x, y: d.y, s: d.s }; ui.walking = true;
+  pl.style.transitionDuration = dur + 's'; pl.classList.add('walking'); pl.style.transform = 'translate(' + d.x + 'px,' + d.y + 'px) scale(' + Math.max(0.3, Math.min(1, d.s)).toFixed(2) + ')';
   setTimeout(function () { ui.walking = false; done(); }, dur * 1000 + 80);
 }
 function hotspot(el) {
@@ -26,31 +25,55 @@ function hotspot(el) {
 
 /* a jump: the engine does the work, then the warp screen replays what happened */
 function doJump(to, towed) {
-  var from = S.loc, top = S.log[0], ok = towed ? GT.tow(S) : GT.jump(S, to); if (!ok) return;
-  var entries = newLogs(top); ui.dep = ui.wd = ui.rep = 0; ui.dest = null; ui.more = 0; ui.px = SC.SLOT.pad - 70; ui.page = 'hub'; ui.last = null; ui.lastPage = null; render();
-  FL.run(from, S.loc, entries, function () { render(); settle(); });
+  var from = S.loc, top = S.log[0], jumper = S, ok = towed ? GT.tow(S) : GT.jump(S, to); if (!ok) return;
+  $('toast').hidden = true;
+  var entries = newLogs(top); ui.dep = ui.wd = ui.rep = 0; ui.dest = null; ui.more = 0; ui.px = null; ui.page = 'hub'; ui.last = null; ui.lastPage = null; render();
+  FL.run(from, S.loc, entries, function () { afterJump(jumper); });
+}
+/* the jump is over: close the turn, then show the end screen, the next captain, or the same captain's next visit */
+function resetTurnUI() { ui.dest = null; ui.qty = {}; ui.dep = ui.wd = ui.rep = 0; ui.more = 0; ui.px = null; ui.page = 'hub'; ui.last = null; ui.lastPage = null; ui.scroll = {}; ui.say = {}; }
+function afterJump(p) {
+  var next = function () {
+    var over = GT.endTurn(G);
+    if (over) { render(); settle(); return; }
+    S = GT.active(G); resetTurnUI();
+    if (G.multi) { passScreen(); render(); } else { render(); settle(); }
+  };
+  if (G.multi && p.over) {
+    if (p.over.won) notice('<h2 class="win">' + esc(p.name) + ' reaches ' + fmt(G.target) + 'c!</h2><p>The race is not over yet. The round finishes so everyone gets an equal number of turns, then the richest captain wins.</p>', next);
+    else notice('<h2 class="lose">' + esc(p.name) + ' is ruined!</h2><p>' + esc(p.over.why) + ' ' + esc(p.name) + ' is out of the race. Everyone else carries on.</p>', next);
+  } else next();
 }
 
 function startGame() {
-  var nm = ($('in-name').value || '').trim() || 'Captain'; ui.name = nm; ui.cap = CH.fromName(nm, ui.salt);
-  S = GT.newState(ui.ship, nm, ui.cap); ui.dest = null; ui.qty = {}; ui.dep = ui.wd = ui.rep = 0; ui.more = 0; ui.say = {}; ui.last = null; ui.px = SC.SLOT.pad - 70; ui.page = 'hub'; ui.endShown = false; ui.lastPage = null; ui.scroll = {};
-  Object.keys(ui).forEach(function (k) { if (k.indexOf('seen-') === 0) delete ui[k]; });
-  var sh = GT.SHIPS.filter(function (x) { return x.id === S.shipId; })[0];
-  GT.log(S, 'Welcome aboard, <b>' + esc(nm) + '</b>, ' + esc(ui.cap.title) + '. You start at <b>' + plan().name + '</b> with ' + fmt(S.credits) + 'c and a ' + esc(sh.name) + '. Reach ' + fmt(GT.CFG.WIN) + 'c to win.', 'info');
-  GT.log(S, 'Tip: goods are cheap where they are made. Read each world\'s description, find a far world on the Launch Pad map, and sell where it is scarce.', 'info');
-  $('start').hidden = true; closeModal(); render(); toast('Click a building to walk there and visit it.');
+  var st = ui.setup, list = [], seen = {}, k;
+  for (k = 0; k < st.n; k++) { var p = st.p[k], nm = (p.name || '').trim() || 'Captain ' + (k + 1); if (seen[nm.toLowerCase()]) nm = nm.slice(0, 17) + ' ' + (k + 1); seen[nm.toLowerCase()] = 1; list.push({ name: nm, shipId: p.ship, char: CH.fromName(nm, p.salt) }); }
+  G = GT.newGame(list, { target: st.target }); S = GT.active(G); resetTurnUI(); ui.endShown = false; ui.afterNotice = null;
+  Object.keys(ui).forEach(function (k2) { if (k2.indexOf('seen-') === 0) delete ui[k2]; });
+  G.players.forEach(function (q) {
+    var sh = GT.SHIPS.filter(function (x) { return x.id === q.shipId; })[0];
+    GT.log(q, 'Welcome aboard, <b>' + esc(q.name) + '</b>, ' + esc(q.char.title) + '. You start at <b>' + GT.PLANETS[q.loc].name + '</b> with ' + fmt(q.credits) + 'c and a ' + esc(sh.name) + '. Reach ' + fmt(GT.CFG.WIN) + 'c to win.', 'info');
+    GT.log(q, 'Tip: goods are cheap where they are made. Read each world\'s description, find a far world on the Launch Pad map, and sell where it is scarce.', 'info');
+  });
+  $('start').hidden = true; closeModal(); $('pass').hidden = true;
+  if (G.multi) { passScreen(); render(); } else { render(); toast('Click a building to walk there and visit it.'); }
 }
 
 function act(a, el) {
-  if (a.indexOf('pick-') === 0) { ui.ship = a.slice(5); Array.prototype.forEach.call(document.querySelectorAll('.ship'), function (b) { b.setAttribute('aria-pressed', String(b.dataset.act === a)); }); return; }
-  if (a === 'reroll') { ui.salt++; refreshCap(); SFX.play('pop'); return; }
-  if (a === 'randname') { ui.name = GT.pick(SILLY); $('in-name').value = ui.name; ui.salt = 0; refreshCap(); SFX.play('pop'); return; }
+  if (a.indexOf('pick-') === 0) { sp().ship = a.slice(5); Array.prototype.forEach.call(document.querySelectorAll('.ship'), function (b) { b.setAttribute('aria-pressed', String(b.dataset.act === a)); }); refreshCap(); return; }
+  if (a === 'reroll') { sp().salt++; refreshCap(); SFX.play('pop'); return; }
+  if (a === 'randname') { sp().name = GT.pick(SILLY); $('in-name').value = sp().name; sp().salt = 0; refreshCap(); SFX.play('pop'); return; }
+  if (a.indexOf('players-') === 0) { ui.setup.n = +a.slice(8); if (ui.setup.cur >= ui.setup.n) ui.setup.cur = ui.setup.n - 1; renderStart(); return; }
+  if (a.indexOf('target-') === 0) { ui.setup.target = +a.slice(7); renderStart(); return; }
+  if (a.indexOf('cap-') === 0) { ui.setup.cur = +a.slice(4); renderStart(); return; }
   if (a === 'launch') { startGame(); return; }
+  if (a === 'pass-ok') { $('pass').hidden = true; render(); settle(); return; }
+  if (a === 'notice-ok') { closeModal(); var nf = ui.afterNotice; ui.afterNotice = null; if (nf) nf(); return; }
+  if (a.indexOf('endp-') === 0) { endModal(+a.slice(5)); return; }
   if (a === 'close') { closeModal(); return; }
-  if (a === 'info') { openModal(INFO, true); return; }
-  if (a === 'theme') { setTheme(SC.night() ? 'day' : 'night'); return; }
+  if (a === 'info') { openModal(infoHTML(), true); return; }
   if (a === 'sound') { SFX.on = !SFX.on; try { localStorage.setItem('gt-snd', SFX.on ? '1' : '0'); } catch (e) {} syncBar(); SFX.play('pop'); return; }
-  if (a === 'new') { if (!S || S.over || el.dataset.sure) { S = null; closeModal(); renderStart(); } else openModal('<h2>Abandon this voyage?</h2><p>Your current game will be lost.</p><div class="row" style="justify-content:flex-end"><button class="btn blue" data-act="close">Keep playing</button><button class="btn pink" data-act="new" data-sure="1">Abandon</button></div>'); return; }
+  if (a === 'new') { if (!S || (G && G.over) || el.dataset.sure) { S = null; G = null; closeModal(); $('pass').hidden = true; $('flight').hidden = true; renderStart(); } else openModal('<h2>Abandon this voyage?</h2><p>Your current game will be lost.</p><div class="row" style="justify-content:flex-end"><button class="btn blue" data-act="close">Keep playing</button><button class="btn pink" data-act="new" data-sure="1">Abandon</button></div>'); return; }
   if (!S) return;
   if (a === 'log') { logModal(); return; }
   if (a === 'more') { ui.more += 60; logModal(); return; }
@@ -113,11 +136,11 @@ document.addEventListener('keydown', function (e) {
   if (!$('mg').hidden || !$('flight').hidden) return;
   if ((e.key === 'Enter' || e.key === ' ') && e.target.classList && e.target.classList.contains('hs') && S) { e.preventDefault(); hotspot(e.target); return; }
   if ((e.key === 'Enter' || e.key === ' ') && e.target.classList && e.target.classList.contains('pl') && S && !S.over) { e.preventDefault(); var i = +e.target.dataset.i; ui.dest = i === S.loc || ui.dest === i ? null : i; render(); return; }
-  if (e.key === 'Escape') { if (!$('modal').hidden) { if (!(S && S.pending)) closeModal(); } else if (S && ui.page !== 'hub' && $('start').hidden) go('hub'); }
+  if (e.key === 'Escape') { if (!$('pass').hidden) return; if (!$('modal').hidden) { if (!(S && S.pending)) closeModal(); } else if (S && ui.page !== 'hub' && $('start').hidden) go('hub'); }
 });
 function setDis(sel, ok) { var b = document.querySelector(sel); if (b) b.disabled = !ok || !!(S && S.over); }
 document.addEventListener('input', function (e) {
-  var t = e.target; if (t.id === 'in-name') { ui.name = t.value; ui.salt = 0; refreshCap(); return; } if (!S) return;
+  var t = e.target; if (t.id === 'in-name') { sp().name = t.value; sp().salt = 0; refreshCap(); return; } if (!S) return;
   var v = Math.max(0, Math.floor(+t.value || 0));
   if (t.classList.contains('qty')) { var row = t.closest('.mk-row'), i = +row.dataset.i; ui.qty[i] = Math.max(1, v); row.querySelector('[data-act="buy"]').disabled = !GT.canBuy(S, i, ui.qty[i]) || !!S.over; row.querySelector('[data-act="sell"]').disabled = !GT.canSell(S, i, ui.qty[i]) || !!S.over; }
   else if (t.id === 'in-dep') { ui.dep = v; setDis('[data-act="deposit"]', v > 0 && v <= S.credits); }
@@ -127,9 +150,6 @@ document.addEventListener('input', function (e) {
 
 /* ---------- boot ---------- */
 (function () {
-  try { var t = localStorage.getItem('gt-theme'); if (t === 'day' || t === 'night') document.documentElement.setAttribute('data-theme', t); var sd = localStorage.getItem('gt-snd'); if (sd === '0') SFX.on = false; } catch (e) {}
-  syncBar(); renderStart();
-  /* follow the viewer's own light/dark choice too, so the street repaints when it changes */
-  try { new MutationObserver(function () { syncBar(); if (S && ui.page === 'hub') render(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] }); } catch (e) {}
-  try { var mq = window.matchMedia('(prefers-color-scheme: dark)'), onq = function () { syncBar(); if (S && ui.page === 'hub') render(); }; if (mq.addEventListener) mq.addEventListener('change', onq); } catch (e) {}
+  try { var sd = localStorage.getItem('gt-snd'); if (sd === '0') SFX.on = false; } catch (e) {}
+  syncBar(); setupInit(); renderStart();
 })();

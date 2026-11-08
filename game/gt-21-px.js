@@ -99,9 +99,16 @@ PX.svg = function (svg, w, h, cls, scale, spread) {
   }
   return tag;
 };
+/* SVG pictures are parsed as strict XML when drawn as images, so drop repeated attributes (the first one wins, as in HTML) and stray ampersands. */
+PX.cleanSVG = function (svg) {
+  svg = svg.replace(/<[a-zA-Z][^<>]*>/g, function (tag) {
+    var seen = {}; return tag.replace(/(\s)([a-zA-Z_:][\w:.-]*)\s*=\s*("[^"]*"|'[^']*')/g, function (m, sp, name, val) { if (seen[name]) return ''; seen[name] = 1; return m; });
+  });
+  return svg.replace(/&(?!(?:amp|lt|gt|quot|apos|#\d+|#x[0-9a-fA-F]+);)/g, '&amp;');
+};
 PX.queue = function (key) {
   var a = PX.sv[key], svg = a[0], w = a[1], h = a[2], im = new Image();
-  if (svg.indexOf('xmlns=') < 0) svg = svg.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg"');
+  svg = PX.cleanSVG(svg); if (svg.indexOf('xmlns=') < 0) svg = svg.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg"');
   svg = svg.replace(/<svg([^>]*?)>/, function (m, at) { at = at.replace(/\s(width|height)="[^"]*"/g, ''); return '<svg' + at + ' width="' + w * 6 + '" height="' + h * 6 + '">'; });
   im.onload = function () {
     try { var cv = document.createElement('canvas'); cv.width = w; cv.height = h; var cx = cv.getContext('2d'); cx.imageSmoothingEnabled = true; cx.imageSmoothingQuality = 'high'; cx.drawImage(im, 0, 0, w, h); PX.quant(cx, w, h, a[3]); PX.cache['s' + key] = cv.toDataURL(); delete PX.sv[key]; }

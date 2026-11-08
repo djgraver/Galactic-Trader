@@ -10,11 +10,11 @@ function sp() { return ui.setup.p[ui.setup.cur]; }
 function capOf(p, k) { return CH.fromName(p.name || 'Captain ' + (k + 1), p.salt); }
 function capCard() {
   var c = capOf(sp(), ui.setup.cur);
-  return CH.portrait(c) + '<div class="cn">' + esc(c.name) + '</div><div class="cj" style="font-size:15px;color:var(--orange);font-family:var(--display);letter-spacing:.06em">' + esc(c.title) + '</div>' +
+  return UI.portrait(c) + '<div class="cn">' + esc(c.name) + '</div><div class="cj" style="font-size:9px;color:var(--orange);font-family:var(--display)">' + esc(c.title) + '</div>' +
     '<p style="margin:6px 0;font-style:italic;font-size:13px">&ldquo;' + esc(c.catch) + '&rdquo;</p><p style="margin:0 0 8px;font-size:12px;text-align:left">' + esc(c.story) + '</p><div class="fate" style="text-align:left">' + c.fate.map(function (r) { return '<span>' + r[0] + '</span><b>' + esc(String(r[1])) + '</b>'; }).join('') + '</div>';
 }
-function refreshCap() { var el = $('capcard'); if (el) el.innerHTML = capCard(); var tb = $('rost-' + ui.setup.cur); if (tb) tb.innerHTML = rosterBtn(ui.setup.cur); PIX.hydrate(document); }
-function rosterBtn(k) { var p = ui.setup.p[k], c = capOf(p, k); return '<span class="rn">' + (k + 1) + '</span><span class="rp">' + CH.portrait(c) + '</span><span class="rt"><b>' + esc(p.name || 'Captain ' + (k + 1)) + '</b><i>' + esc((GT.SHIPS.filter(function (x) { return x.id === p.ship; })[0] || {}).name || '') + '</i></span>'; }
+function refreshCap() { var el = $('capcard'); if (el) el.innerHTML = capCard(); var tb = $('rost-' + ui.setup.cur); if (tb) tb.innerHTML = rosterBtn(ui.setup.cur); PX.hydrate(document); }
+function rosterBtn(k) { var p = ui.setup.p[k], c = capOf(p, k); return '<span class="rn">' + (k + 1) + '</span><span class="rp">' + UI.portrait(c) + '</span><span class="rt"><b>' + esc(p.name || 'Captain ' + (k + 1)) + '</b><i>' + esc((GT.SHIPS.filter(function (x) { return x.id === p.ship; })[0] || {}).name || '') + '</i></span>'; }
 
 function renderStart() {
   if (!ui.setup) setupInit();
@@ -34,10 +34,10 @@ function renderStart() {
   h += '<div class="panel" style="color:var(--fg)"><h3 class="hd">Pick your ship</h3><div class="ships" role="group" aria-label="Choose your ship">';
   GT.SHIPS.forEach(function (sh) {
     function m(l, v, k) { return '<span>' + l + '</span><span class="bar"><i style="width:' + Math.round(v / mx[k] * 100) + '%"></i></span><span>' + (k === 'speed' ? v.toFixed(1) : v) + '</span>'; }
-    h += '<button class="ship" data-act="pick-' + sh.id + '" aria-pressed="' + (cur.ship === sh.id) + '"><div>' + UI.shipSVG(sh.id, sh.hue) + '</div><div class="sn">' + esc(sh.name) + '</div><div class="mini">' + m('Cargo', sh.cargo, 'cargo') + m('Speed', sh.speed, 'speed') + m('Fuel', sh.fuel, 'fuel') + '</div><div class="spd">' + speedBlurb(sh.speed) + '</div><div class="sd">' + esc(sh.desc) + '</div></button>';
+    h += '<button class="ship" data-act="pick-' + sh.id + '" aria-pressed="' + (cur.ship === sh.id) + '"><div>' + UI.shipPic(sh.id, sh.hue, 64, 40, 2) + '</div><div class="sn">' + esc(sh.name) + '</div><div class="mini">' + m('Cargo', sh.cargo, 'cargo') + m('Speed', sh.speed, 'speed') + m('Fuel', sh.fuel, 'fuel') + '</div><div class="spd">' + speedBlurb(sh.speed) + '</div><div class="sd">' + esc(sh.desc) + '</div></button>';
   });
   h += '</div><p class="dim" style="margin:8px 0 0;font-size:12px"><b>Speed</b> cuts fuel burn, lets you outrun trouble on the road' + (st.n > 1 ? ' and decides who moves first each round' : '') + '.</p></div><div class="row" style="justify-content:space-between"><span class="dim" style="color:#cfc3ff;font-size:13px;max-width:520px">' + (st.n > 1 ? 'Pass the device between captains. All of you trade the same markets, so every sale moves prices for the rest. First to ' + fmt(st.target) + 'c wins the race (the round finishes first).' : 'Visit the market, the bank, the shipyard and more. Take odd jobs for pocket money. Reach ' + fmt(st.target) + ' credits before the dark swallows your last coin.') + '</span><button class="btn big pink" data-act="launch" style="font-size:34px;height:56px">Launch!</button></div></div></div></div>';
-  var el = $('start'); el.innerHTML = h; el.hidden = false; el.scrollTop = 0; PIX.hydrate(el);
+  var el = $('start'); el.innerHTML = h; el.hidden = false; el.scrollTop = 0; PX.hydrate(el);
 }
 
 function infoHTML() { var WIN = fmt(GT.CFG.WIN); return '<h2>How to play</h2>' +
@@ -58,7 +58,7 @@ function infoHTML() { var WIN = fmt(GT.CFG.WIN); return '<h2>How to play</h2>' +
 
 function compModal() {
   var pe = S.pending, c = S.comps[pe.ci], r = NP.rival(pe.ci), nw = GT.networth(S), att = c.wealth > nw * 1.3 ? 'They look you over with open scorn.' : c.wealth < nw * 0.7 ? 'They watch you with careful, hungry respect.' : 'They give you a polite and professional nod.';
-  openModal('<div class="row" style="flex-wrap:nowrap;align-items:flex-start"><div style="width:120px;flex:none;background:var(--paper);border:4px solid var(--ink);border-radius:14px;padding:4px">' + CH.portrait(r) + '</div><div style="min-width:0"><h2>A rival at the dock</h2><p><b>' + esc(c.name) + '</b>, ' + esc(c.title) + ', is currently docked here. They are ' + pe.mood + '. ' + att + '</p><p class="dim" style="font-size:13px;margin-top:4px">Their ship: cargo ' + c.cargo + ', warp ' + c.speed.toFixed(1) + '.</p></div></div>' +
+  openModal('<div class="row" style="flex-wrap:nowrap;align-items:flex-start"><div style="width:120px;flex:none;background:var(--paper);border:4px solid var(--ink);border-radius:14px;padding:4px">' + UI.portrait(r) + '</div><div style="min-width:0"><h2>A rival at the dock</h2><p><b>' + esc(c.name) + '</b>, ' + esc(c.title) + ', is currently docked here. They are ' + pe.mood + '. ' + att + '</p><p class="dim" style="font-size:13px;margin-top:4px">Their ship: cargo ' + c.cargo + ', warp ' + c.speed.toFixed(1) + '.</p></div></div>' +
     '<div class="acts"><button class="btn pink" data-act="comp-sabotage">Sabotage</button><button class="btn green" data-act="comp-assist">Assist (about ' + fmt(GT.compAssistCost(S)) + 'c or some fuel)</button><button class="btn blue" data-act="comp-ignore">Ignore</button></div>' +
     '<p class="dim" style="font-size:12px">Sabotage is a sneaky mini-game: the better you do, the better the odds. If you cannot afford to assist, you will ignore them instead.</p>');
 }
@@ -74,9 +74,9 @@ function endModal(seat) {
     h += '</table><div class="dim" style="font-size:12px;margin:4px 0 8px">Click a captain\'s name for their full report card.</div>';
     why = o ? o.why : 'Still trading when the race ended, with ' + fmt(GT.networth(P)) + ' credits.';
     h += '<h3 class="hd" style="margin-top:6px">' + esc(P.name) + '</h3>';
-    h += '<div class="row" style="flex-wrap:nowrap;align-items:flex-start"><div style="width:110px;flex:none">' + CH.portrait(P.char) + '</div><p><b>' + esc(P.name) + '</b>, ' + esc(P.char.title) + ', after <b>' + st.jumps + ' jumps</b>. ' + esc(why) + '</p></div>';
+    h += '<div class="row" style="flex-wrap:nowrap;align-items:flex-start"><div style="width:110px;flex:none">' + UI.portrait(P.char) + '</div><p><b>' + esc(P.name) + '</b>, ' + esc(P.char.title) + ', after <b>' + st.jumps + ' jumps</b>. ' + esc(why) + '</p></div>';
   } else {
-    h += '<h2 class="' + (o.won ? 'win' : 'lose') + '">' + (o.won ? 'You made your fortune!' : 'You are ruined!') + '</h2><div class="row" style="flex-wrap:nowrap;align-items:flex-start"><div style="width:110px;flex:none">' + CH.portrait(P.char) + '</div><p><b>' + esc(P.name) + '</b>, ' + esc(P.char.title) + ', after <b>' + st.jumps + ' jumps</b> (turn ' + o.turn + '). ' + esc(o.why) + '<br><i class="dim">' + (o.won ? 'The ' + esc(P.char.title) + ' is now insufferable at parties.' : 'The ' + esc(P.char.title) + ' will be remembered, mostly as a warning.') + '</i></p></div>';
+    h += '<h2 class="' + (o.won ? 'win' : 'lose') + '">' + (o.won ? 'You made your fortune!' : 'You are ruined!') + '</h2><div class="row" style="flex-wrap:nowrap;align-items:flex-start"><div style="width:110px;flex:none">' + UI.portrait(P.char) + '</div><p><b>' + esc(P.name) + '</b>, ' + esc(P.char.title) + ', after <b>' + st.jumps + ' jumps</b> (turn ' + o.turn + '). ' + esc(o.why) + '<br><i class="dim">' + (o.won ? 'The ' + esc(P.char.title) + ' is now insufferable at parties.' : 'The ' + esc(P.char.title) + ' will be remembered, mostly as a warning.') + '</i></p></div>';
   }
   var tb = 0, ts = 0, sp = 0, er = 0;
   h += '<h4>Goods traded</h4><div style="overflow-x:auto"><table><tr><th>Item</th><th class="r">Bought</th><th class="r">Spent</th><th class="r">Sold</th><th class="r">Earned</th></tr>';
@@ -85,7 +85,7 @@ function endModal(seat) {
   function r(a, b, cls) { return '<div class="row"><span class="dim">' + a + '</span><b class="num ' + (cls || '') + '">' + b + '</b></div>'; }
   h += '<div class="cols2"><div><h4>Money</h4>' + r('Final net worth', fmt(GT.networth(P)) + 'c') + r('Peak net worth', fmt(st.peak) + 'c') + r('Tax paid', fmt(st.tax) + 'c') + r('Tax discount from reputation', fmt(st.taxSavedRep) + 'c', 'good') + r('Tax discount from facilities', fmt(st.taxSavedFac) + 'c', 'good') + r('Broker price edge', fmt(st.brokerEdge) + 'c', 'good') + r('Gained from events', fmt(st.eventGain) + 'c', 'good') + r('Lost to events', fmt(st.eventLoss) + 'c', 'bad') + r('Bank interest earned', fmt(st.interestEarned) + 'c', 'good') + r('Loan interest paid', fmt(st.interestPaid) + 'c', 'bad') + r('Rival fees collected', fmt(st.feeIncome) + 'c', 'good') + r('Odd job earnings', fmt(st.jobGain) + 'c', 'good') + r('Gambling net', (st.gambleNet >= 0 ? '+' : '-') + fmt(Math.abs(st.gambleNet)) + 'c', st.gambleNet >= 0 ? 'good' : 'bad') + '</div>' +
     '<div><h4>Journey</h4>' + r('Jumps made', st.jumps) + r('Events met on the road', st.events) + r('Worlds explored', st.explores) + r('Encounters sought', st.encounters) + r('Odd jobs done', st.jobs + ' (' + st.jobGold + ' Gold)') + r('Fuel bought', st.fuelBought + ' PC for ' + fmt(st.fuelSpent) + 'c') + r('Tows needed', st.tows) + r('Facilities bought', st.facilitiesBought + ' (' + GT.facCount(P) + ' kept)') + r('Spent on ship upgrades', fmt(st.upgradesSpent) + 'c') + r('Sabotage attempts', st.sabotage + ' (' + st.sabotageWon + ' worked)') + r('Rivals assisted', st.assists) + r('Hazards outrun', st.evaded || 0) + r('Reputation', P.rep + ' now, peak ' + st.repPeak + ', low ' + st.repLow) + r('Gambling rounds', st.gambleRounds) + '</div></div>';
-  openModal(h + '<div class="row" style="justify-content:flex-end"><button class="btn blue" data-act="close">Look around</button><button class="btn pink" data-act="new">Play again</button></div>', true); PIX.hydrate($('modal'));
+  openModal(h + '<div class="row" style="justify-content:flex-end"><button class="btn blue" data-act="close">Look around</button><button class="btn pink" data-act="new">Play again</button></div>', true); PX.hydrate($('modal'));
 }
 
 /* ---------- hot-seat: pass the device ---------- */
@@ -95,12 +95,12 @@ function orderHTML() {
 function passScreen() {
   var el = $('pass'), c = S.char, sh = GT.SHIPS.filter(function (x) { return x.id === S.shipId; })[0], first = G.cur === 0;
   var h = '<div class="in"><div class="panel pass"><div class="sub" style="text-align:center">ROUND ' + G.round + ' &middot; TURN ' + (G.cur + 1) + ' OF ' + G.order.length + '</div><h2 class="hd" style="text-align:center;margin:4px 0">Pass the controls to</h2>';
-  h += '<div class="passcap"><div class="cast"><div class="card">' + CH.portrait(c) + '<div class="cn">' + esc(S.name) + '</div><div class="cj">' + esc(c.title) + '</div></div></div><div style="min-width:0;flex:1">';
+  h += '<div class="passcap"><div class="cast"><div class="card">' + UI.portrait(c) + '<div class="cn">' + esc(S.name) + '</div><div class="cj">' + esc(c.title) + '</div></div></div><div style="min-width:0;flex:1">';
   h += '<p style="margin:0 0 6px">At <b>' + esc(plan().name) + '</b> in the <b>' + esc(sh.name) + '</b>. Credits <b class="num">' + fmt(S.credits) + 'c</b>, worth <b class="num">' + fmt(GT.networth(S)) + 'c</b> of ' + fmt(G.target) + 'c.</p>';
   h += '<h4 style="margin:6px 0 2px">' + (first ? 'This round, fastest ship first' : 'Turn order this round') + '</h4>' + orderHTML() + '<p class="dim" style="font-size:12px;margin:4px 0 0">Faster ships go first and get first pick of the markets.</p>';
   var oth = GT.othersHere(S); if (oth.length) h += '<p class="dim" style="font-size:12px;margin:6px 0 0">Also docked here: ' + oth.map(function (p) { return esc(p.name); }).join(', ') + '. You share this market, so mind the prices.</p>';
   h += '</div></div><div class="acts" style="justify-content:center;margin-top:12px"><button class="btn big pink" data-act="pass-ok">I am ' + esc(S.name) + '. Start my turn!</button></div></div></div>';
-  el.innerHTML = h; el.hidden = false; el.scrollTop = 0; PIX.hydrate(el); SFX.play('pop');
+  el.innerHTML = h; el.hidden = false; el.scrollTop = 0; PX.hydrate(el); SFX.play('pop');
 }
 function notice(html, next) { ui.afterNotice = next || null; openModal(html + '<div class="row" style="justify-content:flex-end"><button class="btn pink" data-act="notice-ok">Onward</button></div>'); }
 
