@@ -1,0 +1,24 @@
+/* Galactic Trader 4. The fixed retro frame.
+   The whole game lives on one 1280 x 800 (16:10, the shape of a 320 x 200 VGA screen at 4x) stage. A little script (fitFrame in gt-20-app.js) scales that stage to the biggest size that fits
+   the window and centres it on black, so an ultrawide monitor gets black bars instead of a stretched game. On a narrow phone screen the stage turns fluid (class "fluid") and the old
+   responsive layout takes over. Every pop-up, title screen, flight and mini-game is position:fixed, which inside a transformed stage means "fixed to the stage". */
+html, body { height: 100%; margin: 0; overflow: hidden; background: #000; }
+#frame { position: fixed; left: 50%; top: 50%; width: 1280px; height: 800px; margin: -400px 0 0 -640px; transform: scale(var(--k, 1)); transform-origin: 50% 50%; overflow: hidden; background: #000; contain: layout paint; }
+#frame.fluid { left: 0; top: 0; width: 100%; height: 100%; margin: 0; transform: none; contain: none; }
+#app { height: 100%; width: 100%; }
+
+/* viewport units from the fluid layout, pinned to the stage */
+#frame:not(.fluid) .mega { font-size: 52px; }
+#frame:not(.fluid) .sub { font-size: 12px; }
+#frame:not(.fluid) .flight .top { font-size: 28px; }
+#frame:not(.fluid) .flight .fship { width: 300px; }
+#frame:not(.fluid) .loc > .bg { height: 100px; }
+#frame:not(.fluid) .screen .in { max-width: 1180px; }
+#frame:not(.fluid) .sheet { width: 760px; max-height: 760px; }
+#frame:not(.fluid) .sheet.wide { width: 980px; }
+#frame:not(.fluid) .modal { padding: 14px; }
+#frame:not(.fluid) .toast { bottom: 80px; }
+
+/* the stage itself: menu bar, optional round bar, the page, then the status strip */
+#frame:not(.fluid) #bar { height: 40px; }
+#frame:not(.fluid) #hud { height: 86px; }

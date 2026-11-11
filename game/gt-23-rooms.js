@@ -65,13 +65,14 @@ SC.backdrop = function (kind, pid) {
 };
 
 /* ---------- the star map ---------- */
-UI.MW = 320; UI.MH = 216;
-UI.mapSX = function (x) { return Math.round(18 + x * 2.84); };
-UI.mapSY = function (y) { return Math.round(22 + y * 2.96); };
+/* v4: the map is a fixed 280 x 160 pixel picture shown at 2x (560 x 320), so it never grows on a wide window */
+UI.MW = 280; UI.MH = 160;
+UI.mapSX = function (x) { return Math.round(26 + (x - 8) * 2.95); };
+UI.mapSY = function (y) { return Math.round(34 + (y - 12) * 2.85); };
 UI.mapSVG = function (s, dest) {
   var P = GT.PLANETS, B = new PX.Buf(UI.MW, UI.MH), rnd = GT.seeded(77), k, hit = '';
-  for (k = 0; k < 170; k++) B.px(Math.floor(rnd() * UI.MW), Math.floor(rnd() * UI.MH), rnd() < 0.15 ? PX.W : rnd() < 0.5 ? PX.D : PX.L);
-  for (k = 0; k < 5; k++) { var nx = 40 + rnd() * 240, ny = 30 + rnd() * 150; B.ring(nx, ny, 3, 3, PX.B); }
+  for (k = 0; k < 150; k++) B.px(Math.floor(rnd() * UI.MW), Math.floor(rnd() * UI.MH), rnd() < 0.15 ? PX.W : rnd() < 0.5 ? PX.D : PX.L);
+  for (k = 0; k < 5; k++) { var nx = 30 + rnd() * 220, ny = 20 + rnd() * 120; B.ring(nx, ny, 3, 3, PX.B); }
   if (dest !== null && dest !== s.loc) { var a = P[s.loc], b = P[dest], x0 = UI.mapSX(a.x), y0 = UI.mapSY(a.y), x1 = UI.mapSX(b.x), y1 = UI.mapSY(b.y), n = Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 4); for (k = 0; k < n; k += 1) if (k % 2 === 0) B.line(x0 + (x1 - x0) * k / n, y0 + (y1 - y0) * k / n, x0 + (x1 - x0) * (k + 1) / n, y0 + (y1 - y0) * (k + 1) / n, PX.Y); }
   P.forEach(function (p, i) {
     var x = UI.mapSX(p.x), y = UI.mapSY(p.y), here = i === s.loc, sel = i === dest, r = here ? 9 : 6;

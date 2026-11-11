@@ -49,18 +49,26 @@ NP.CAST = {
     office: ['Cirrus', 'Platform Agent', 0, 10, 'Heavenly views, cloud-based foundations!']
   }
 };
+/* v4: the people who run each world's stock exchange */
+NP.CAST.meridoa.exchange = ['Farmer Fortescue Bean', 'Grain Broker', 0, 7, 'Wheat is up! Or down! Or it is wheat. Buy some, whatever it is.'];
+NP.CAST.karthosu.exchange = ['Ra-Ra the Bourse Keeper', 'Relic Trader', 5, 2, 'Shares in the past, bought and sold with great confidence about the future.'];
+NP.CAST.ferrox.exchange = ['Ticker Tess', 'Futures Caller', 0, 3, 'Ore up, ore down! Shout your order over the drills!'];
+NP.CAST.kryndor.exchange = ['Gordon Margin', 'Floor Trader', 0, 8, 'Welcome to the Spire Exchange. Greed is good, and so is the coffee. The coffee is better.'];
+NP.CAST.nihil.exchange = ['The Whisperer', 'Floor Boss', 3, 0, 'Prices are whispered here. If you cannot hear them, you cannot afford them.'];
+NP.CAST.quellin.exchange = ['Dr. Ima Speculate', 'Grant Speculator', 1, 9, 'We model the market with great rigour and are wrong with great precision.'];
+NP.CAST.halcyra.exchange = ['Stratus Bull', 'Cloud Broker', 0, 4, 'Shares float up here, and sometimes they stay floating.'];
 NP.SIGNS = {
-  meridoa: { market: 'GOURD & GONE', bank: 'BANK OF BEANS', yard: 'HITCH & HAMMER', fuel: 'PUMP-A-PICKLE', cantina: 'THE MUDDY BOOT', office: 'DAISY REALTY' },
-  karthosu: { market: 'DUST & TRUST', bank: 'TOMB & TRUST', yard: 'CHARIOT REPAIR', fuel: 'NO FUEL (SORRY)', cantina: 'THE SAND TRAP', office: 'SPHINXY REALTY' },
-  ferrox: { market: 'SLAG HEAP MART', bank: 'CREDIT UNION OF THE DEEP', yard: 'SPANNER & SON', fuel: 'GUS\'S GAS', cantina: 'THE DRILL BIT', office: 'CLAIMS DEPT' },
-  kryndor: { market: 'SPIRE MART', bank: 'COMPOUND & CO', yard: 'BOLT SHIPYARD', fuel: 'FUEL-O-MATIC', cantina: 'LEVEL 413 LOUNGE', office: 'SKY-LEASE' },
-  nihil: { market: 'NO QUESTIONS MARKET', bank: 'NULL BANK', yard: 'UPSIDE-DOWN REPAIRS', fuel: 'AIR & GAS', cantina: 'THE LONG DARK', office: 'FIVEFINGERS BROKER', parlour: 'THIN HOURS' },
-  quellin: { market: 'PROCUREMENT LAB', bank: 'THE BURSAR', yard: 'GIZMO LABS', fuel: 'NO TANKS HERE', cantina: 'THE CAFETERIA', office: 'GRANTS OFFICE' },
-  halcyra: { market: 'SKYBAZAAR', bank: 'CLOUD & CO BANK', yard: 'WIND-WRIGHTS', fuel: 'FUMES & SON', cantina: 'THE STORM EYE', office: 'CIRRUS REALTY' }
+  meridoa: { market: 'GOURD & GONE', bank: 'BANK OF BEANS', yard: 'HITCH & HAMMER', fuel: 'PUMP-A-PICKLE', cantina: 'THE MUDDY BOOT', office: 'DAISY REALTY', exchange: 'HARVEST EXCHANGE', jobs: 'ODD JOBS' },
+  karthosu: { market: 'DUST & TRUST', bank: 'TOMB & TRUST', yard: 'CHARIOT REPAIR', fuel: 'NO FUEL (SORRY)', cantina: 'THE SAND TRAP', office: 'SPHINXY REALTY', exchange: 'RELIC BOURSE', jobs: 'ODD JOBS' },
+  ferrox: { market: 'SLAG HEAP MART', bank: 'CREDIT UNION OF THE DEEP', yard: 'SPANNER & SON', fuel: 'GUS\'S GAS', cantina: 'THE DRILL BIT', office: 'CLAIMS DEPT', exchange: 'ORE FUTURES', jobs: 'ODD JOBS' },
+  kryndor: { market: 'SPIRE MART', bank: 'COMPOUND & CO', yard: 'BOLT SHIPYARD', fuel: 'FUEL-O-MATIC', cantina: 'LEVEL 413 LOUNGE', office: 'SKY-LEASE', exchange: 'SPIRE STOCK EXCHANGE', jobs: 'ODD JOBS' },
+  nihil: { market: 'NO QUESTIONS MARKET', bank: 'NULL BANK', yard: 'UPSIDE-DOWN REPAIRS', fuel: 'AIR & GAS', cantina: 'THE LONG DARK', office: 'FIVEFINGERS BROKER', parlour: 'THIN HOURS', exchange: 'THE FLOOR (NO QUESTIONS)', jobs: 'ODD JOBS' },
+  quellin: { market: 'PROCUREMENT LAB', bank: 'THE BURSAR', yard: 'GIZMO LABS', fuel: 'NO TANKS HERE', cantina: 'THE CAFETERIA', office: 'GRANTS OFFICE', exchange: 'BOARD OF SPECULATION', jobs: 'ODD JOBS' },
+  halcyra: { market: 'SKYBAZAAR', bank: 'CLOUD & CO BANK', yard: 'WIND-WRIGHTS', fuel: 'FUMES & SON', cantina: 'THE STORM EYE', office: 'CIRRUS REALTY', exchange: 'CIRRUS BOURSE', jobs: 'ODD JOBS' }
 };
 NP.QUIP = {
   market: 'Smells of cabbage and overcharging.', bank: 'Smells of money and mild regret.', yard: 'A shed of spanners and spare opinions.', fuel: 'Fumes with ambition.',
-  cantina: 'Sticky floors. Honest people, probably one.', alley: 'It is dark in there. Something is breathing.', jobs: 'Odd jobs. Very, very odd.', pad: 'Your ship. Still a ship, for now.',
+  cantina: 'Sticky floors. Honest people, probably one.', alley: 'It is dark in there. Something is breathing.', jobs: 'Odd jobs. Very, very odd.', exchange: 'Numbers go up. Numbers go down. People scream. It is the circle of finance.', pad: 'Your ship. Still a ship, for now.',
   office: 'A glass office full of big promises and small print.', parlour: 'The lights flicker. Probably a bad omen.', closed: 'A sign says CLOSED. A smaller sign says "forever".', decor: 'Scenery. Nice, though.'
 };
 NP.LINES = {
@@ -96,6 +104,12 @@ NP.LINES = {
   },
   cantina: { greet: ['Pull up a stool. It is slightly sticky, but loyal.', 'Buy a round and see who turns up.', 'Quiet night. The best sort of night to have an adventure.'] },
   alley: { greet: ['It is dark. Something is breathing, and it is probably fine.', 'You peek into the alley. The alley peeks back.'] },
+  exchange: {
+    greet: ['Welcome to the Exchange! Shout "buy" or "sell". Shouting "help" costs extra.', 'Numbers go up, numbers go down, and we take a small cut of both.', 'Stocks! Real shares of real companies! Some of them even exist!', 'Past performance is no guarantee of future performance. Or past performance, honestly.'],
+    buy: ['Bought! You are now a part-owner of {item}. Please do not visit their offices.', '{qty} shares of {item}! The ticker gave a small, smug beep.', 'A fine purchase. I would say it is a sure thing, but legally I am not allowed to say that, or to know what a sure thing is.'],
+    sell: ['Sold {qty} of {item}. Always take your profit. Or your loss. Someone has to.', 'Gone! The market giveth, and the market taketh a one percent fee.', 'Out of {item} you go. The ticker applauds, sarcastically.'],
+    no: ['The ticker says no. The ticker is a ticker. It has no feelings.', 'Computer says you cannot afford that.']
+  },
   jobs: { greet: ['Odd jobs, odd pay. Do not ask.', 'Foreman Gruff nods at the board. "Quick work, quick coin. Do not break anything."'] }
 };
 NP.say = function (role, kind, vars) {

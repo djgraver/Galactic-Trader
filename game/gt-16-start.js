@@ -2,6 +2,30 @@
 function openModal(html, wide) { var m = $('modal'); m.innerHTML = '<div class="sheet' + (wide ? ' wide' : '') + '" role="dialog" aria-modal="true">' + html + '</div>'; m.hidden = false; var b = m.querySelector('button'); if (b) b.focus({ preventScroll: true }); }
 function closeModal() { $('modal').hidden = true; $('modal').innerHTML = ''; }
 
+
+/* ---------- the catch-phrase under the title: a different one every time ---------- */
+var TAGS = ['Dark Matter? Ain\'t no matter to me.', 'Warp speed, Jim!', 'Buy low. Sell high. Panic in between.', 'It\'s not smuggling if nobody checks.', 'Space: the final frontier, and the final invoice.',
+  'Live long and prosper. Prosper first.', 'My other ship is also overdue.', 'May the fares be with you.', 'To infinity, and a reasonable markup!', 'Houston, we have a profit.',
+  'One small step for man, one giant leap for the tax man.', 'Don\'t panic. Do invoice.', 'Out of fuel, out of luck, out of excuses.', 'All your cargo are belong to us.', 'Make it so. Then make it cost more.',
+  'The cargo is out there.', 'Resistance is futile. Interest is compound.', 'I find your lack of margin disturbing.', 'Never tell me the odds. Tell me the exchange rate.', 'Ask not what your cargo can do for you.',
+  'Beam me up, I\'m over the weight limit.', 'A long time ago, in a galaxy far away, someone overcharged me.', 'Space is big. Prices are bigger.', 'The stars are a limit, but the tax is a ceiling.', 'Engage. Haggle. Repeat.',
+  'It is a truth universally acknowledged that a trader in possession of crates must be in want of buyers.', 'Fortune favours the bold. Dividends favour the patient.', 'Wormholes: the cheap seats of the universe.', 'Dock, shop, flee.',
+  'Not all who wander are lost. Some are carrying spices.', 'Trust me, I\'m a captain.', 'I came, I saw, I upsold.', 'To boldly sell what no one has sold before.', 'Gravity is a suggestion. Debt is forever.',
+  'Hull integrity: optimistic.', 'Fuel is for the weak. Credit is for the brave.', 'Roads? Where we\'re going we need receipts.', 'Moon landing? I prefer moon selling.', 'Carry on, Captain. Carry more.',
+  'If it\'s not on fire, it\'s underpriced.', 'Today\'s special: everything, at a premium.', 'Never gamble with a Void Station dealer. Gamble anyway.', 'Rise and shine, merchants!', 'There is no such thing as a free launch.',
+  'Aim high. Load higher.', 'Where no trader has gone before, there\'s probably a toll.', 'Quantum leap of faith, classic markup.', 'The galaxy is your oyster. Please pay for the oyster.', 'Hello, void. It\'s me, your bank balance.'];
+var TAGT = ['{I}? Ain\'t no {i} to me.', '{I} today, gone tomorrow.', 'Have {i}, will travel.', 'Nobody ever got rich selling less {i}.', 'Keep calm and corner the {i} market.', 'It\'s always {i} season somewhere.',
+  'Next stop: {P}. Probably.', 'What happens on {P} stays on {P}, except the invoice.', '{P} or bust. Mostly bust.', 'I left my heart on {P} and my wallet on {Q}.', 'If you can read this, you are not on {P}.',
+  'A fool and his {i} are soon parted.', 'Hot {i}! Get your hot {i}!'];
+function tagline() {
+  var pick = function (a) { return a[Math.floor(Math.random() * a.length)]; }, t, item, pl, pl2;
+  if (Math.random() < 0.28) {
+    item = pick(GT.ITEMS).name; pl = pick(GT.PLANETS).name; pl2 = pick(GT.PLANETS).name;
+    t = pick(TAGT).replace(/\{I\}/g, item).replace(/\{i\}/g, item.toLowerCase()).replace(/\{P\}/g, pl).replace(/\{Q\}/g, pl2);
+  } else t = pick(TAGS);
+  return t;
+}
+
 var SILLY = ['Barnaby Spudwick', 'Zelda Fizzlebottom', 'Gus', 'Mildred Quark', 'Nebula Nan', 'Doctor Chaos', 'Pixel', 'Bartholomew Void', 'Zorg', 'Mabel Thruster', 'Kevin', 'Captain Biscuit', 'Wanda Warp', 'Fig', 'Lord Gerald', 'Tilly Tentacle'];
 
 /* ---------- setup: one to four captains ---------- */
@@ -18,7 +42,7 @@ function rosterBtn(k) { var p = ui.setup.p[k], c = capOf(p, k); return '<span cl
 
 function renderStart() {
   if (!ui.setup) setupInit();
-  var st = ui.setup, cur = sp(), mx = { cargo: 75, speed: 2.2, fuel: 190 }, h = '<div class="in"><div><div class="mega">Galactic Trader</div><div class="sub">DELUXE &middot; A SPACE MERCHANT COMEDY &middot; ONE TO FOUR CAPTAINS</div></div>';
+  var st = ui.setup, cur = sp(), mx = { cargo: 75, speed: 2.2, fuel: 190 }, h = '<div class="in"><div><div class="mega">Galactic Trader</div><button class="sub tagbtn" id="tagline" data-act="tag" data-label="Click for another catch-phrase">&ldquo;' + esc(ui.tag || (ui.tag = tagline())) + '&rdquo;</button></div>';
   h += '<div class="panel setup"><div class="seg"><span class="lab">Captains</span>';
   for (var n = 1; n <= GT.MAX_PLAYERS; n++) h += '<button class="chipbtn" data-act="players-' + n + '" aria-pressed="' + (st.n === n) + '">' + n + '</button>';
   h += '</div><div class="seg"><span class="lab">Race to</span>';
@@ -85,6 +109,7 @@ function endModal(seat) {
   function r(a, b, cls) { return '<div class="row"><span class="dim">' + a + '</span><b class="num ' + (cls || '') + '">' + b + '</b></div>'; }
   h += '<div class="cols2"><div><h4>Money</h4>' + r('Final net worth', fmt(GT.networth(P)) + 'c') + r('Peak net worth', fmt(st.peak) + 'c') + r('Tax paid', fmt(st.tax) + 'c') + r('Tax discount from reputation', fmt(st.taxSavedRep) + 'c', 'good') + r('Tax discount from facilities', fmt(st.taxSavedFac) + 'c', 'good') + r('Broker price edge', fmt(st.brokerEdge) + 'c', 'good') + r('Gained from events', fmt(st.eventGain) + 'c', 'good') + r('Lost to events', fmt(st.eventLoss) + 'c', 'bad') + r('Bank interest earned', fmt(st.interestEarned) + 'c', 'good') + r('Loan interest paid', fmt(st.interestPaid) + 'c', 'bad') + r('Rival fees collected', fmt(st.feeIncome) + 'c', 'good') + r('Odd job earnings', fmt(st.jobGain) + 'c', 'good') + r('Gambling net', (st.gambleNet >= 0 ? '+' : '-') + fmt(Math.abs(st.gambleNet)) + 'c', st.gambleNet >= 0 ? 'good' : 'bad') + '</div>' +
     '<div><h4>Journey</h4>' + r('Jumps made', st.jumps) + r('Events met on the road', st.events) + r('Worlds explored', st.explores) + r('Encounters sought', st.encounters) + r('Odd jobs done', st.jobs + ' (' + st.jobGold + ' Gold)') + r('Fuel bought', st.fuelBought + ' PC for ' + fmt(st.fuelSpent) + 'c') + r('Tows needed', st.tows) + r('Facilities bought', st.facilitiesBought + ' (' + GT.facCount(P) + ' kept)') + r('Spent on ship upgrades', fmt(st.upgradesSpent) + 'c') + r('Sabotage attempts', st.sabotage + ' (' + st.sabotageWon + ' worked)') + r('Rivals assisted', st.assists) + r('Hazards outrun', st.evaded || 0) + r('Reputation', P.rep + ' now, peak ' + st.repPeak + ', low ' + st.repLow) + r('Gambling rounds', st.gambleRounds) + '</div></div>';
+  h += PORT.stats(P);
   openModal(h + '<div class="row" style="justify-content:flex-end"><button class="btn blue" data-act="close">Look around</button><button class="btn pink" data-act="new">Play again</button></div>', true); PX.hydrate($('modal'));
 }
 

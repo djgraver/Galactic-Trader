@@ -1,0 +1,81 @@
+/* Galactic Trader 4. The shop pages: compact so that a page fits the 1280 x 800 stage, plus the two-counter bank, the stock exchange and the smuggler's offers. */
+.dim.bl { font-size: 19px; line-height: 1.05; }
+#frame:not(.fluid) .loc .in { padding: 8px 14px 8px; gap: 12px; grid-template-columns: 260px minmax(0, 1fr); }
+#frame:not(.fluid) .loc .in .main { gap: 8px; }
+#frame:not(.fluid) .main .bubble { padding: 6px 10px; font-size: 22px; }
+#frame:not(.fluid) .cast .card { padding: 6px; } #frame:not(.fluid) .cast .card .portrait { width: min(100%, 150px) !important; }
+#frame:not(.fluid) .talk .btn.big { height: 38px; font-size: 10px; width: 100%; margin: 6px 0 0; }
+#frame:not(.fluid) .loc .panel { padding: 8px 10px; }
+#frame:not(.fluid) .mk-row { padding: 2px 8px; grid-template-columns: 44px minmax(0, 1.2fr) 70px 80px 70px auto; }
+#frame:not(.fluid) .mk-row .itemicon { width: 38px; height: 38px; }
+#frame:not(.fluid) .mk-row .held { font-size: 17px; line-height: 1; }
+#frame:not(.fluid) .mk-row .btn { height: 30px; }
+#frame:not(.fluid) .mk-row input.qty { height: 30px; }
+#frame:not(.fluid) .panel > .dim[style*="margin-bottom:6px"] { margin-bottom: 2px !important; }
+
+/* bank: two counters side by side */
+.bankwrap > h2.hd { margin-bottom: 6px; }
+.bank2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.bank2 .panel { background: #bbb; }
+.bank2 .bal { font: 18px var(--display); margin: 2px 0 4px; }
+.bank2 .sav h2.hd { color: #060; } .bank2 .loan h2.hd { color: #a00; }
+.bk-row { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin: 6px 0; }
+.bk-row .val { width: 104px; }
+
+/* stock exchange */
+.xchloc .in { grid-template-columns: 190px minmax(0, 1fr) !important; }
+.xchloc .cast .card .cj { display: none; }
+.xch .row { margin-bottom: 4px; }
+.xsum { display: flex; gap: 8px 26px; flex-wrap: wrap; font-size: 21px; margin: 0 0 4px; }
+.xr { display: grid; grid-template-columns: 150px 100px 62px 160px 182px minmax(0, 1fr); gap: 4px 10px; align-items: center; padding: 3px 4px; border-bottom: 2px dotted #555; }
+.xr.xh0 { font: 8px var(--display); color: #00a; border-bottom: 3px solid #000; text-transform: uppercase; padding-bottom: 3px; }
+.xr .ctl { display: flex; gap: 3px; align-items: center; justify-content: flex-end; }
+.xr .ctl .btn { height: 30px; padding: 0 8px; } .xr .ctl input { height: 30px; }
+.xn, .xp, .xh, .xt { display: flex; flex-direction: column; line-height: 1; font-size: 20px; min-width: 0; }
+.xn .tk { font: 11px var(--display); color: #00a; margin-bottom: 2px; } .nmx { font-size: 17px; }
+.xp .up, .xp .dn { font-size: 18px; }
+.xh .num { font-size: 19px; } .xt b { font-weight: 400; }
+.sqty { width: 56px; text-align: center; }
+.spark { display: block; width: 58px; height: 26px; border: 2px solid #000; background: #000; }
+.xnote { font-size: 18px; line-height: 1.05; margin-top: 6px; }
+
+/* back alley and the smuggler's offers */
+.alleywrap > p { font-size: 21px; line-height: 1.05; }
+.offer { background: #fff; border: 3px solid #000; padding: 8px 10px; margin-top: 6px; }
+.offer .ot { font: 11px var(--display); color: #a0a; text-transform: uppercase; }
+.offer .otx { font-size: 22px; line-height: 1.05; margin: 6px 0; }
+.ofig { display: flex; gap: 6px 22px; flex-wrap: wrap; font-size: 21px; background: #ccc; padding: 4px 8px; border: 2px solid #000; margin-bottom: 4px; }
+.tax.low { background: #55ff55; } .tax.medium { background: #ffff55; } .tax.high { background: #ff5555; }
+.amber { color: #a50; }
+.smugres { margin-top: 8px; font-size: 21px; }
+
+/* the title screen has to fit the stage too */
+#frame:not(.fluid) .screen { padding: 8px 14px; overflow-y: auto; }
+#frame:not(.fluid) .screen .in { max-width: none; gap: 8px; }
+.tagbtn { display: block; background: none; border: 0; padding: 0; margin: 0; text-align: left; cursor: pointer; font: 12px/1.5 var(--display); color: #55ffff; text-shadow: 2px 2px 0 #000; text-transform: none; }
+.tagbtn:hover, .tagbtn:focus-visible { color: #ffff55; outline: none; }
+
+#frame:not(.fluid) .mk-row .nm .held { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#frame:not(.fluid) .mk-row { padding: 1px 8px; }
+.xchloc .talk .btn.big { font-size: 8px; padding: 0 4px; }
+
+#frame:not(.fluid) .mega { font-size: 40px; line-height: 1.1; margin-bottom: 2px; }
+#frame:not(.fluid) .screen .panel { padding: 6px 10px; }
+#frame:not(.fluid) .screen .ship .sd { font-size: 17px; } #frame:not(.fluid) .screen .ship .spd { font-size: 16px; } #frame:not(.fluid) .screen .ship img { max-width: 104px; }
+#frame:not(.fluid) .screen .rost { min-width: 150px; padding: 2px 8px 2px 2px; } #frame:not(.fluid) .screen .rost .rp img { width: 28px; height: 46px; }
+#frame:not(.fluid) .screen .creator { gap: 10px; }
+#frame:not(.fluid) .screen .cast .card .portrait { width: min(100%, 130px) !important; }
+#frame:not(.fluid) .screen .btn.big { height: 40px; }
+#frame:not(.fluid) .screen .roster ~ .creator .ship .sd { display: none; }
+#frame:not(.fluid) .screen .roster ~ .creator .cast .card p { font-size: 17px !important; }
+#frame:not(.fluid) .screen .roster ~ .creator .cast .card .portrait { width: min(100%, 100px) !important; }
+#frame:not(.fluid) .screen .roster ~ .creator .cast .card .fate { font-size: 17px; }
+
+/* v4 fit pass: shop pages, header and title must never need a scrollbar on the 1280 x 800 stage */
+#frame:not(.fluid) .loc > .bg { height: 88px; }
+#frame:not(.fluid) .mk-row .itemicon { width: 34px; height: 34px; }
+#frame:not(.fluid) .mk-row { padding: 1px 8px; }
+#frame:not(.fluid) .up-row { padding: 4px 0; }
+#frame:not(.fluid) .where { line-height: 1.5; padding: 2px 0; }
+#frame:not(.fluid) .screen .mega { padding-top: 6px; line-height: 1.2; }
+#frame:not(.fluid) .mk-row .pxi.itemicon, #frame:not(.fluid) .mk-row img.itemicon { width: 36px !important; height: 36px !important; }

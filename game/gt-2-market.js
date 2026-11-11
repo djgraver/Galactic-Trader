@@ -45,7 +45,7 @@
     return s;
   };
   GT.log = function (s, text, kind, amount) { s.log.unshift({ turn: s.turn, text: text, kind: kind || 'info', amount: amount || 0 }); if (s.log.length > 600) s.log.length = 600; };
-  GT.networth = function (s) { return s.credits + s.bank - s.loan; };
+  GT.networth = function (s) { return s.credits + s.bank + (GT.stockValue ? GT.stockValue(s) : 0) - s.loan; };
   GT.scale = function (s) { return clamp(GT.networth(s) * 0.05, 150, 6000); };
   GT.cargoUsed = function (s) { return s.cargo.reduce(function (a, c) { return a + c.qty; }, 0); };
   GT.cargoFree = function (s) { return s.ship.cargoMax - GT.cargoUsed(s); };
@@ -61,8 +61,8 @@
   /* ---------- facilities ---------- */
   GT.facCount = function (s) { return Object.keys(s.owned).length; };
   GT.facOfType = function (s, id) { return Object.keys(s.owned).filter(function (k) { return s.owned[k].type === id; }).length; };
-  GT.brokerEdge = function (s) { return Math.min(0.06, GT.facOfType(s, 'broker') * 0.015) + ((s.visit && s.visit.haggle) || 0); };
-  GT.depotCut = function (s) { return Math.min(0.24, GT.facOfType(s, 'depot') * 0.06); };
+  GT.brokerEdge = function (s) { return Math.min(0.084, GT.facOfType(s, 'broker') * GT.facDef('broker').pct) + ((s.visit && s.visit.haggle) || 0); };
+  GT.depotCut = function (s) { return Math.min(0.34, GT.facOfType(s, 'depot') * GT.facDef('depot').pct); };
 
   /* ---------- prices ---------- */
   GT.modMult = function (s, p, i) { var m = 1; s.mods.forEach(function (x) { if (x.p === p && x.i === i) m *= x.mult; }); return m; };
@@ -77,7 +77,8 @@
     var base = GT.PLANETS[p].tax, here = s.owned[p] ? 0.12 : 0;
     var facCut = base * Math.min(0.6, GT.facCount(s) * 0.05 + here);
     var rep = clamp(s.rep, -50, 100), repCut = base * (rep >= 0 ? rep / 100 * 0.4 : rep / 50 * 0.25);
-    return { base: base, facCut: facCut, repCut: repCut, rate: Math.max(0.005, base - facCut - repCut) };
+    var stockCut = base * (GT.stockTaxCut ? GT.stockTaxCut(s, p) : 0);
+    return { base: base, facCut: facCut, repCut: repCut, stockCut: stockCut, rate: Math.max(0.005, base - facCut - repCut - stockCut) };
   };
 
   /* ---------- trading. quote* never mutate; buy/sell apply a quote ---------- */
@@ -112,7 +113,7 @@
     c.avg = (c.avg * c.qty + q.sub) / (c.qty + q.qty); c.qty += q.qty;
     s.markets[p][i].stock -= q.qty; s.credits -= q.total;
     st.bought[i] += q.qty; st.spent[i] += q.total; st.tax += q.tax;
-    st.taxSavedRep += q.sub * q.t.repCut; st.taxSavedFac += q.sub * q.t.facCut; st.brokerEdge += q.edgeValue;
+    st.taxSavedRep += q.sub * q.t.repCut; st.taxSavedFac += q.sub * q.t.facCut; st.taxSavedStock = (st.taxSavedStock || 0) + q.sub * q.t.stockCut; st.brokerEdge += q.edgeValue;
     GT.log(s, 'Bought <b>' + q.qty + ' ' + it.name + '</b> at an average of ' + q.avg.toFixed(1) + 'c: ' + GT.fmt(q.sub) + 'c, plus ' + GT.fmt(q.tax) + 'c tax (' + (q.t.rate * 100).toFixed(1) + '% after ' + GT.discText(q.t) + '). ' + GT.savedText(q) + 'Overall <b>-' + GT.fmt(q.total) + 'c</b>.', 'loss', -q.total);
     return q;
   };
@@ -123,19 +124,20 @@
     c.qty -= q.qty; if (c.qty === 0) c.avg = 0;
     s.markets[p][i].stock += q.qty; s.credits += q.total;
     st.sold[i] += q.qty; st.earned[i] += q.total; st.tax += q.tax;
-    st.taxSavedRep += q.sub * q.t.repCut; st.taxSavedFac += q.sub * q.t.facCut; st.brokerEdge += q.edgeValue;
+    st.taxSavedRep += q.sub * q.t.repCut; st.taxSavedFac += q.sub * q.t.facCut; st.taxSavedStock = (st.taxSavedStock || 0) + q.sub * q.t.stockCut; st.brokerEdge += q.edgeValue;
     GT.log(s, 'Sold <b>' + q.qty + ' ' + it.name + '</b> at an average of ' + q.avg.toFixed(1) + 'c: ' + GT.fmt(q.sub) + 'c, less ' + GT.fmt(q.tax) + 'c tax (' + (q.t.rate * 100).toFixed(1) + '% after ' + GT.discText(q.t) + '). ' + GT.savedText(q) + 'Overall <b>+' + GT.fmt(q.total) + 'c</b> (' + (profit >= 0 ? '+' : '') + GT.fmt(profit) + 'c against what you paid).', 'gain', q.total);
     return q;
   };
   GT.savedText = function (q) {
-    var r = q.sub * q.t.repCut, f = q.sub * q.t.facCut, parts = [];
+    var r = q.sub * q.t.repCut, f = q.sub * q.t.facCut, sk = q.sub * q.t.stockCut, parts = [];
     if (r >= 1) parts.push('your reputation saved you ' + GT.fmt(r) + 'c'); else if (r <= -1) parts.push('your poor reputation cost you ' + GT.fmt(-r) + 'c');
     if (f >= 1) parts.push('your facilities saved you ' + GT.fmt(f) + 'c');
+    if (sk >= 1) parts.push('your shareholdings saved you ' + GT.fmt(sk) + 'c');
     return parts.length ? 'Discounts: ' + parts.join(' and ') + '. ' : '';
   };
   GT.discText = function (t) {
-    var f = (t.facCut / t.base * 100), r = (t.repCut / t.base * 100);
-    return GT.fmt(t.base * 1000) / 10 + '% base, ' + (f ? '-' + f.toFixed(0) + '% from facilities' : 'no facility discount') + ', ' + (r >= 0 ? '-' + r.toFixed(0) + '% from reputation' : '+' + (-r).toFixed(0) + '% reputation penalty');
+    var f = (t.facCut / t.base * 100), r = (t.repCut / t.base * 100), k = ((t.stockCut || 0) / t.base * 100);
+    return GT.fmt(t.base * 1000) / 10 + '% base, ' + (f ? '-' + f.toFixed(0) + '% from facilities' : 'no facility discount') + ', ' + (k ? '-' + k.toFixed(0) + '% from shareholdings, ' : '') + (r >= 0 ? '-' + r.toFixed(0) + '% from reputation' : '+' + (-r).toFixed(0) + '% reputation penalty');
   };
 
   /* ---------- fuel ---------- */

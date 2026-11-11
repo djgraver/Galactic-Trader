@@ -83,6 +83,7 @@
     if (!towed && s.ship.fuel < cost) return false;
     var A = GT.PLANETS[from], B = GT.PLANETS[to];
     s.ship.fuel -= cost; s.stats.jumps++;
+    var crew = (!towed && GT.paxBoard) ? GT.paxBoard(s, to) : null;
     GT.log(s, (towed ? 'A tanker tug hooks onto you and drags you out of <b>' + A.name + '</b>. ' : 'Departed <b>' + A.name + '</b>, bound for ' + B.name + '. ') + (cost ? 'Burned ' + cost + ' PC of fuel.' : ''), 'info');
     if (towed) { s.credits -= GT.CFG.TOW_COST; s.stats.tows++; s.stats.eventLoss += GT.CFG.TOW_COST; GT.log(s, 'The tug crew bills you for the rescue: <b>-' + GT.CFG.TOW_COST + 'c</b>.', 'loss', -GT.CFG.TOW_COST); }
     var ev = (opts && Object.prototype.hasOwnProperty.call(opts, 'event')) ? opts.event : ((GT.rand() < GT.CFG.TRAVEL_EVENT && GT.TRAVEL) ? GT.pickEntry(GT.TRAVEL, s) : null);
@@ -91,14 +92,15 @@
       GT.log(s, GT.pick(GT.DODGES).replace('{speed}', GT.effSpeed(s).toFixed(1)), 'event'); s.log[0].dodge = true; ev = null;
     }
     if (ev) { var fx = GT.applyEffect(s, ev); s.stats.events++; GT.log(s, (opts && opts.note ? opts.note + ' ' : '') + ev.t + fx.detail, fx.kind, fx.money); }
+    if (crew) GT.paxArrive(s, crew, ev, B);
     s.turn++;
     s.ship.damage.forEach(function (d) { d.turns--; });
     s.ship.damage = s.ship.damage.filter(function (d) { return d.turns > 0; });
     /* In a shared game the world ticks once per round (GT.endRound), not once per captain. */
     if (!s.multi) { GT.tickMarkets(s); GT.tickComps(s); }
-    if (s.stats.jumps % GT.CFG.INTEREST_EVERY === 0) GT.interest(s);
+    GT.interest(s); if (GT.stockDividends) GT.stockDividends(s);
     s.loc = to; s.dest = null; GT.rollTrends(s);
-    s.visit = { explored: false, encountered: false, offer: null, flags: {}, night: GT.rand() < 0.5 };
+    s.visit = { explored: false, encountered: false, offer: null, flags: {}, night: GT.rand() < 0.5, smuggle: null };
     GT.log(s, 'Arrived at <b>' + B.name + '</b> (' + B.type + ').', 'info');
     if (s.multi) s.arrivalPending = true; else GT.arrivalHooks(s, to);
     s.stats.peak = Math.max(s.stats.peak, GT.networth(s));
@@ -126,13 +128,22 @@
   GT.othersHere = function (s) { return s.game ? s.game.players.filter(function (o) { return o !== s && o.loc === s.loc && !(o.over && !o.over.won); }) : []; };
 
   GT.interest = function (s) {
-    if (s.bank > 0) { var g = Math.round(s.bank * GT.CFG.DEPOSIT_RATE); s.bank += g; s.stats.interestEarned += g; GT.log(s, 'The bank pays <b>' + (GT.CFG.DEPOSIT_RATE * 100) + '%</b> interest on your deposit: <b>+' + fmt(g) + 'c</b> added to your account.', 'gain', g); }
-    if (s.loan > 0) { var l = Math.round(s.loan * GT.CFG.LOAN_RATE); s.loan += l; s.stats.interestPaid += l; GT.log(s, 'Your loan accrues <b>' + (GT.CFG.LOAN_RATE * 100) + '%</b> interest: <b>-' + fmt(l) + 'c</b> added to the debt.', 'loss', -l); }
+    /* interest runs on every jump: DEPOSIT_RATE and LOAN_RATE are per-jump rates */
+    if (s.bank > 0) { var g = Math.round(s.bank * GT.CFG.DEPOSIT_RATE); if (g > 0) { s.bank += g; s.stats.interestEarned += g; GT.log(s, 'The bank pays <b>' + (GT.CFG.DEPOSIT_RATE * 100).toFixed(2) + '%</b> interest on your deposit: <b>+' + fmt(g) + 'c</b> added to your account.', 'gain', g); } }
+    if (s.loan > 0) { var l = Math.max(1, Math.round(s.loan * GT.CFG.LOAN_RATE)); s.loan += l; s.stats.interestPaid += l; GT.log(s, 'Your loan accrues <b>' + (GT.CFG.LOAN_RATE * 100).toFixed(2) + '%</b> interest: <b>-' + fmt(l) + 'c</b> added to the debt.', 'loss', -l); }
   };
 
+  /* The richest rival who has reached the target, or null. */
+  GT.rivalAtTarget = function (s) {
+    var best = null; s.comps.forEach(function (c) { if (c.wealth >= GT.CFG.WIN && (!best || c.wealth > best.wealth)) best = c; });
+    return best;
+  };
+  GT.rivalWhy = function (c) { return c.name + ' ' + c.title + ' has reached ' + fmt(GT.CFG.WIN) + ' credits first and retires to a private moon. The race is lost.'; };
   GT.checkEnd = function (s) {
-    var nw = GT.networth(s);
+    var nw = GT.networth(s), rv = s.multi ? null : GT.rivalAtTarget(s);
+    /* a rival only wins by getting there while you are still short: if you cross the line on the same jump, the win is yours */
     if (nw >= GT.CFG.WIN) s.over = { won: true, turn: s.turn, why: 'Your fortune has reached ' + fmt(nw) + ' credits.' };
+    else if (rv) s.over = { won: false, rival: rv.name, turn: s.turn, why: GT.rivalWhy(rv) };
     else if (s.credits <= 0 && GT.cargoUsed(s) === 0) s.over = { won: false, turn: s.turn, why: 'You have ' + fmt(s.credits) + ' credits and an empty hold. There is nothing left to trade with.' };
     return s.over;
   };
@@ -152,7 +163,7 @@
     var cost = GT.upgradeCost(s, key), u = GT.UPGRADES[key];
     if (cost > s.credits) return false;
     s.credits -= cost; s.stats.upgradesSpent += cost; s.ship.lv[key]++;
-    if (key === 'cargo') s.ship.cargoMax += u.step; else if (key === 'speed') s.ship.speed = Math.round((s.ship.speed + u.step) * 10) / 10; else s.ship.fuelMax += u.step;
+    if (key === 'cargo') s.ship.cargoMax += u.step; else if (key === 'speed') s.ship.speed = Math.round((s.ship.speed + u.step) * 10) / 10; else if (key === 'cabin') s.ship.paxMax += u.step; else s.ship.fuelMax += u.step;
     GT.log(s, 'Upgraded your <b>' + u.name + '</b> (' + u.label + ') to level ' + s.ship.lv[key] + '. <b>-' + fmt(cost) + 'c</b>.', 'loss', -cost);
     return true;
   };

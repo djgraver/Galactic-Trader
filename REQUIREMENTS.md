@@ -1,15 +1,26 @@
 # Galactic Trader: Requirements (living document)
 
-Status: v3 built (the game keeps its published title, "Galactic Trader Deluxe"). Keep this file updated with every change. All requirements below must be adhered to in every build. Read this file at the start of every session.
+Status: v4 built (`game/galactic-trader-4.html`, title "Galactic Trader"). Keep this file updated with every change. All requirements below must be adhered to in every build. Read this file at the start of every session.
 
 ## Change log
 - v1: Four-column browser game built from the original Google Doc. Published and approved ("plays well"). Frozen build: `game/galactic-trader.html` (source at commit `25fb5b5`).
 - v2 Deluxe: 90s point-and-click comedy restyle. Locations replace the four columns. Added characters, name-based captain generator, flight screens, action mini-games, Day/Night theme. Frozen build: `game/galactic-trader-deluxe.html` (source at commit `cb09bb7`).
 - v3 (`game/galactic-trader-3.html`, source at the commit tagged in git as the v3 release): Multiplayer (hot-seat, 1 to 4 captains, shared galaxy). Four ships (Gnat removed). Speed explained and given real effects. Letters and Vowels removed from the captain card (still tracked in `captain.hidden`). Property Booth became Real Estate. Rival "old" sprite removed from the street. Streets run away at about 28 degrees. Everything redrawn as 16-colour EGA pixel art with Sierra-style grey windows. The star map shows the current planet's description. Day or night is random on every arrival, and the toggle is gone. Every planet has its own alien architecture.
+- v4 (`game/galactic-trader-4.html`, a new major version; v3 is frozen as `galactic-trader-3.html` and git tag `v3`):
+  - **Look:** streets redrawn with real-looking buildings (storeys, windows, doors, awnings, roofs, signs); each planet has its own street shape, angle and ground (dirt, cobble, rail bed, tarmac, tile, plaza, boardwalk); King's Quest IV style colour with colour-based shadows; Odd Jobs is now a small post board (kiosk) on the street; ambient passers-by walk door to door (about one every 3 seconds, sometimes two) and birds flap slowly across the skyline.
+  - **Layout:** fixed 16:10 frame; the star map no longer needs scrolling; every shop page fits the frame; Ship screen shows the ship with speech-bubble callouts for warp, fuel, cargo, cockpit and passenger cabins.
+  - **Spaceport:** the round spaceport and tiny ship are gone. A "To Spaceport -->" sign on the street leads to the Spaceport page (the star map) with the ship on a landing pad under flashing lights, a cityscape and tiny people for scale.
+  - **Title screen:** the subtitle is a random catch-phrase (40 of them, `TAGS` in `gt-16-start.js`).
+  - **Bank:** Savings and Loans are two counters. Deposit All, Withdraw All, Repay All added. Interest is applied every jump (savings 0.75%, loans 1.25%).
+  - **Economy:** facilities pay more (Broker 2.1%, Depot 8.5%, fees 0.57 to 0.71%) and cost less (price about 14 x benefit). Rivals are rubber-banded to the leader (each holds 78 to 96% of the leading captain's fortune with a little noise) and now win if they reach the target first (the player wins a same-jump tie); warnings appear at 70%, 85% and 95% of the target. Odd Jobs: Bronze unchanged, Silver goals x1.3, Gold goals x1.5.
+  - **Back alley / smuggling:** Explore now fires about 50% of visits and 45% of those are a smuggler's offer (stake, payout, risk shown). Outcomes: win, big payout, permanent ship boost (cargo, warp, fuel or berth), nothing, caught (fine, -6 reputation), engine damage, robbed. Bad outcomes are about 40% (risk 30 / 40 / 52% by cargo, reduced by reputation), higher than ordinary events but not constant.
+  - **Stock Exchange:** one company per world tied to that world's goods (7 tickers), 1% fee each way, small dividends each jump, price follows the home market plus news and your own trading. Holding 10 / 25 / 50 / 100 shares of a world's company cuts that world's tax by 10 / 20 / 30 / 40% of its base rate. Shares count toward net worth.
+  - **Passengers:** each ship starts with few berths (Cutlass Runner 1, Wayfarer 2, Stargazer 3, Behemoth Barge 4); the Passenger Cabins upgrade adds berths. Set a fare on the Spaceport page; demand grows with reputation and fares that feel fair; advertising on the destination world multiplies interest for 6 jumps.
+  - Balance (re-run `gt-sim.js ... human`): a competent solo player wins about 90% of games in about 79 to 97 jumps; computer rivals win the other ~10%.
 
 ## 1. Platform and delivery
-- Browser game in a single self-contained HTML file (`game/galactic-trader-3.html`). Works on desktop and phone width, with no horizontal page scroll.
-- Source is split into parts concatenated by `game/gt-build3.py` into one file. The engine (parts 1 to 7, 10) is Node-testable.
+- Browser game in a single self-contained HTML file (`game/galactic-trader-4.html`). Locked to a 1280 x 800 (16:10) stage that is scaled to fit the window and centred on black, so an ultrawide monitor gets black side bars and never scrolls. Below about 700px wide the stage turns fluid for phones.
+- Source is split into parts concatenated by `game/gt-build4.py` into one file. The engine (parts 1 to 7, 10) is Node-testable.
 - Fonts from Google Fonts (Press Start 2P for headings, VT323 for text) with monospace fallbacks. Sound via WebAudio, off until the player interacts, mutable (SND button).
 - One look only (EGA). There is no theme switch. Night or day is part of each planet visit (section 10).
 - Multiplayer is hot-seat: one device, captains pass it around. Online play is not built yet (section 17).
@@ -48,8 +59,7 @@ Agrarian (Meridoa), Megacity (Kryndor Spire), Mining (Ferrox), Science (Quellin 
 - Value fields reset to 0 or 1 after each transaction or jump.
 
 ## 7. Bank
-- Deposit interest 3%, loan interest 5%, applied every 4 jumps.
-- Take Loan: static 1,000c per click, loan cap 10,000c. Repay with a value field. Deposit and withdraw with value fields.
+- Two separate counters. Savings: deposit and withdraw with value fields plus Deposit All and Withdraw All; pays 0.75% every jump. Loans: Take Loan is 1,000c per click, cap 10,000c; repay with a value field or Repay All; costs 1.25% every jump.
 
 ## 8. Ships (4, named, with stats)
 Wayfarer, Behemoth Barge, Stargazer, Cutlass Runner. Each has cargo, warp speed, fuel capacity (PC), and a description. Chosen on the setup screen with name entry and a Launch button. (The Gnat was removed in v3.)
@@ -68,7 +78,7 @@ Wayfarer, Behemoth Barge, Stargazer, Cutlass Runner. Each has cargo, warp speed,
 
 ## 10. Locations
 Each planet street has clickable buildings. The player's captain walks to the place, then it opens as a full page with a shopkeeper who talks.
-- Market, Bank, Shipyard (upgrades: cargo, speed, fuel, where offered; a fuel upgrade adds empty space), Fuel Dock (where sold), Cantina, Back Alley, **Real Estate** (facility offers, was the Property Booth), Odd Jobs board, Launch Pad (star map), Parlour of Thin Hours (gambling planet only).
+- Market, Bank, Stock Exchange, Shipyard (upgrades: cargo, speed, fuel, passenger cabins, where offered; a fuel upgrade adds empty space), Fuel Dock (where sold), Cantina, Back Alley, **Real Estate** (facility offers, was the Property Booth), Odd Jobs post board (a small kiosk, not a full building), Spaceport (star map, reached with the "To Spaceport -->" sign), Parlour of Thin Hours (gambling planet only).
 - Closed buildings are shown as closed where a planet lacks them.
 - A sentence line at the bottom describes what is under the pointer.
 - **The street** is a one-point perspective boulevard running away at about 28 degrees, with buildings on both sides and the shopfronts getting smaller with distance. No rival or "old" character stands in the street. Other captains' ships appear on the pad in a shared game.
@@ -104,7 +114,7 @@ One planet, popup or page, odds shown qualitatively only. Four exotic, confusing
 - The galaxy ticks (markets, price events, rivals) once per round after the last captain has jumped. Interest, damage and fees stay per captain.
 - When a captain reaches the target, the round still finishes so everyone has the same number of turns. The richest captain who reached the target wins.
 - A captain who runs out of credits and cargo is ruined and sits out. The rest play on. If everyone is ruined, nobody wins.
-- Leaderboard on the Launch Pad lists every captain and the computer rivals.
+- Leaderboard on the Spaceport lists every captain and the computer rivals.
 
 ## 16. Style (v3)
 - 90s adventure-game look in the vein of Day of the Tentacle, Leisure Suit Larry and King's Quest IV: VGA/EGA pixel art, hard pixels, 1-pixel black outlines, ordered dithering, no anti-aliasing.

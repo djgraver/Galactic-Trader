@@ -1,5 +1,7 @@
 /* Galactic Trader Deluxe. Part 14: UI core. State, helpers, sound, HUD, the router, and the hub, market and bank pages. */
 var S = null, G = null;
+/* extension points the v4 parts register into (see actExt in gt-20-app.js): action handlers (a, el) and input handlers (el, value). Return true when handled. */
+var ACTX = [], INPX = [];
 var ui = { setup: null, page: 'hub', qty: {}, dep: 0, wd: 0, rep: 0, dest: null, more: 0, say: {}, px: null, SEATCOL: [PX.LC, PX.LG, PX.Y, PX.LM], walking: false, busy: false, last: null, scroll: {}, sentence: '' };
 var $ = function (id) { return document.getElementById(id); };
 var esc = GT.esc, fmt = GT.fmt;
@@ -81,11 +83,11 @@ function turnbar() {
   G.players.forEach(function (p) { if (p.over && !p.over.won) h += '<span class="tb-p out" title="Ruined">' + esc(p.name) + ' (out)</span>'; });
   el.innerHTML = h; el.hidden = false;
 }
-var PAGE_NAMES = { hub: '', market: 'the Market', bank: 'the Bank', yard: 'the Shipyard', fuel: 'the Fuel Dock', cantina: 'the Cantina', alley: 'the Back Alley', office: 'Real Estate', parlour: 'the Parlour of Thin Hours', jobs: 'the Odd Jobs Board', pad: 'the Launch Pad', ship: 'Your Ship' };
+var PAGE_NAMES = { hub: '', market: 'the Market', bank: 'the Bank', yard: 'the Shipyard', fuel: 'the Fuel Dock', cantina: 'the Cantina', alley: 'the Back Alley', office: 'Real Estate', parlour: 'the Parlour of Thin Hours', jobs: 'the Odd Jobs Board', exchange: 'the Stock Exchange', pad: 'the Spaceport', ship: 'Your Ship' };
 
 /* ---------- router ---------- */
 var PAGES = {};
-function go(page) { ui.page = page; if (page !== 'hub') { var r = { market: 'market', bank: 'bank', yard: 'yard', fuel: 'fuel', cantina: 'cantina', alley: 'alley', office: 'office', parlour: 'parlour', jobs: 'jobs' }[page]; if (r) greet(r); } SFX.play(page === 'hub' ? 'door' : 'door'); render(); }
+function go(page) { ui.page = page; if (page !== 'hub') { var r = { market: 'market', bank: 'bank', yard: 'yard', fuel: 'fuel', cantina: 'cantina', alley: 'alley', office: 'office', parlour: 'parlour', exchange: 'exchange', jobs: 'jobs' }[page]; if (r) greet(r); } SFX.play(page === 'hub' ? 'door' : 'door'); render(); }
 function render() {
   if (!S) return;
   var st = $('stage'), old = st.firstElementChild, pg = ui.page, sc = function (e) { return e && (e.querySelector(':scope > .in') || e); }; if (old && ui.lastPage) ui.scroll[ui.lastPage] = sc(old).scrollTop;
@@ -126,7 +128,7 @@ function trendHTML(i) {
 }
 PAGES.market = function () {
   var p = plan(), t = GT.taxInfo(S, S.loc), sg = NP.SIGNS[p.id].market, h = '<div class="panel"><div class="row"><h2 class="hd">' + esc(sg) + '</h2><span class="tax" title="' + esc(GT.discText(t)) + '">Planet tax ' + (t.rate * 100).toFixed(1) + '% <span style="font-size:13px">(base ' + (t.base * 100).toFixed(1) + '%)</span></span></div>';
-  h += '<div class="dim" style="font-size:12px;margin-bottom:6px">' + esc(GT.discText(t)) + '. Goods are cheap where they are made, so buy on one side of the map and sell on the other.</div>';
+  h += '<div class="dim" style="font-size:12px;margin-bottom:6px" title="' + esc(GT.discText(t)) + '">Goods are cheap where they are made, so buy on one side of the map and sell on the other. Point at the tax tag for the discount breakdown.</div>';
   h += '<div class="mk-row mk-head"><span></span><span>Goods</span><span>Price</span><span>Stock</span><span>Trend</span><span></span></div>';
   GT.ITEMS.forEach(function (it, i) {
     var q = qtyOf(i), held = S.cargo[i].qty, stock = S.markets[S.loc][i].stock, mx = GT.maxBuy(S, i);

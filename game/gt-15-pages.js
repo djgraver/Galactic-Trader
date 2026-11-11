@@ -3,13 +3,13 @@
 /* ---------- shipyard ---------- */
 PAGES.yard = function () {
   var p = plan(), h = '<div class="panel"><h2 class="hd">' + esc(NP.SIGNS[p.id].yard) + '</h2><div class="dim" style="font-size:12px;margin-bottom:6px">Upgrades are only sold on some worlds. A bigger tank arrives empty, so you will need to fill it.</div>';
-  ['cargo', 'speed', 'fuel'].forEach(function (k) {
+  ['cargo', 'speed', 'fuel', 'cabin'].forEach(function (k) {
     var u = GT.UPGRADES[k], lv = S.ship.lv[k], avail = GT.upgradeAvail(S, k), maxed = lv >= GT.CFG.UPGRADE_MAX, cost = GT.upgradeCost(S, k);
     var lab = p.upgrades.indexOf(k) < 0 ? 'Not sold here' : maxed ? 'Maxed out' : fmt(cost) + 'c';
     h += '<div class="up-row"><div><span class="nm" style="font:10px var(--display)">' + u.name + '</span> <span class="dim">Level ' + lv + ' of ' + GT.CFG.UPGRADE_MAX + '</span><div class="dim" style="font-size:13px">' + u.label + (k === 'speed' ? ' &middot; ' + speedBlurb(GT.effSpeed(S) + u.step) + ' after the upgrade' : '') + '</div>' + bar(lv / GT.CFG.UPGRADE_MAX) + '</div>' + btn(lab, 'up-' + k, avail && cost <= S.credits, 'green') + '</div>';
   });
   var sh = GT.SHIPS.filter(function (x) { return x.id === S.shipId; })[0];
-  h += '<div class="row" style="margin-top:10px;align-items:center"><div style="width:200px;background:#0a0620;border:4px solid var(--ink);border-radius:12px">' + UI.shipPic(sh.id, sh.hue, 64, 40, 3) + '</div><div class="dim" style="flex:1;font-size:13px">Your ' + esc(sh.name) + ': cargo ' + S.ship.cargoMax + ', warp ' + GT.effSpeed(S).toFixed(1) + ', tank ' + S.ship.fuelMax + ' PC.</div></div>';
+  h += '<div class="row" style="margin-top:4px;align-items:center"><div style="width:128px;background:#0a0620;border:4px solid var(--ink);border-radius:12px">' + UI.shipPic(sh.id, sh.hue, 64, 40, 3) + '</div><div class="dim" style="flex:1;font-size:13px">Your ' + esc(sh.name) + ': cargo ' + S.ship.cargoMax + ', warp ' + GT.effSpeed(S).toFixed(1) + ', tank ' + S.ship.fuelMax + ' PC.</div></div>';
   return frame('yard', 'yard', h + receipt() + '</div>');
 };
 

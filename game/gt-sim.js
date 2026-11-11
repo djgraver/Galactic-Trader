@@ -2,7 +2,7 @@
 const fs = require('fs'), path = require('path');
 const dir = __dirname;
 const extra = process.argv.slice(5);
-const files = ['gt-1-data.js', 'gt-2-market.js', 'gt-3-world.js', 'gt-3b-hooks.js', 'gt-4-social.js'].concat(extra);
+const files = ['gt-1-data.js', 'gt-2-market.js', 'gt-3-world.js', 'gt-3b-hooks.js', 'gt-4-social.js', 'gt-31-smuggle.js', 'gt-32-stocks.js', 'gt-33-pax.js'].concat(extra);
 const src = files.map(f => fs.readFileSync(path.join(dir, f), 'utf8')).join('\n');
 const SEEDS = +process.argv[2] || 30, MAXT = +process.argv[3] || 220, MODE = process.argv[4] || 'smart';
 
@@ -18,6 +18,7 @@ function runOne(shipId, seed, mode) {
   if (T.spread) GT.PLANETS.forEach(p => p.mult = p.mult.map(m => 1 + (m - 1) * T.spread));
   if (T.fuelK) GT.CFG.FUEL_K = T.fuelK;
   if (T.start) GT.CFG.START_CREDITS = T.start;
+  if (process.env.NORIVAL) GT.rivalAtTarget = () => null;
   GT.setRng(GT.seeded(seed));
   const s = GT.newState(shipId, 'Bot');
   const P = GT.PLANETS, I = GT.ITEMS;

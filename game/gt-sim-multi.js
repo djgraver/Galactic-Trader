@@ -1,6 +1,6 @@
 // Multiplayer balance simulator. Usage: node gt-sim-multi.js [games] [players] [target] ; env SHIPS="wayfarer,barge,..." SOLO=1 for the single-captain comparison
 const fs = require('fs'), path = require('path'), makeBot = require('./gt-bot.js');
-const files = ['gt-1-data.js', 'gt-2-market.js', 'gt-3-world.js', 'gt-3b-hooks.js', 'gt-4-social.js', 'gt-5-travel.js', 'gt-6-explore.js', 'gt-7a-encounter.js', 'gt-7b-encounter.js', 'gt-10-extras.js'];
+const files = ['gt-1-data.js', 'gt-2-market.js', 'gt-3-world.js', 'gt-3b-hooks.js', 'gt-4-social.js', 'gt-5-travel.js', 'gt-6-explore.js', 'gt-7a-encounter.js', 'gt-7b-encounter.js', 'gt-10-extras.js', 'gt-31-smuggle.js', 'gt-32-stocks.js', 'gt-33-pax.js'];
 const src = files.map(f => fs.readFileSync(path.join(__dirname, f), 'utf8')).join('\n');
 const GAMES = +process.argv[2] || 20, NP = +process.argv[3] || 4, TARGET = +process.argv[4] || 150000;
 const SHIPS = (process.env.SHIPS || 'wayfarer,barge,stargazer,cutlass').split(',');

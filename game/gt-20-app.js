@@ -8,7 +8,7 @@ function sfxFor(kind) { SFX.play(kind === 'gain' ? 'win' : kind === 'loss' ? 'ba
 function lastEntry(top) { var n = newLogs(top); return n.length ? n[n.length - 1] : null; }
 
 /* walk the captain to a door, then open the place */
-var HS_PAGE = { market: 'market', bank: 'bank', yard: 'yard', fuel: 'fuel', cantina: 'cantina', alley: 'alley', office: 'office', parlour: 'parlour', jobs: 'jobs', pad: 'pad' };
+var HS_PAGE = { market: 'market', bank: 'bank', yard: 'yard', fuel: 'fuel', cantina: 'cantina', alley: 'alley', office: 'office', parlour: 'parlour', exchange: 'exchange', jobs: 'jobs', pad: 'pad' };
 function walkTo(kind, done) {
   var pl = $('player'), d = SC.door && SC.door[kind], from = ui.px && ui.px.x != null ? ui.px : (SC.door && SC.door.pad);
   if (!pl || !d || !from || reduced()) { if (d) ui.px = { x: d.x, y: d.y, s: d.s }; ui.walking = false; done(); return; }
@@ -59,6 +59,10 @@ function startGame() {
   if (G.multi) { passScreen(); render(); } else { render(); toast('Click a building to walk there and visit it.'); }
 }
 
+/* Extension points for the v4 parts (gt-34-pages2.js, gt-35-port.js). A handler gets the action name and the clicked element, and returns true once it has dealt with it
+   (the app then re-renders). INPX handlers see every input event and return true when they dealt with it. KEYX handlers are for keys. */
+function actExt(a, el) { for (var k = 0; k < ACTX.length; k++) if (ACTX[k](a, el)) return true; return false; }
+
 function act(a, el) {
   if (a.indexOf('pick-') === 0) { sp().ship = a.slice(5); Array.prototype.forEach.call(document.querySelectorAll('.ship'), function (b) { b.setAttribute('aria-pressed', String(b.dataset.act === a)); }); refreshCap(); return; }
   if (a === 'reroll') { sp().salt++; refreshCap(); SFX.play('pop'); return; }
@@ -66,6 +70,7 @@ function act(a, el) {
   if (a.indexOf('players-') === 0) { ui.setup.n = +a.slice(8); if (ui.setup.cur >= ui.setup.n) ui.setup.cur = ui.setup.n - 1; renderStart(); return; }
   if (a.indexOf('target-') === 0) { ui.setup.target = +a.slice(7); renderStart(); return; }
   if (a.indexOf('cap-') === 0) { ui.setup.cur = +a.slice(4); renderStart(); return; }
+  if (a === 'tag') { var tg = $('tagline'); ui.tag = tagline(); if (tg) tg.innerHTML = '&ldquo;' + esc(ui.tag) + '&rdquo;'; SFX.play('pop'); return; }
   if (a === 'launch') { startGame(); return; }
   if (a === 'pass-ok') { $('pass').hidden = true; render(); settle(); return; }
   if (a === 'notice-ok') { closeModal(); var nf = ui.afterNotice; ui.afterNotice = null; if (nf) nf(); return; }
@@ -73,7 +78,7 @@ function act(a, el) {
   if (a === 'close') { closeModal(); return; }
   if (a === 'info') { openModal(infoHTML(), true); return; }
   if (a === 'sound') { SFX.on = !SFX.on; try { localStorage.setItem('gt-snd', SFX.on ? '1' : '0'); } catch (e) {} syncBar(); SFX.play('pop'); return; }
-  if (a === 'new') { if (!S || (G && G.over) || el.dataset.sure) { S = null; G = null; closeModal(); $('pass').hidden = true; $('flight').hidden = true; renderStart(); } else openModal('<h2>Abandon this voyage?</h2><p>Your current game will be lost.</p><div class="row" style="justify-content:flex-end"><button class="btn blue" data-act="close">Keep playing</button><button class="btn pink" data-act="new" data-sure="1">Abandon</button></div>'); return; }
+  if (a === 'new') { if (!S || (G && G.over) || el.dataset.sure) { S = null; G = null; ui.tag = null; closeModal(); $('pass').hidden = true; $('flight').hidden = true; renderStart(); } else openModal('<h2>Abandon this voyage?</h2><p>Your current game will be lost.</p><div class="row" style="justify-content:flex-end"><button class="btn blue" data-act="close">Keep playing</button><button class="btn pink" data-act="new" data-sure="1">Abandon</button></div>'); return; }
   if (!S) return;
   if (a === 'log') { logModal(); return; }
   if (a === 'more') { ui.more += 60; logModal(); return; }
@@ -81,6 +86,7 @@ function act(a, el) {
   if (a === 'go-ship') { go('ship'); return; }
   if (a.indexOf('comp-') === 0) { compAct(a.slice(5)); return; }
   if (S.over) return;
+  if (actExt(a, el)) { render(); settle(); return; }
   var row = el && el.closest ? el.closest('.mk-row') : null, i = row ? +row.dataset.i : -1, q, top = S.log[0], nm;
   if (a === 'buy' || a === 'max') { q = GT.buy(S, i, a === 'max' ? GT.maxBuy(S, i) : qtyOf(i)); if (q) { speak('market', NP.say('market', 'buy', { qty: q.qty, item: GT.ITEMS[i].name })); SFX.play('buy'); } }
   else if (a === 'sell' || a === 'all') { q = GT.sell(S, i, a === 'all' ? S.cargo[i].qty : qtyOf(i)); if (q) { speak('market', NP.say('market', 'sell', { qty: q.qty, item: GT.ITEMS[i].name })); SFX.play('sell'); } }
@@ -142,6 +148,7 @@ function setDis(sel, ok) { var b = document.querySelector(sel); if (b) b.disable
 document.addEventListener('input', function (e) {
   var t = e.target; if (t.id === 'in-name') { sp().name = t.value; sp().salt = 0; refreshCap(); return; } if (!S) return;
   var v = Math.max(0, Math.floor(+t.value || 0));
+  for (var xi = 0; xi < INPX.length; xi++) if (INPX[xi](t, v)) return;
   if (t.classList.contains('qty')) { var row = t.closest('.mk-row'), i = +row.dataset.i; ui.qty[i] = Math.max(1, v); row.querySelector('[data-act="buy"]').disabled = !GT.canBuy(S, i, ui.qty[i]) || !!S.over; row.querySelector('[data-act="sell"]').disabled = !GT.canSell(S, i, ui.qty[i]) || !!S.over; }
   else if (t.id === 'in-dep') { ui.dep = v; setDis('[data-act="deposit"]', v > 0 && v <= S.credits); }
   else if (t.id === 'in-wd') { ui.wd = v; setDis('[data-act="withdraw"]', v > 0 && v <= S.bank); }
@@ -149,7 +156,16 @@ document.addEventListener('input', function (e) {
 });
 
 /* ---------- boot ---------- */
+/* the fixed retro frame: scale the 1280 x 800 stage to fit the window; phones and other narrow windows get the fluid layout */
+function fitFrame() {
+  var f = $('frame'), w = window.innerWidth, h = window.innerHeight; if (!f) return;
+  var fluid = w < 860 || h < 520 || w / h < 1.05;
+  f.classList.toggle('fluid', fluid);
+  f.style.setProperty('--k', fluid ? 1 : (Math.min(w / 1280, h / 800)).toFixed(4));
+}
+window.addEventListener('resize', fitFrame);
+
 (function () {
   try { var sd = localStorage.getItem('gt-snd'); if (sd === '0') SFX.on = false; } catch (e) {}
-  syncBar(); setupInit(); renderStart();
+  fitFrame(); syncBar(); setupInit(); renderStart(); CR.start();
 })();

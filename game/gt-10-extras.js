@@ -43,7 +43,7 @@
     var G = { players: [], round: 1, order: [], cur: 0, multi: list.length > 1, target: GT.CFG.WIN, over: null };
     list.forEach(function (p, k) {
       var s = GT.newState(p.shipId, p.name, p.char);
-      if (k > 0) { var s0 = G.players[0]; s.markets = s0.markets; s.mods = s0.mods; s.fuelMult = s0.fuelMult; s.comps = s0.comps; }
+      if (k > 0) { var s0 = G.players[0]; s.markets = s0.markets; s.mods = s0.mods; s.fuelMult = s0.fuelMult; s.comps = s0.comps; s.stockMkt = s0.stockMkt; }
       s.multi = G.multi; s.seat = k;
       Object.defineProperty(s, 'game', { value: G, enumerable: false, writable: true });
       G.players.push(s);
@@ -80,10 +80,12 @@
       var top = G.players.reduce(function (m, p) { return Math.max(m, GT.networth(p)); }, 0);
       GT.tickMarkets(G.players[0]); GT.tickComps(G.players[0], top);
     }
+    var rv = GT.rivalAtTarget(G.players[0]);
     if (wins.length) {
       wins.sort(function (a, b) { return GT.networth(b) - GT.networth(a); });
       G.over = { won: true, winner: wins[0].seat, round: G.round };
-    } else if (!alive.length) G.over = { won: false, winner: -1, round: G.round };
+    } else if (rv) G.over = { won: false, winner: -1, rival: rv.name, round: G.round, why: GT.rivalWhy(rv) };
+    else if (!alive.length) G.over = { won: false, winner: -1, round: G.round };
     if (G.over) return true;
     G.round++; GT.startRound(G);
     return false;

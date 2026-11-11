@@ -105,3 +105,10 @@ MG.games.sneak = {
     for (var s = 0; s < 3; s++) MG.ball(c, 30 + s * 30, 30, 11, s < G.strikes ? '#ff3d4f' : '#5a4a8a');
   }
 };
+
+/* v4: the odd jobs were too easy to Gold. Bronze stays where it was, Silver needs about a third more and Gold about half as much again. */
+MG.HARD = [1, 1.3, 1.5];
+Object.keys(MG.games).forEach(function (id) {
+  var g = MG.games[id]; if (!g.goals || !g.goals[1]) return;
+  g.goals = [g.goals[0], Math.round(g.goals[1] * MG.HARD[1] / 5) * 5, Math.round(g.goals[2] * MG.HARD[2] / 5) * 5];
+});
