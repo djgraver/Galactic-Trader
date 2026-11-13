@@ -53,7 +53,7 @@ SC.bannerCache = {};
 SC.backdrop = function (kind, pid) {
   var key = kind + '/' + pid, u = SC.bannerCache[key]; if (!u) {
     var th = SC.TH[pid], B = new PX.Buf(320, 56), i, nm = (NP.SIGNS[pid] || {})[kind] || (kind === 'alley' ? 'BACK ALLEY' : kind === 'jobs' ? 'ODD JOBS' : kind.toUpperCase());
-    B.vgrad(0, 0, 320, 56, [th.b, th.b, PX.D]); for (i = 0; i < 900; i++) B.px((i * 37) % 320, (i * 53) % 56, th.a);
+    B.vgrad(0, 0, 320, 56, [th.a, th.b, th.b, PX.D]); for (i = 0; i < 8; i++) { B.rect(i * 40 + 2, 2, 1, 50, SC.DK[th.b] === th.b ? PX.D : SC.DK[th.b]); B.rect(i * 40 + 3, 2, 1, 50, SC.LT[th.b] === th.b ? th.a : SC.LT[th.b]); }
     B.rect(0, 0, 320, 2, th.t); B.rect(0, 52, 320, 4, th.ground[1]);
     (SC.RK[kind] || SC.RK.market)(B, th);
     var sc = nm.length <= 9 ? 2 : 1, tw = PX.textW(nm, sc), bw = Math.min(150, tw + 14), bx = 160 - bw / 2;

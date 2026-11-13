@@ -1,6 +1,6 @@
 # Galactic Trader: Requirements (living document)
 
-Status: v5 built (`game/galactic-trader-5.html`, title "Galactic Trader"). Keep this file updated with every change. All requirements below must be adhered to in every build. Read this file at the start of every session.
+Status: v6 built (`game/galactic-trader-6.html`, title "Galactic Trader"). Keep this file updated with every change. All requirements below must be adhered to in every build. Read this file at the start of every session.
 
 ## Change log
 - v1: Four-column browser game built from the original Google Doc. Published and approved ("plays well"). Frozen build: `game/galactic-trader.html` (source at commit `25fb5b5`).
@@ -22,6 +22,13 @@ Status: v5 built (`game/galactic-trader-5.html`, title "Galactic Trader"). Keep 
   - **Buildings are more defined.** Walls are flat two-tone with a solid shaded side instead of a noisy dither; the shadowed side of the street is shaded solid; every building has a black outline, a bright rim on its lit edges and a dark bevel on the shadow edges; signs are painted after shading so the text stays readable.
   - **Target planet description restored.** On the Spaceport page the Trip plan shows the selected destination's description (it was lost in v4). While a destination is selected the "You are at" blurb is hidden to make room; it comes back when nothing is selected.
   - **New captain faces** (`gt-11b-faces.js`). People-shaped species (Human-ish, Zorpian, Mothkin, Lizardfolk) are now masculine or feminine, decided by the name: masculine faces get square or long jaws, heavy brows (three angles), stubble, moustache, goatee or full beard; feminine faces get oval, heart or round faces, arched brows, lashes, eyeliner, coloured lips, blush and earrings. New hair: long, bob, bun, ponytail, curls (feminine) and swept, crew, slick, shaggy (masculine). Five new alien species with their own faces: Tentaclid (tentacled dome, bar pupils), Greylien (big black almond eyes), Monoclon (one huge eye, horns, tusks), Mantoid (compound eyes, mandibles, antennae), Gravelkin (stone head, glowing eyes, moss). The random features (eyes, nose, mouth, pupils, size) and accessories (monocle, eye patch, bow tie, scarf, goggles, glasses, plaster) still roll as before. Named shopkeepers and rivals have fixed genders (`NP.GEN`); a few cast members are now aliens (Claim Agent Slate, Fivefingers, The Whisperer, Captain Ilyx Orro). Torsos are broader for masculine and narrower for feminine captains.
+- v6 (`game/galactic-trader-6.html`, build with `python3 game/gt-build6.py`; v5 is frozen as `galactic-trader-5.html`): **graphics overhaul** away from the EGA look, toward smooth 256-colour VGA painting in the spirit of Solar Winds, Descent and Homeworld. No rules, economy or layout changes. Inspiration and links are stored in the Project doc `graphics-inspiration.md`.
+  - **VGA painter** (`gt-27-vga.js`). The sixteen colour roles keep their names but are now hand-picked painted colours (deep navy-black, steel, coral, gold, aqua...). When a pixel buffer goes on screen, ordered dither blocks are detected exactly (any 4x4 block that splits along the Bayer grid) and blended into smooth gradients, then an edge-keeping bilateral blur melts leftover stipple while keeping outlines and text crisp. Night still uses the darker palette and glowing windows.
+  - **Vector art kept in 256 colours** (`PX.quant`): portraits, ships and icons get an airbrushed key light (top left) instead of being snapped to 16 colours. Portraits are drawn at double resolution (96x156) with thinner outlines and an extra volume pass (`PX.emboss`) so faces and shoulders read as rounded and lit.
+  - **Painted ships** (`gt-28-ships.js`): four new hulls with metal gradients, panel seams, rivets, liveries and decals, glowing cockpit glass and engine flames, drawn at double pixel density (ship page, spaceport pad, pickers).
+  - **Mini-games and warp** (`gt-29-mgvga.js`): 256-colour output, airbrushed highlights on balls, boxes and polygons, and a soft coloured nebula behind every starfield.
+  - **Interface paint** (`gt-style6.css`, loaded last): deep-space backdrop with nebula glows and a faint cyan lattice; steel bevelled panels, gradient buttons, gunmetal picture frames with a glow, metallic menu bar and status strip, chrome title lettering. Layout is unchanged.
+  - Street walls shade with a smooth side gradient instead of a banded checker; shop banners use a soft wall gradient with pilasters instead of speckle.
 
 ## 1. Platform and delivery
 - Browser game in a single self-contained HTML file (`game/galactic-trader-4.html`). Locked to a 1280 x 800 (16:10) stage that is scaled to fit the window and centred on black, so an ultrawide monitor gets black side bars and never scrolls. Below about 700px wide the stage turns fluid for phones.
@@ -121,11 +128,11 @@ One planet, popup or page, odds shown qualitatively only. Four exotic, confusing
 - A captain who runs out of credits and cargo is ruined and sits out. The rest play on. If everyone is ruined, nobody wins.
 - Leaderboard on the Spaceport lists every captain and the computer rivals.
 
-## 16. Style (v3)
-- 90s adventure-game look in the vein of Day of the Tentacle, Leisure Suit Larry and King's Quest IV: VGA/EGA pixel art, hard pixels, 1-pixel black outlines, ordered dithering, no anti-aliasing.
-- Everything is drawn in the 16 EGA colours (`gt-21-px.js`): scenes, shop banners, planets, the star map, ships, portraits, item icons and mini-games. Night uses the same art with a darker palette and glowing windows.
-- Interface: white Sierra-style menu bar, grey bevelled windows with black outlines, yellow selection, pixel fonts, square corners, black status strip with the sentence line.
-- Pages that use vector art (portraits, ships, icons) are shrunk and snapped to EGA at runtime (`PX.svg`).
+## 16. Style (v6)
+- 90s adventure/space look in the vein of Solar Winds (airbrushed metal and lit portraits), Descent (gritty lit industrial metal) and Homeworld (bold livery against smooth space), with the 256-colour VGA feel: smooth gradients, soft light, no visible ordered dither. v3 to v5 used a 16-colour EGA look; v6 replaced it.
+- Scenes, shop banners, planets and the star map are still drawn from 16 colour roles in small pixel buffers (`gt-21-px.js`), but the output stage (`gt-27-vga.js`) paints them in a VGA palette and smooths the dither. Night uses the same art with a darker palette and glowing windows.
+- Interface: steel bevelled panels, gradient buttons, gunmetal monitor frames over a deep-space backdrop with a cyan lattice (`gt-style6.css`); pixel fonts kept.
+- Pages that use vector art (portraits, ships, icons) are rendered at runtime in 256 colours with an airbrushed light (`PX.svg`, `PX.quant`).
 - Jokes in every shop sign, line and event.
 
 ## 17. Open ideas
