@@ -69,7 +69,7 @@ PORT.view = function () {
   var key = S.loc + '|' + (SC.night(S) ? 'n' : 'd') + '|' + Math.min(5, S.ship.paxMax), u = PORT.cache[key];
   if (!u) u = PORT.cache[key] = PX.render(PORT.build(S), SC.night(S)).toDataURL();
   var sh = GT.SHIPS.filter(function (x) { return x.id === S.shipId; })[0];
-  return '<div class="padview" aria-label="Your ship on its landing pad"><img class="pxi pbg" src="' + u + '" width="280" height="100" alt="">' + PX.svg(UI.shipSVG(sh.id, sh.hue), 90, 52, 'padship', 2, 40) + PORT.lights() + '<span class="pcap">' + esc(sh.name) + ' &middot; ' + esc(S.name) + '</span></div>';
+  return '<div class="padview" aria-label="Your ship on its landing pad"><img class="pxi pbg" src="' + u + '" width="280" height="100" alt="">' + PX.svg(UI.shipSVG(sh.id, sh.hue), 180, 104, 'padship', 1, 40) + PORT.lights() + '<span class="pcap">' + esc(sh.name) + ' &middot; ' + esc(S.name) + '</span></div>';
 };
 
 /* ---------- passengers: fare, expected crowd, advertising ---------- */
@@ -152,7 +152,7 @@ PAGES.ship = function () {
   });
   var h = '<div class="pad-pages shippg"><div class="row ptop"><h2 class="hd">' + esc(sh.name) + ' &middot; ' + esc(S.name) + '</h2><button class="btn big blue" data-act="leave">Back to the street</button></div>';
   h += '<div class="hangar" style="aspect-ratio:' + W + '/' + H + '"><div class="hstars"></div><svg class="tails" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" aria-hidden="true">' + tails + '</svg>';
-  h += '<div class="bigship" style="left:' + (SX / W * 100).toFixed(2) + '%;top:' + (SY / H * 100).toFixed(2) + '%;width:' + (SW / W * 100).toFixed(2) + '%;height:' + (SH / H * 100).toFixed(2) + '%">' + PX.svg(UI.shipSVG(sh.id, sh.hue), 112, 65, 'bs', 4, 40) + '</div>' + bub + '</div>';
+  h += '<div class="bigship" style="left:' + (SX / W * 100).toFixed(2) + '%;top:' + (SY / H * 100).toFixed(2) + '%;width:' + (SW / W * 100).toFixed(2) + '%;height:' + (SH / H * 100).toFixed(2) + '%">' + PX.svg(UI.shipSVG(sh.id, sh.hue), 224, 130, 'bs', 2, 40) + '</div>' + bub + '</div>';
   h += '<div class="shiplow"><div class="panel capt"><div class="cport">' + UI.portrait(c) + '</div><div class="ctext"><div class="cname">' + esc(S.name) + '</div><div class="amber ctitle">' + esc(c.title) + '</div><p class="ccatch">&ldquo;' + esc(c.catch) + '&rdquo;</p><div class="dim csmall">' + esc(sh.desc) + '</div></div></div>';
   h += '<div class="panel holdp"><h3 class="hd">Cargo hold</h3><div class="pocket">';
   S.cargo.forEach(function (c2, i) { h += '<div class="slot ' + (c2.qty ? '' : 'empty') + '" data-label="' + esc(GT.ITEMS[i].name) + (c2.qty ? ': ' + c2.qty + ', avg paid ' + c2.avg.toFixed(1) + 'c' : ': none') + '">' + UI.itemIcon(i) + '<b class="num">' + c2.qty + '</b></div>'; });

@@ -3,7 +3,7 @@
 UI.ST = function (w) { return ' stroke="#000" stroke-width="' + (w || 4) + '" stroke-linejoin="round" stroke-linecap="round"'; };
 PX.hydrate = function () {};
 /* a captain or shopkeeper, 48 x 78 pixels, shown at 2x */
-UI.portrait = function (t, extra) { return PX.svg(CH.portrait(t, extra), 48, 78, 'portrait ' + (extra || ''), 2, 46); };
+UI.portrait = function (t, extra) { var sv = CH.portrait(t, extra).replace(/stroke-width="([\d.]+)"/g, function (m, v) { return 'stroke-width="' + (v * 0.7).toFixed(2) + '"'; }); return PX.svg(sv, 96, 156, 'portrait ' + (extra || ''), 1, 46); };
 /* a ship, w x h pixels at the given scale */
 UI.shipPic = function (id, hue, w, h, scale, cls) { return PX.svg(UI.shipSVG(id, hue), w || 64, h || 40, 'shippic ' + (cls || ''), scale || 2, 40); };
 UI.itemSVG = function (i) {

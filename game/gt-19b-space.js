@@ -30,7 +30,7 @@
   G_.cloud.name = 'Gate Glider'; G_.cloud.how = '<b>Hold</b> the mouse, your finger or Space to thrust. Let go to drop. Fly through the golden warp gates. Dodge the rock clusters. Three lives.';
 
   var stars = function (c, G, seed, n, speed, dir) {
-    var rnd = GT.seeded(seed); for (var s = 0; s < n; s++) { var z = 0.3 + rnd() * 0.7, x = rnd() * 640, y = rnd() * 400; c.fillStyle = '#fff'; c.globalAlpha = 0.35 + z * 0.55;
+    MG.nebula(c, seed); var rnd = GT.seeded(seed); for (var s = 0; s < n; s++) { var z = 0.3 + rnd() * 0.7, x = rnd() * 640, y = rnd() * 400; c.fillStyle = '#fff'; c.globalAlpha = 0.35 + z * 0.55;
       if (dir === 'y') y = (y + G.t * speed * z) % 400; else if (dir === 'x') x = ((x - G.t * speed * z) % 640 + 640) % 640; c.fillRect(x, y, z > 0.8 ? 3 : 2, z > 0.8 ? 3 : 2); } c.globalAlpha = 1;
   };
   var rock = function (c, x, y, r, col, dark) {

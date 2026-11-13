@@ -145,7 +145,7 @@ SC.Fac = function (B, slot, night, rnd, shaded) {
   F.wall = function (x0, y0, x1, y1, a, b, tex, lv) {
     var gb = lv === undefined ? 9 : lv, me = this, w = x1 - x0, ch = tex === 'stone' ? 6 : 4, jc = SC.DK[a] === a ? b : SC.DK[a];
     this.fill(x0, y0, x1, y1, yes, function (lx, ly, X, Y, uy, ux) {
-      var t = (lx - x0) / w * gb + (ly < 9 ? 3 : 0), fx = (lx - x0) / w, base = (fx > 0.84 || (ly - y0) < 5 * uy) ? b : fx > 0.68 ? ((X + Y) & 1 ? b : a) : a, cy = (ly - y0) / uy, cx = (lx - x0) / ux, hs = (X * 7 + Y * 13) % 23, row, c = base;
+      var t = (lx - x0) / w * gb + (ly < 9 ? 3 : 0), fx = (lx - x0) / w, base = (ly - y0) < 5 * uy ? b : (PX.BAYER[(Y & 3) * 4 + (X & 3)] < Math.max(0, Math.min(1, (fx - 0.28) / 0.62)) * 16 ? b : a), cy = (ly - y0) / uy, cx = (lx - x0) / ux, hs = (X * 7 + Y * 13) % 23, row, c = base;
       if (tex === 'brick' || tex === 'stone') {
         row = Math.floor(cy / ch); var cwid = tex === 'stone' ? 11 : 6;
         if (cy - row * ch < 1) c = jc; else if (((cx + (row & 1) * cwid / 2) % cwid) < 1) c = jc; else if (hs === 0) c = SC.LT[a];

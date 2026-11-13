@@ -1,0 +1,65 @@
+/* Galactic Trader 6: the VGA paint job. Loaded last. Airbrushed steel panels with bevels, deep space backdrops with a soft nebula glow, and a cyan lattice (Solar Winds),
+   plain gunmetal frames (Descent), clean bold colour against smooth space (Homeworld). Same layout as v5; only colour, gradients and edges change. */
+:root {
+  --steel1: #dfe5f2; --steel2: #b4bdd4; --steel3: #8791ae; --steel4: #5a6483; --deep1: #0b1240; --deep2: #060a26; --deep3: #02040f;
+  --cyan: #62e4f6; --glow: #7aa2ff; --ink: #05060e; --line: #05060e; --paper: #f6f8ff; --panel: #b4bdd4; --panel2: #f8dc60; --dim: #4a5370;
+  --orange: #2a3cb4; --pink: #b2389e; --teal: #1f93a8; --lime: #66d070; --blue: #5f82f4; --mustard: #f8dc60; --purple: #1c2c94;
+  --good: #14702e; --bad: #a02228; --sentence: #f8dc60; --hudfg: #b8c4e6;
+}
+html, body { background: #02040f; }
+#app, .loc, .screen {
+  background:
+    radial-gradient(ellipse 60% 50% at 82% 18%, rgba(110, 70, 220, .30), transparent 70%),
+    radial-gradient(ellipse 55% 45% at 12% 85%, rgba(30, 140, 200, .24), transparent 70%),
+    repeating-linear-gradient(60deg, rgba(98, 228, 246, .055) 0 1px, transparent 1px 22px),
+    repeating-linear-gradient(-60deg, rgba(98, 228, 246, .055) 0 1px, transparent 1px 22px),
+    linear-gradient(#0d1650, #070b2c 55%, #03051a);
+}
+#bar { background: linear-gradient(#56628a, #2c3558 45%, #1a2140); color: var(--cyan); border-bottom: 2px solid #05060e; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .45), 0 2px 0 #7a88b8; text-shadow: 0 1px 0 #05060e; }
+#bar .logo, #bar .where { color: #e8f2ff; } #bar .logo { color: var(--cyan); text-shadow: 0 0 6px rgba(98, 228, 246, .55), 0 1px 0 #05060e; }
+.ib { background: linear-gradient(#d6dcec, #98a3c4 60%, #7a86ac); color: #0b1240; border: 0; box-shadow: inset 1px 1px 0 #fff, inset -1px -1px 0 #4a547a, 0 0 0 1px #05060e; text-shadow: 0 1px 0 rgba(255, 255, 255, .6); }
+.ib:hover, .ib:focus-visible { background: linear-gradient(#fff6c0, #f8dc60 60%, #c9a43a); color: #05060e; }
+#hud { background: linear-gradient(#1e2750, #0a0f2c); border-top: 2px solid #7a88b8; box-shadow: inset 0 1px 0 #05060e; }
+#sentence { text-shadow: 0 1px 0 #05060e; }
+.chip .bar { background: #05060e; border: 2px solid #7a88b8; box-shadow: inset 0 1px 0 #000, 0 1px 0 #2c3558; }
+.chip .bar i { background: linear-gradient(#a8ffb0, #3fb454 60%, #1f7a34); } .chip .bar i.f { background: linear-gradient(#ffb0a4, #e24a3c 60%, #8a1c20); } .chip .bar i.w { background: linear-gradient(#fff2a0, #e8c43a 60%, #9a7a18); }
+.who-mini img.face { background: linear-gradient(#74e6f2, #2196ac); border: 2px solid #b4bdd4; }
+
+.panel, .cast .card, .sheet { background: linear-gradient(#e2e8f4, #b9c2d8 42%, #98a2c0); border: 2px solid #05060e; box-shadow: inset 1px 1px 0 #fff, inset -2px -2px 0 #5a6483, inset 0 0 22px rgba(70, 90, 160, .22); }
+.sheet { outline: 2px solid #7a88b8; }
+.panel h3, .panel .hd { color: #1c2c94; text-shadow: 0 1px 0 rgba(255, 255, 255, .55); }
+.btn { background: linear-gradient(#ff9a8c, #e8503e 55%, #a02228); color: #fff; text-shadow: 0 1px 0 #5a0e12; border: 2px solid #05060e; outline: 0; box-shadow: inset 1px 1px 0 rgba(255, 255, 255, .7), inset -1px -1px 0 rgba(0, 0, 0, .45); }
+.btn.green { background: linear-gradient(#b8ffbe, #52c862 55%, #1f7a34); color: #05200c; text-shadow: 0 1px 0 rgba(255, 255, 255, .5); }
+.btn.blue { background: linear-gradient(#9ab6ff, #4a6ee0 55%, #1c2c94); color: #fff; text-shadow: 0 1px 0 #0a1450; }
+.btn.pink { background: linear-gradient(#ffb0f0, #d452c0 55%, #8a2478); color: #fff; text-shadow: 0 1px 0 #4a0e40; }
+.btn.gold { background: linear-gradient(#fff6b0, #f4d040 55%, #b8901a); color: #2a1c00; text-shadow: 0 1px 0 rgba(255, 255, 255, .6); }
+.btn:not(.green):not(.blue):not(.pink):not(.gold):not(:disabled):not(.ib) { background: linear-gradient(#ff9a8c, #e8503e 55%, #a02228); }
+.btn:hover:not(:disabled) { filter: brightness(1.15); outline: 0; background-image: none; }
+.btn.green:hover:not(:disabled), .btn.blue:hover:not(:disabled), .btn.pink:hover:not(:disabled), .btn.gold:hover:not(:disabled) { filter: brightness(1.12); }
+.btn:disabled { background: linear-gradient(#c8ceda, #98a0b4); color: #5a6483; text-shadow: 0 1px 0 #fff; border-color: #5a6483; box-shadow: inset 1px 1px 0 #fff; outline: 0; }
+.chipbtn, .rost, .ship { background: linear-gradient(#e2e8f4, #aab4cc 60%, #8791ae); border: 2px solid #05060e; outline: 0; box-shadow: inset 1px 1px 0 #fff, inset -1px -1px 0 #4a547a; }
+.chipbtn[aria-pressed="true"], .rost[aria-pressed="true"], .ship[aria-pressed="true"] { background: linear-gradient(#fff6b0, #f4d040 60%, #c9a43a); box-shadow: inset 1px 1px 0 #7a5a00, inset -1px -1px 0 #fff; }
+.chipbtn:hover, .rost:hover { filter: brightness(1.1); background-image: none; }
+.ship img { background: radial-gradient(ellipse at 70% 30%, #1c2c64, #04060f 70%); border: 2px solid #05060e; }
+input[type="number"], input[type="text"] { background: linear-gradient(#e6ebf6, #fff 40%); border: 2px solid; border-color: #4a547a #fff #fff #4a547a; outline: 1px solid #05060e; box-shadow: inset 1px 1px 3px rgba(0, 0, 40, .35); }
+.bubble { background: linear-gradient(#ffffff, #dfe6f6); border: 2px solid #05060e; box-shadow: inset 1px 1px 0 #fff, 3px 3px 0 rgba(5, 6, 14, .55); }
+.le { background: linear-gradient(#ffffff, #e6ebf6); border: 1px solid #05060e; border-left: 8px solid #5a6483; }
+.le.gain { background: linear-gradient(#f2fff4, #d8f4de); } .le.loss { background: linear-gradient(#fff2f0, #f8dcd8); } .le.event { border-left-color: #8c3c90; }
+.logbox .panel.lg .log { background: linear-gradient(#3c4668, #262e4c); border: 1px solid #05060e; box-shadow: inset 0 0 8px rgba(0, 0, 20, .6); }
+.tax { background: linear-gradient(#fff6b0, #f4d040 60%, #c9a43a); border: 2px solid #05060e; box-shadow: inset 1px 1px 0 #fff; }
+.slot { background: linear-gradient(#f6f8ff, #c8d0e4); border: 2px solid #05060e; box-shadow: inset 1px 1px 0 #fff, inset -1px -1px 0 #7a86a8; }
+.tb-p { background: linear-gradient(#2c3c9c, #1c2c94); color: #b8c4e6; border: 1px solid #7a88b8; } .tb-p.now { background: linear-gradient(#fff6b0, #f4d040); color: #05060e; border-color: #fff; }
+.order li { background: linear-gradient(#ffffff, #e6ebf6); border: 1px solid #05060e; } .order li.now { background: linear-gradient(#fff6b0, #f4d040); }
+.stand tr.me td { background: linear-gradient(#fff6b0, #f4d040); }
+
+/* picture frames: gunmetal bezel with a glow, like a cockpit monitor */
+.scenebox, .mapwrap { border: 3px solid #8791ae; outline: 2px solid #05060e; box-shadow: inset 0 0 0 2px #05060e, 0 0 18px rgba(98, 228, 246, .18), 0 0 0 4px #2c3558; border-radius: 2px; }
+.modal { background: radial-gradient(ellipse at 50% 40%, rgba(40, 60, 140, .55), rgba(2, 4, 15, .86)); }
+.flight, .mg { background: radial-gradient(ellipse 70% 60% at 70% 30%, #1a1450, #02040f 75%); }
+.cast .card img.portrait, .cast .card .portrait, .rost .rp img { border: 2px solid #05060e; box-shadow: inset 0 0 0 1px #8791ae; background: radial-gradient(ellipse at 50% 30%, #6a8ae0, #1c2c94); }
+.pxi { image-rendering: pixelated; }
+.mg .mtop, .flight .top { background: linear-gradient(#56628a, #2c3558 45%, #1a2140); border-bottom: 2px solid #05060e; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .45); }
+.mg .tbar, .flight .prog { background: #05060e; border: 2px solid #7a88b8; }
+.mg canvas { border: 3px solid #8791ae; outline: 2px solid #05060e; box-shadow: 0 0 24px rgba(98, 228, 246, .2); }
+/* title: chrome lettering with a hot-rod glow */
+.mega { background: linear-gradient(#ffffff 0%, #ffe9a0 35%, #f4a83a 55%, #c4521e 100%); -webkit-background-clip: text; background-clip: text; color: transparent !important; -webkit-text-stroke: 1px #3a0e08; text-shadow: none; filter: drop-shadow(0 3px 0 #1a0a40) drop-shadow(0 0 10px rgba(255, 150, 60, .5)); }
