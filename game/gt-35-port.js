@@ -104,12 +104,13 @@ PAGES.pad = function () {
   var d = ui.dest, P = GT.PLANETS, here = P[S.loc], tx = GT.taxInfo(S, S.loc);
   var h = '<div class="pad-pages port"><div class="row ptop"><h2 class="hd">Spaceport &middot; ' + esc(here.name) + '</h2><button class="btn big blue" data-act="leave">Back to the street</button></div>';
   h += '<div class="portgrid"><div class="portL"><div class="mapwrap">' + UI.mapSVG(S, d) + '</div>' + PORT.view() + '</div><div class="portR">';
-  h += '<div class="panel here"><div class="row"><h3 class="hd" style="color:' + here.color + '">You are at ' + esc(here.name) + '</h3><span class="dim">' + here.type + '</span></div><p class="hdesc">' + esc(here.desc) + '</p><div class="dim">Tax ' + (tx.rate * 100).toFixed(1) + '% &middot; ' + (here.fuelSold ? 'fuel sold here' : 'no fuel dock') + ' &middot; ' + (here.upgrades.length ? 'shipyard open' : 'no shipyard') + (here.gambling ? ' &middot; has a gambling parlour' : '') + '</div></div>';
+  h += '<div class="panel here"><div class="row"><h3 class="hd" style="color:' + here.color + '">You are at ' + esc(here.name) + '</h3><span class="dim">' + here.type + '</span></div>' + (d === null || d === S.loc ? '<p class="hdesc">' + esc(here.desc) + '</p>' : '') + '<div class="dim">Tax ' + (tx.rate * 100).toFixed(1) + '% &middot; ' + (here.fuelSold ? 'fuel sold here' : 'no fuel dock') + ' &middot; ' + (here.upgrades.length ? 'shipyard open' : 'no shipyard') + (here.gambling ? ' &middot; has a gambling parlour' : '') + '</div></div>';
   h += '<div class="panel trip"><h3 class="hd">Trip plan</h3>';
   if (d === null || d === S.loc) h += '<p class="dim" style="margin:0">Click a world on the star map to plan a jump.</p>';
   else {
     var p = P[d], cost = GT.jumpCost(S, d), ok = S.ship.fuel >= cost, rivals = S.comps.filter(function (c) { return c.loc === d; }), sf = speedFacts(GT.effSpeed(S));
     h += '<div class="row"><b style="font:11px var(--display);color:' + p.color + '">' + esc(p.name) + '</b><span class="dim">' + p.type + ' &middot; tax ' + (p.tax * 100).toFixed(1) + '%</span></div>';
+    h += '<p class="hdesc tdesc">' + esc(p.desc) + '</p>';
     h += '<p class="tline">Distance <b class="num">' + GT.dist(S.loc, d).toFixed(0) + '</b> &middot; Fuel <b class="num ' + (ok ? '' : 'bad') + '">' + cost + ' PC</b> <span class="dim">(you have ' + S.ship.fuel + ')</span> &middot; <span class="dim">warp ' + GT.effSpeed(S).toFixed(1) + ' burns ' + sf.fuel + '%, dodges ' + sf.dodge + '%</span></p>';
     if (rivals.length) h += '<p class="tline dim">Rivals docked there: ' + rivals.map(function (c) { return esc(c.name); }).join(', ') + '.</p>';
     if (!ok) h += '<p class="tline bad"><b>Warning:</b> not enough fuel for this jump. ' + (here.fuelSold ? 'Visit the Fuel Dock first.' : 'There is no fuel dock here.') + '</p>';

@@ -18,7 +18,7 @@ NP.CAST = {
     bank: ['Hardhat Hal', 'Credit Union Boss', 0, 7, 'First Credit Union of the Deep. Please wipe your boots on the money.'],
     yard: ['Nub', 'Spanner\'s Apprentice', 2, 7, 'Spanner\'s out. I\'m Nub. I\'m about forty percent qualified.'],
     fuel: ['Pump Boss Gus', 'Pump Boss', 0, 0, 'Fill her up, or don\'t. I get paid either way.'],
-    office: ['Claim Agent Slate', 'Claims Officer', 4, 5, 'Claims staked, grudges filed.']
+    office: ['Claim Agent Slate', 'Claims Officer', 10, 0, 'Claims staked, grudges filed.']
   },
   kryndor: {
     market: ['Mei-Lin Quicksale', 'Store Manager', 0, 8, 'Welcome to Spire Mart, level 412! Please validate your parking and your existence.'],
@@ -33,7 +33,7 @@ NP.CAST = {
     yard: ['Zero-G Zed', 'Upside-Down Mechanic', 0, 3, 'I fix things upside down. It isn\'t better. It\'s just more fun.'],
     fuel: ['Gasper', 'Fuel Jockey', 1, 0, 'Fuel is cheap. Air is not.'],
     parlour: ['Madame Thin Hour', 'Croupier', 3, 6, 'Sit. Wager. Wonder. Leave poorer and wiser, or just poorer.'],
-    office: ['Fivefingers', 'Ness\'s Cousin', 0, 0, 'Slightly more honest than my cousin. Five fingers, five scams.']
+    office: ['Fivefingers', 'Ness\'s Cousin', 6, 0, 'Slightly more honest than my cousin. Five fingers, five scams.']
   },
   quellin: {
     market: ['Dr. Pippa Beaker', 'Procurement Officer', 1, 9, 'Welcome to Procurement! Everything is a sample and everything is for sale.'],
@@ -54,7 +54,7 @@ NP.CAST.meridoa.exchange = ['Farmer Fortescue Bean', 'Grain Broker', 0, 7, 'Whea
 NP.CAST.karthosu.exchange = ['Ra-Ra the Bourse Keeper', 'Relic Trader', 5, 2, 'Shares in the past, bought and sold with great confidence about the future.'];
 NP.CAST.ferrox.exchange = ['Ticker Tess', 'Futures Caller', 0, 3, 'Ore up, ore down! Shout your order over the drills!'];
 NP.CAST.kryndor.exchange = ['Gordon Margin', 'Floor Trader', 0, 8, 'Welcome to the Spire Exchange. Greed is good, and so is the coffee. The coffee is better.'];
-NP.CAST.nihil.exchange = ['The Whisperer', 'Floor Boss', 3, 0, 'Prices are whispered here. If you cannot hear them, you cannot afford them.'];
+NP.CAST.nihil.exchange = ['The Whisperer', 'Floor Boss', 7, 0, 'Prices are whispered here. If you cannot hear them, you cannot afford them.'];
 NP.CAST.quellin.exchange = ['Dr. Ima Speculate', 'Grant Speculator', 1, 9, 'We model the market with great rigour and are wrong with great precision.'];
 NP.CAST.halcyra.exchange = ['Stratus Bull', 'Cloud Broker', 0, 4, 'Shares float up here, and sometimes they stay floating.'];
 NP.SIGNS = {
@@ -116,10 +116,15 @@ NP.say = function (role, kind, vars) {
   var pool = (NP.LINES[role] || {})[kind] || ['...'], s = GT.pick(pool);
   vars = vars || {}; return s.replace(/\{(\w+)\}/g, function (m, k) { return vars[k] != null ? vars[k] : m; });
 };
+/* v5: who is masculine or feminine (everyone else rolls at random from their name) */
+NP.GEN = { 'Aunt Petunia Gourdwhistle': 'f', 'Mr. Hoe': 'm', 'Rusty Furrow': 'm', 'Agent Daisy Chain': 'f', 'Hakim Gravel': 'm', 'Osiris Wrapp': 'm', 'Ptah Spanner': 'm', 'Sphinxy': 'f',
+  'Big Brenda Slagheap': 'f', 'Hardhat Hal': 'm', 'Pump Boss Gus': 'm', 'Mei-Lin Quicksale': 'f', 'Wilhelmina Compound': 'f', 'Chad Sky-Lease': 'm', 'Honest Abe': 'm', 'Zero-G Zed': 'm', 'Madame Thin Hour': 'f',
+  'Dr. Pippa Beaker': 'f', 'Professor Ledgerwood': 'm', 'Phil from Grants': 'm', 'Skybazaar Sal': 'f', 'Gale Wind-Wright': 'f', 'Fumes McGee': 'm', 'Cirrus': 'f', 'Farmer Fortescue Bean': 'm', 'Ra-Ra the Bourse Keeper': 'm',
+  'Ticker Tess': 'f', 'Gordon Margin': 'm', 'Dr. Ima Speculate': 'f', 'Foreman Gruff': 'm', 'Zara Vex': 'f', 'Mox Tallow': 'm', 'Old Brannock': 'm', 'Nimbus': 'f', 'Gasper': 'm' };
 NP.row = function (pid, role) { return (NP.CAST[pid] || {})[role] || null; };
 NP.char = function (pid, role) {
   var key = pid + '/' + role; if (NP.cache[key]) return NP.cache[key];
-  var row = NP.row(pid, role), over = row ? { sp: row[2], hair: row[3] } : {}, t = CH.fromSeed(key, over);
+  var row = NP.row(pid, role), over = row ? { sp: row[2], hair: row[3] } : {}; if (row && NP.GEN[row[0]]) over.gen = NP.GEN[row[0]]; var t = CH.fromSeed(key, over);
   t.name = row ? row[0] : role; t.job = row ? row[1] : role; t.hello = row ? row[4] : '';
   return (NP.cache[key] = t);
 };
@@ -130,4 +135,4 @@ NP.who2 = function (pid) {
   var w = NP.who(pid), t = CH.fromSeed(key, { sp: { meridoa: 0, karthosu: 5, ferrox: 0, kryndor: 0, nihil: 0, quellin: 0, halcyra: 0 }[pid], hair: { meridoa: 10, karthosu: 0, ferrox: 7, kryndor: 8, nihil: 3, quellin: 1, halcyra: 7 }[pid] });
   t.name = w.name; t.job = w.job; return (NP.cache[key] = t);
 };
-NP.rival = function (ci) { var c = GT.COMPETITORS[ci], t = NP.cache['rival' + ci]; if (!t) { t = CH.fromSeed('rival' + c.name, { sp: [0, 4, 1, 5][ci], hair: [6, 8, 3, 5][ci] }); t.name = c.name; t.title = c.title; NP.cache['rival' + ci] = t; } return t; };
+NP.rival = function (ci) { var c = GT.COMPETITORS[ci], t = NP.cache['rival' + ci]; if (!t) { t = CH.fromSeed('rival' + c.name, { sp: [0, 4, 8, 5][ci], hair: [18, 8, 0, 3][ci], gen: ['f', 'n', 'n', 'm'][ci] }); t.name = c.name; t.title = c.title; NP.cache['rival' + ci] = t; } return t; };

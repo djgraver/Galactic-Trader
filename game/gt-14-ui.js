@@ -52,7 +52,7 @@ function speak(role, text) { ui.say[role] = text; }
 function castOf(role) {
   var pid = plan().id;
   if (role === 'cantina') return NP.who2(pid);
-  if (role === 'jobs') { var k = 'foreman/' + pid; if (!NP.cache[k]) { var t = CH.fromSeed(k, { sp: 4, hair: 7 }); t.name = 'Foreman Gruff'; t.job = 'Odd Jobs Boss'; NP.cache[k] = t; } return NP.cache[k]; }
+  if (role === 'jobs') { var k = 'foreman/' + pid; if (!NP.cache[k]) { var t = CH.fromSeed(k, { sp: 0, hair: 7, gen: 'm' }); t.name = 'Foreman Gruff'; t.job = 'Odd Jobs Boss'; NP.cache[k] = t; } return NP.cache[k]; }
   if (role === 'alley') return null;
   return NP.char(pid, role);
 }

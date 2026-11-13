@@ -87,9 +87,9 @@ SC.paintSlot = function (B, g, th, sl, p, night, rnd, sg, idx) {
   var m = SC.SH[shape](f, t, { k: idx, h: 70 + (idx % 3) * 10 });
   if (SC.FN[fn] && !closed) SC.FN[fn](f, t, m, { k: idx });
   if (SC.ORN[th.orn] && fn !== 'jobs') SC.ORN[th.orn](f, t, m, { k: idx });
-  if (m.sign && !m.noSign) SC.sign(f, m.sign, closed ? (fn === 'yard' ? 'CLOSED' : 'NO FUEL') : sg[fn] || fn.toUpperCase(), night, closed, fn);
   if (closed) { f.R(m.door.x - 2, 0, m.door.w + 4, m.door.h + 2, PX.K); f.L(m.door.x - 2, 4, m.door.x + m.door.w + 2, m.door.h - 2, 3, PX.N); f.L(m.door.x - 2, m.door.h - 2, m.door.x + m.door.w + 2, 4, 3, PX.N); }
-  if (shaded) SC.shadeWall(f, 7); else f.shade(0, 100, 100, 150, 3, true);
+  if (shaded) SC.shadeWall(f, 12); else f.shade(0, 100, 100, 150, 3, true);
+  if (m.sign && !m.noSign) SC.sign(f, m.sign, closed ? (fn === 'yard' ? 'CLOSED' : 'NO FUEL') : sg[fn] || fn.toUpperCase(), night, closed, fn);
   f.edge();
   return { m: m, closed: closed, f: f };
 };

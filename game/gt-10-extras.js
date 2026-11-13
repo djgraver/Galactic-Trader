@@ -11,13 +11,13 @@
   /* Share of the stage scale paid out per rating. Simulated: a good player finishes about 10% sooner and a perfect one about 20% sooner, so trading stays the main event. */
   GT.JOB_PAY = [0, 0.08, 0.20, 0.40];
   GT.JOBS = {
-    meridoa: { id: 'pests', name: 'Pest Panic', where: 'the Pumpkin Patch' },
-    karthosu: { id: 'tomb', name: 'Tomb Dash', where: 'the Tomb Steps' },
-    ferrox: { id: 'ore', name: 'Ore Sorter', where: 'the Conveyor Hall' },
-    kryndor: { id: 'traffic', name: 'Skybus Scramble', where: 'the Skybus Lanes' },
-    nihil: { id: 'debris', name: 'Junk Blaster', where: 'the Debris Deck' },
-    quellin: { id: 'catch', name: 'Quantum Catch', where: 'Lab Four' },
-    halcyra: { id: 'cloud', name: 'Cloud Skimmer', where: 'the Storm Deck' }
+    meridoa: { id: 'pests', name: 'Crater Critters', where: 'the Moon Patch' },
+    karthosu: { id: 'tomb', name: 'Hyperlane Dash', where: 'the Warp Tunnel' },
+    ferrox: { id: 'ore', name: 'Rock Sorter', where: 'the Smelter Deck' },
+    kryndor: { id: 'traffic', name: 'Orbit Hop', where: 'the Shuttle Lanes' },
+    nihil: { id: 'debris', name: 'Asteroid Blaster', where: 'the Debris Deck' },
+    quellin: { id: 'catch', name: 'Tractor Catch', where: 'Cargo Bay Four' },
+    halcyra: { id: 'cloud', name: 'Gate Glider', where: 'the Gas Giant Rim' }
   };
   GT.job = function (s) { return GT.JOBS[GT.PLANETS[s.loc].id]; };
   GT.jobAvailable = function (s) { return !s.visit.flags.job && !s.over && !s.pending; };

@@ -145,7 +145,7 @@ SC.Fac = function (B, slot, night, rnd, shaded) {
   F.wall = function (x0, y0, x1, y1, a, b, tex, lv) {
     var gb = lv === undefined ? 9 : lv, me = this, w = x1 - x0, ch = tex === 'stone' ? 6 : 4, jc = SC.DK[a] === a ? b : SC.DK[a];
     this.fill(x0, y0, x1, y1, yes, function (lx, ly, X, Y, uy, ux) {
-      var t = (lx - x0) / w * gb + (ly < 9 ? 3 : 0) - (ly > y1 - 10 ? 0 : 0), base = PX.BAYER[(Y & 3) * 4 + (X & 3)] < t ? b : a, cy = (ly - y0) / uy, cx = (lx - x0) / ux, hs = (X * 7 + Y * 13) % 23, row, c = base;
+      var t = (lx - x0) / w * gb + (ly < 9 ? 3 : 0), fx = (lx - x0) / w, base = (fx > 0.84 || (ly - y0) < 5 * uy) ? b : fx > 0.68 ? ((X + Y) & 1 ? b : a) : a, cy = (ly - y0) / uy, cx = (lx - x0) / ux, hs = (X * 7 + Y * 13) % 23, row, c = base;
       if (tex === 'brick' || tex === 'stone') {
         row = Math.floor(cy / ch); var cwid = tex === 'stone' ? 11 : 6;
         if (cy - row * ch < 1) c = jc; else if (((cx + (row & 1) * cwid / 2) % cwid) < 1) c = jc; else if (hs === 0) c = SC.LT[a];
@@ -154,7 +154,7 @@ SC.Fac = function (B, slot, night, rnd, shaded) {
       } else if (tex === 'plank') { if (cx % 6 < 1) c = jc; else if (hs === 0) c = jc; }
       else if (tex === 'corr') { c = (Math.floor(cx / 2) & 1) ? b : a; }
       else if (tex === 'glass') {
-        if (cx % 9 < 1 || cy % 8 < 1) c = SC.LT[a] === a ? b : SC.LT[a]; else { var dg = (cx + cy * 0.7) % 23; c = dg < 3 ? PX.W : PX.BAYER[(Y & 3) * 4 + (X & 3)] < t + 3 ? b : a; if (me.night && hs < 5 && (Math.floor(cx / 9) * 3 + Math.floor(cy / 8)) % 4 === 0) c = PX.E + PX.Y; }
+        if (cx % 9 < 1 || cy % 8 < 1) c = SC.LT[a] === a ? b : SC.LT[a]; else { var dg = (cx + cy * 0.7) % 23; c = dg < 3 ? PX.W : base; if (me.night && hs < 5 && (Math.floor(cx / 9) * 3 + Math.floor(cy / 8)) % 4 === 0) c = PX.E + PX.Y; }
       } else if (hs === 0) c = jc; else if (hs === 5 && PX.BAYER[(Y & 3) * 4 + (X & 3)] < 8) c = SC.LT[a];
       return c;
     });
@@ -216,6 +216,12 @@ SC.Fac = function (B, slot, night, rnd, shaded) {
     var B = this.B, m = this.mask, w = B.w, h = B.h, out = [], i, x, y;
     for (y = 0; y < h; y++) for (x = 0; x < w; x++) { i = y * w + x; if (!m[i]) continue; if (x === 0 || y === 0 || x === w - 1 || y === h - 1 || !m[i - 1] || !m[i + 1] || !m[i - w] || !m[i + w]) out.push(i); }
     out.forEach(function (j) { B.d[j] = 0; });
+    /* a bright rim just inside the left and top edges of buildings that face the light, so each one reads as a solid shape */
+    if (!this.shaded) { var rim = []; for (y = 1; y < h - 1; y++) for (x = 1; x < w - 1; x++) { i = y * w + x; if (!m[i] || B.d[i] === 0) continue; if ((B.d[i - 1] === 0 && m[i - 1]) || (B.d[i - w] === 0 && m[i - w])) rim.push(i); }
+      rim.forEach(function (j) { var c = B.d[j]; if (c < 16) B.d[j] = SC.LT[c]; }); }
+    /* and a dark bevel just inside the right and bottom edges */
+    var bev = []; for (y = 1; y < h - 1; y++) for (x = 1; x < w - 1; x++) { i = y * w + x; if (!m[i] || B.d[i] === 0) continue; if ((B.d[i + 1] === 0 && m[i + 1]) || (B.d[i + w] === 0 && m[i + w])) bev.push(i); }
+    bev.forEach(function (j) { var c = B.d[j]; if (c < 16 && SC.DK[c] !== 0) B.d[j] = SC.DK[c]; });
   };
   for (var k in F) SC.Fac.prototype[k] = F[k];
 })({});

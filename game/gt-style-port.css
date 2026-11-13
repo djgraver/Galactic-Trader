@@ -47,3 +47,6 @@
 .holdp .pocket { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
 .holdp .slot { padding: 3px 0; text-align: center; } .holdp .slot b { display: block; font-size: 20px; } .holdp .slot .itemicon { width: 34px; height: 34px; } .holdp .slot > div { font-size: 7px; }
 .spdp .speedlist { font-size: 18px; margin: 2px 0; padding-left: 14px; gap: 1px; }
+/* v5: the destination's description sits in the trip plan; keep it compact so Standings still fits, and make the world name readable on the grey panel */
+.trip .tdesc { font-size: 17px; line-height: 1; margin: 1px 0 3px; }
+.trip .row b { text-shadow: 1px 1px 0 #000, -1px 1px 0 #000, 1px -1px 0 #000, -1px -1px 0 #000; }

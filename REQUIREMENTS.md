@@ -1,6 +1,6 @@
 # Galactic Trader: Requirements (living document)
 
-Status: v4 built (`game/galactic-trader-4.html`, title "Galactic Trader"). Keep this file updated with every change. All requirements below must be adhered to in every build. Read this file at the start of every session.
+Status: v5 built (`game/galactic-trader-5.html`, title "Galactic Trader"). Keep this file updated with every change. All requirements below must be adhered to in every build. Read this file at the start of every session.
 
 ## Change log
 - v1: Four-column browser game built from the original Google Doc. Published and approved ("plays well"). Frozen build: `game/galactic-trader.html` (source at commit `25fb5b5`).
@@ -17,6 +17,11 @@ Status: v4 built (`game/galactic-trader-4.html`, title "Galactic Trader"). Keep 
   - **Stock Exchange:** one company per world tied to that world's goods (7 tickers), 1% fee each way, small dividends each jump, price follows the home market plus news and your own trading. Holding 10 / 25 / 50 / 100 shares of a world's company cuts that world's tax by 10 / 20 / 30 / 40% of its base rate. Shares count toward net worth.
   - **Passengers:** each ship starts with few berths (Cutlass Runner 1, Wayfarer 2, Stargazer 3, Behemoth Barge 4); the Passenger Cabins upgrade adds berths. Set a fare on the Spaceport page; demand grows with reputation and fares that feel fair; advertising on the destination world multiplies interest for 6 jumps.
   - Balance (re-run `gt-sim.js ... human`): a competent solo player wins about 90% of games in about 79 to 97 jumps; computer rivals win the other ~10%.
+- v5 (`game/galactic-trader-5.html`, build with `python3 game/gt-build5.py`; v4 is frozen as `galactic-trader-4.html`):
+  - **Odd Jobs are space games.** Every known arcade idea is kept, redone in space: Crater Critters (whack-a-mole, Meridoa), Hyperlane Dash (lane runner, Karth-Osu), Rock Sorter (belt sorter, Ferrox), Orbit Hop (frogger, Kryndor Spire), Asteroid Blaster (asteroids, Nihil Station), Tractor Catch (kaboom, Quellin Reach), Gate Glider (flappy, Halcyra). Rules, scoring and difficulty are unchanged. The sabotage game's guard is now an alien. Source: `gt-19b-space.js` (it re-skins the games from `gt-18-mg.js` and `gt-19-mg2.js`).
+  - **Buildings are more defined.** Walls are flat two-tone with a solid shaded side instead of a noisy dither; the shadowed side of the street is shaded solid; every building has a black outline, a bright rim on its lit edges and a dark bevel on the shadow edges; signs are painted after shading so the text stays readable.
+  - **Target planet description restored.** On the Spaceport page the Trip plan shows the selected destination's description (it was lost in v4). While a destination is selected the "You are at" blurb is hidden to make room; it comes back when nothing is selected.
+  - **New captain faces** (`gt-11b-faces.js`). People-shaped species (Human-ish, Zorpian, Mothkin, Lizardfolk) are now masculine or feminine, decided by the name: masculine faces get square or long jaws, heavy brows (three angles), stubble, moustache, goatee or full beard; feminine faces get oval, heart or round faces, arched brows, lashes, eyeliner, coloured lips, blush and earrings. New hair: long, bob, bun, ponytail, curls (feminine) and swept, crew, slick, shaggy (masculine). Five new alien species with their own faces: Tentaclid (tentacled dome, bar pupils), Greylien (big black almond eyes), Monoclon (one huge eye, horns, tusks), Mantoid (compound eyes, mandibles, antennae), Gravelkin (stone head, glowing eyes, moss). The random features (eyes, nose, mouth, pupils, size) and accessories (monocle, eye patch, bow tie, scarf, goggles, glasses, plaster) still roll as before. Named shopkeepers and rivals have fixed genders (`NP.GEN`); a few cast members are now aliens (Claim Agent Slate, Fivefingers, The Whisperer, Captain Ilyx Orro). Torsos are broader for masculine and narrower for feminine captains.
 
 ## 1. Platform and delivery
 - Browser game in a single self-contained HTML file (`game/galactic-trader-4.html`). Locked to a 1280 x 800 (16:10) stage that is scaled to fit the window and centred on black, so an ultrawide monitor gets black side bars and never scrolls. Below about 700px wide the stage turns fluid for phones.
@@ -99,11 +104,11 @@ One planet, popup or page, odds shown qualitatively only. Four exotic, confusing
 ## 13. Characters
 - Named shopkeepers for market, bank, shipyard, fuel and cantina on every planet, plus a Real Estate agent, an Odd Jobs boss and rivals.
 - Player captain generator from the entered name. Same name gives the same captain. Name sets species, hat, title, catchphrase, backstory, and a fate chart (lucky number, species, smells faintly of, destiny grade). Reroll button. Letters and vowels are counted behind the scenes (`captain.hidden`) and are not shown.
-- Species: human, zorp, blorb, mothkin, bot, lizard.
+- Species: human, zorp, blorb, mothkin, bot, lizard (v1 to v4), plus squid (Tentaclid), gray (Greylien), cyclops (Monoclon), mantis (Mantoid) and stone (Gravelkin) from v5. Human, zorp, mothkin and lizard are masculine or feminine; the rest are neutral. About half of the name rolls are people and half are aliens.
 
 ## 14. Mini-games (action, Odd Jobs board)
 - One play per visit. Rating Flop, Bronze, Silver or Gold. Pay as a share of net worth scale: 0, 8%, 20%, 40%. Gold gives +1 reputation.
-- Pest Panic (Meridoa), Tomb Dash (Karth-Osu), Ore Sorter (Ferrox), Skybus Scramble (Kryndor Spire), Junk Blaster (Nihil Station), Quantum Catch (Quellin Reach), Cloud Skimmer (Halcyra), plus the Sneak game for sabotage.
+- Crater Critters (Meridoa), Hyperlane Dash (Karth-Osu), Rock Sorter (Ferrox), Orbit Hop (Kryndor Spire), Asteroid Blaster (Nihil Station), Tractor Catch (Quellin Reach), Gate Glider (Halcyra), plus the Dock Sneak game for sabotage. All are space-themed versions of well-known arcade games (v5).
 - Quitting mid-game ends it with the current score.
 - Every frame is redrawn on a 320 x 200 grid and snapped to the 16 EGA colours.
 
