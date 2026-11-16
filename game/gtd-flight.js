@@ -12,7 +12,7 @@ const { chromium } = require('playwright');
   await p.click('[data-act="jump"]'); await p.waitForTimeout(700); await p.screenshot({ path: 'shots/32-flight-a.png' });
   await p.waitForTimeout(1800); await p.screenshot({ path: 'shots/33-flight-b.png' });
   await p.waitForTimeout(2200); await p.screenshot({ path: 'shots/34-flight-c.png' });
-  await p.waitForTimeout(1500); await p.screenshot({ path: 'shots/35-flight-d.png' });
+  await p.waitForTimeout(2900); await p.screenshot({ path: 'shots/35-flight-d.png' });
   const state1 = await p.evaluate(() => ({ cards: document.querySelectorAll('#fl-card .fcard').length, txt: (document.querySelector('#fl-card') || {}).textContent }));
   console.log('card after warp:', JSON.stringify(state1).slice(0, 300));
   // click through event card then dock

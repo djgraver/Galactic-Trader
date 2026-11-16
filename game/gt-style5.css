@@ -3,7 +3,7 @@
    the window and centres it on black, so an ultrawide monitor gets black bars instead of a stretched game. On a narrow phone screen the stage turns fluid (class "fluid") and the old
    responsive layout takes over. Every pop-up, title screen, flight and mini-game is position:fixed, which inside a transformed stage means "fixed to the stage". */
 html, body { height: 100%; margin: 0; overflow: hidden; background: #000; }
-#frame { position: fixed; left: 50%; top: 50%; width: 1280px; height: 800px; margin: -400px 0 0 -640px; transform: scale(var(--k, 1)); transform-origin: 50% 50%; overflow: hidden; background: #000; contain: layout paint; }
+#frame { position: fixed; left: 50%; top: 50%; width: 1440px; height: 810px; margin: -405px 0 0 -720px; transform: scale(var(--k, 1)); transform-origin: 50% 50%; overflow: hidden; background: #000; contain: layout paint; }
 #frame.fluid { left: 0; top: 0; width: 100%; height: 100%; margin: 0; transform: none; contain: none; }
 #app { height: 100%; width: 100%; }
 

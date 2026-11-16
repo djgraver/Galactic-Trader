@@ -17,7 +17,7 @@ SC.door = {};
 SC.shadowAt = function (B, x, y, w, h, lv) {
   /* a soft shadow: the darker family colour dithered over whatever is already there */
   var map = SC.DK;
-  for (var j = -h; j <= h; j++) { var hw = w * Math.sqrt(1 - (j / h) * (j / h)); for (var i = Math.round(-hw); i <= hw; i++) { var X = Math.round(x + i), Y = Math.round(y + j), c = B.get(X, Y); if (c < 16 && PX.BAYER[(Y & 3) * 4 + (X & 3)] < lv) B.px(X, Y, map[c]); } }
+  for (var j = -h; j <= h; j++) { var hw = w * Math.sqrt(1 - (j / h) * (j / h)); for (var i = Math.round(-hw); i <= hw; i++) { var X = Math.round(x + i), Y = Math.round(y + j), c = B.get(X, Y); if (c < 16 || c >= 1024) B.px(X, Y, PX.remap(c, map, lv)); } }
 };
 SC.PROP = {};
 SC.PROP.lamp = function (B, x, y, sc, o) {
@@ -33,7 +33,7 @@ SC.PROP.lamp = function (B, x, y, sc, o) {
   else if (k === 'orb') { B.ell(x, topY - hd * 0.6, hd * 0.9, hd * 0.9, PX.K); B.ell(x, topY - hd * 0.6, hd * 0.9 - 0.7, hd * 0.9 - 0.7, glow(PX.W)); }
   else { B.poly([x, topY - hd * 2.6, x, topY - hd * 0.5, x + hd * 2.2, topY - hd * 1.6], PX.R); B.px(x + 1, topY - hd * 1.6, PX.Y); }
   if (n) for (var r = 3; r > 0; r--) SC.shadowAt(B, x, y - 2 * sc, 14 * sc * r / 3, 3 * sc * r / 3, 0) || 0;
-  if (n) { var gx = x, gy = y; for (var j = -4; j <= 4; j++) for (var i = -16; i <= 16; i++) { var d = (i * i) / 256 + (j * j) / 16; if (d < 1) { var X = Math.round(gx + i * sc), Y = Math.round(gy + j * sc * 0.5 - 1), c = B.get(X, Y); if (c < 16 && PX.BAYER[(Y & 3) * 4 + (X & 3)] < (1 - d) * 8) B.px(X, Y, SC.LT[c]); } } }
+  if (n) { var gx = x, gy = y; for (var j = -4; j <= 4; j++) for (var i = -16; i <= 16; i++) { var d = (i * i) / 256 + (j * j) / 16; if (d < 1) { var X = Math.round(gx + i * sc), Y = Math.round(gy + j * sc * 0.5 - 1), c = B.get(X, Y); if (c < 16) B.px(X, Y, PX.mix(c, SC.LT[c], (1 - d) * 8)); } } }
 };
 SC.PROP.bench = function (B, x, y, sc, o) {
   var w = Math.max(6, Math.round(22 * sc)), h = Math.max(3, Math.round(8 * sc));
@@ -117,8 +117,8 @@ SC.build = function (s) {
   slots.forEach(function (sl) {
     if (sl.s !== g.sun) return;
     var w = sl.fn === 'jobs' ? 0.1 : sl.hf > 0.9 ? 0.4 : sl.hf > 0.7 ? 0.3 : 0.2, s0 = Math.min(sl.scA, sl.scB), s1 = Math.max(sl.scA, sl.scB), l0 = sl.s === 'L' ? 0 : 1 - w, l1 = sl.s === 'L' ? w : 1;
-    SC.quad(B, g, s0, s1, l0, l1, function (x, y) { var c = B.get(x, y); return c < 16 && PX.BAYER[(y & 3) * 4 + (x & 3)] < 8 ? SC.DK[c] : -1; });
-    SC.quad(B, g, s0, s1, sl.s === 'L' ? w : 1 - w - 0.05, sl.s === 'L' ? w + 0.05 : 1 - w, function (x, y) { var c = B.get(x, y); return c < 16 && PX.BAYER[(y & 3) * 4 + (x & 3)] < 3 ? SC.DK[c] : -1; });
+    SC.quad(B, g, s0, s1, l0, l1, function (x, y) { var c = B.get(x, y); return c < 16 || c >= 1024 ? PX.remap(c, SC.DK, 8) : -1; });
+    SC.quad(B, g, s0, s1, sl.s === 'L' ? w : 1 - w - 0.05, sl.s === 'L' ? w + 0.05 : 1 - w, function (x, y) { var c = B.get(x, y); return c < 16 ? PX.mix(c, SC.DK[c], 3) : -1; });
   });
   /* the draw list: buildings and furniture, far to near */
   var items = [], idx = 0;

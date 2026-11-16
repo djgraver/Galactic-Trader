@@ -84,7 +84,7 @@ PORT.paxBlock = function (d) {
   var h = '<div class="pax"><div class="prow"><b class="pt">Passengers</b><span class="dim">Berths ' + S.ship.paxMax + ' &middot; reputation ' + S.rep + ' brings more</span></div>';
   h += '<div class="prow"><label>Fare <input class="val" id="in-fare" type="number" min="0" step="5" value="' + (S.fareMult == null ? '' : fare) + '" placeholder="off" aria-label="Fare per passenger"> c</label>' + btn('Cheap', 'fare-lo', !S.over, 'green') + btn('Fair', 'fare-mid', !S.over, 'gold') + btn('Pricey', 'fare-hi', !S.over, 'pink') + btn('Off', 'fare-off', S.fareMult != null, '') + '</div>';
   h += '<div class="pinfo2" id="paxinfo">' + PORT.paxInfo(d) + '</div>';
-  h += '<div class="prow">' + btn('Advertise on ' + esc(GT.PLANETS[d].name) + ' (' + fmt(cost) + 'c)', 'advertise', GT.canAdvertise(S, d), 'blue') + '<span class="dim">' + (ad ? 'Poster campaign live: x' + GT.PAX.AD_MULT + ' interest, ' + ad + ' jump' + (ad > 1 ? 's' : '') + ' left.' : 'Posters on the destination bring about ' + GT.PAX.AD_MULT + 'x the passengers for ' + GT.PAX.AD_TURNS + ' jumps.') + '</span></div></div>';
+  h += '<div class="prow">' + btn('Advertise on ' + esc(GT.PLANETS[d].name) + ' (' + fmt(cost) + 'c)', 'advertise', GT.canAdvertise(S, d), 'blue') + '<span class="dim">' + (ad ? 'Poster campaign live: x' + GT.PAX.AD_MULT + ' interest, ' + ad + ' jump' + (ad > 1 ? 's' : '') + ' left.' : 'Posters there: ' + GT.PAX.AD_MULT + 'x passengers for ' + GT.PAX.AD_TURNS + ' jumps.') + '</span></div></div>';
   return h;
 };
 ACTX.push(function (a) {
@@ -103,21 +103,22 @@ INPX.push(function (t, v) {
 PAGES.pad = function () {
   var d = ui.dest, P = GT.PLANETS, here = P[S.loc], tx = GT.taxInfo(S, S.loc);
   var h = '<div class="pad-pages port"><div class="row ptop"><h2 class="hd">Spaceport &middot; ' + esc(here.name) + '</h2><button class="btn big blue" data-act="leave">Back to the street</button></div>';
-  h += '<div class="portgrid"><div class="portL"><div class="mapwrap">' + UI.mapSVG(S, d) + '</div>' + PORT.view() + '</div><div class="portR">';
+  h += '<div class="portgrid"><div class="portL"><div class="mapwrap">' + UI.mapSVG(S, d) + '</div>' + PORT.view() + V7.holdPanel() + '</div><div class="portR">';
   h += '<div class="panel here"><div class="row"><h3 class="hd" style="color:' + here.color + '">You are at ' + esc(here.name) + '</h3><span class="dim">' + here.type + '</span></div>' + (d === null || d === S.loc ? '<p class="hdesc">' + esc(here.desc) + '</p>' : '') + '<div class="dim">Tax ' + (tx.rate * 100).toFixed(1) + '% &middot; ' + (here.fuelSold ? 'fuel sold here' : 'no fuel dock') + ' &middot; ' + (here.upgrades.length ? 'shipyard open' : 'no shipyard') + (here.gambling ? ' &middot; has a gambling parlour' : '') + '</div></div>';
   h += '<div class="panel trip"><h3 class="hd">Trip plan</h3>';
-  if (d === null || d === S.loc) h += '<p class="dim" style="margin:0">Click a world on the star map to plan a jump.</p>';
+  if (d === null || d === S.loc) h += '<div class="row"><p class="dim" style="margin:0">Click a world on the star map to plan a jump, or stay put.</p>' + V7.waitBtn() + '</div>';
   else {
     var p = P[d], cost = GT.jumpCost(S, d), ok = S.ship.fuel >= cost, rivals = S.comps.filter(function (c) { return c.loc === d; }), sf = speedFacts(GT.effSpeed(S));
     h += '<div class="row"><b style="font:11px var(--display);color:' + p.color + '">' + esc(p.name) + '</b><span class="dim">' + p.type + ' &middot; tax ' + (p.tax * 100).toFixed(1) + '%</span></div>';
-    h += '<p class="hdesc tdesc">' + esc(p.desc) + '</p>';
+    if (!GT.wageDue(S)) h += '<p class="hdesc tdesc">' + esc(p.desc) + '</p>';
     h += '<p class="tline">Distance <b class="num">' + GT.dist(S.loc, d).toFixed(0) + '</b> &middot; Fuel <b class="num ' + (ok ? '' : 'bad') + '">' + cost + ' PC</b> <span class="dim">(you have ' + S.ship.fuel + ')</span> &middot; <span class="dim">warp ' + GT.effSpeed(S).toFixed(1) + ' burns ' + sf.fuel + '%, dodges ' + sf.dodge + '%</span></p>';
     if (rivals.length) h += '<p class="tline dim">Rivals docked there: ' + rivals.map(function (c) { return esc(c.name); }).join(', ') + '.</p>';
     if (!ok) h += '<p class="tline bad"><b>Warning:</b> not enough fuel for this jump. ' + (here.fuelSold ? 'Visit the Fuel Dock first.' : 'There is no fuel dock here.') + '</p>';
-    h += PORT.paxBlock(d) + '<div class="jumprow">' + btn('Jump to ' + esc(p.name), 'jump', GT.canJump(S, d), 'pink big') + '</div>';
+    if (GT.onStrike(S)) h += '<p class="tline bad"><b>The crew are on strike.</b> Pay them (below) before you can jump.</p>';
+    h += PORT.paxBlock(d) + '<div class="jumprow">' + V7.waitBtn() + btn('Jump to ' + esc(p.name), 'jump', GT.canJump(S, d), 'pink big') + '</div>';
   }
-  if (GT.stranded(S) && !S.over) { var tt = P[GT.towTarget(S)]; h += '<p class="tline bad"><b>Stranded:</b> not enough fuel for any jump.</p>' + btn('Call a tow to ' + esc(tt.name) + ' (' + GT.CFG.TOW_COST + 'c)', 'tow', !S.pending, 'gold'); }
-  h += '</div>';
+  if (GT.stranded(S) && !S.over) { var tt = P[GT.towTarget(S)]; h += '<p class="tline bad"><b>Stranded:</b> not enough fuel for any jump.</p>' + btn('Call a tow to ' + esc(tt.name) + ' (' + GT.CFG.TOW_COST + 'c)', 'tow', !S.pending && !GT.onStrike(S), 'gold'); }
+  h += '</div>' + V7.crewLine();
   var rows = S.comps.map(function (c) { return { name: c.name + ' ' + c.title, w: c.wealth, me: false }; });
   G.players.forEach(function (q) { rows.push({ name: q.name + (q === S ? ' (you)' : G.multi ? ' (captain)' : ''), w: GT.networth(q), me: q === S, out: !!(q.over && !q.over.won) }); }); rows.sort(function (a, b) { return b.w - a.w; });
   h += '<div class="panel lead"><h3 class="hd">Standings <span class="dim">first to ' + fmt(GT.CFG.WIN) + 'c wins</span></h3><table>';
@@ -128,10 +129,10 @@ PAGES.pad = function () {
 /* ---------- the ship page ---------- */
 /* where each part is on each ship picture, as a fraction of the picture */
 PORT.PARTS = {
-  wayfarer:  { engine: [0.08, 0.52], cockpit: [0.72, 0.48], cargo: [0.52, 0.62], cabin: [0.40, 0.51], fuel: [0.52, 0.82] },
-  barge:     { engine: [0.11, 0.52], cockpit: [0.88, 0.47], cargo: [0.55, 0.26], cabin: [0.66, 0.58], fuel: [0.40, 0.82] },
-  stargazer: { engine: [0.09, 0.52], cockpit: [0.85, 0.49], cargo: [0.58, 0.52], cabin: [0.50, 0.27], fuel: [0.40, 0.68] },
-  cutlass:   { engine: [0.12, 0.37], cockpit: [0.73, 0.47], cargo: [0.40, 0.50], cabin: [0.56, 0.46], fuel: [0.40, 0.80] }
+  wayfarer:  { engine: [0.13, 0.50], cockpit: [0.75, 0.45], cargo: [0.47, 0.60], cabin: [0.61, 0.57], fuel: [0.40, 0.84] },
+  barge:     { engine: [0.11, 0.50], cockpit: [0.90, 0.45], cargo: [0.50, 0.30], cabin: [0.86, 0.63], fuel: [0.20, 0.68] },
+  stargazer: { engine: [0.13, 0.50], cockpit: [0.82, 0.48], cargo: [0.67, 0.50], cabin: [0.525, 0.20], fuel: [0.35, 0.50] },
+  cutlass:   { engine: [0.14, 0.36], cockpit: [0.68, 0.42], cargo: [0.46, 0.61], cabin: [0.55, 0.47], fuel: [0.24, 0.64] }
 };
 PAGES.ship = function () {
   var sh = GT.SHIPS.filter(function (x) { return x.id === S.shipId; })[0], c = S.char, pts = PORT.PARTS[sh.id], W = 1240, H = 380, SW = 448, SH = 261, SX = (W - SW) / 2, SY = (H - SH) / 2;

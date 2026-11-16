@@ -16,13 +16,21 @@ PX.shade = function (rgb, w, h) { return rgb; };
    grid is a dither block, and its pixels become a smooth bilinear blend of the neighbouring dither blocks instead. Hard edges, lines and text never split cleanly, so they stay crisp. */
 PX.RANK = []; (function () { for (var k = 0; k < 16; k++) PX.RANK[k] = PX.BAYER[k]; })();
 PX.flat = function (buf, night) {
-  var w = buf.w, h = buf.h, n = w * h, ci = new Uint8Array(n), out = new Uint8ClampedArray(n * 4), i, c, x, y;
-  for (i = 0; i < n; i++) { c = buf.d[i]; if (c === 255) { ci[i] = 255; continue; } if (c >= 16) c -= 16; else if (night) c = PX.NIGHT[c]; ci[i] = c; }
+  var w = buf.w, h = buf.h, n = w * h, ci = new Uint8Array(n), out = new Uint8ClampedArray(n * 4), done = new Uint8Array(n), i, c, x, y;
+  var pre = null, NM = PX.NIGHT;
+  for (i = 0; i < n; i++) {
+    c = buf.d[i]; if (c === 255) { ci[i] = 255; continue; }
+    if (c >= 1024) {                      /* a true mix: blend the two ends, each pushed through the night map after dark */
+      if (!pre) pre = new Float32Array(n * 3); c -= 1024; var ma = c >> 8, mb = (c >> 4) & 15, mt = ((c & 15) + 1) / 16; if (night) { ma = NM[ma]; mb = NM[mb]; }
+      var A = PX.RGB[ma], Bc = PX.RGB[mb]; pre[i * 3] = A[0] + (Bc[0] - A[0]) * mt; pre[i * 3 + 1] = A[1] + (Bc[1] - A[1]) * mt; pre[i * 3 + 2] = A[2] + (Bc[2] - A[2]) * mt; ci[i] = 254; continue;
+    }
+    if (c >= 16) c -= 16; else if (night) c = PX.NIGHT[c]; ci[i] = c;
+  }
   var bw = Math.ceil(w / 4), bh = Math.ceil(h / 4), fl = new Uint8Array(bw * bh), bX = new Uint8Array(bw * bh), bY = new Uint8Array(bw * bh), mr = new Float32Array(bw * bh * 3);
   if (PX.smooth) for (var by = 0; by < bh; by++) for (var bx = 0; bx < bw; bx++) {
     var rk = [[], [], [], [], [], [], [], [], [], [], [], [], [], [], [], []], kinds = [], j, k, bi = by * bw + bx, tot = 0;
     for (j = 0; j < 4; j++) for (k = 0; k < 4; k++) {
-      x = bx * 4 + k; y = by * 4 + j; if (x >= w || y >= h) continue; c = ci[y * w + x]; if (c === 255) continue;
+      x = bx * 4 + k; y = by * 4 + j; if (x >= w || y >= h) continue; c = ci[y * w + x]; if (c >= 254) continue;
       if (!rk[c].length) kinds.push(c); rk[c].push(PX.BAYER[j * 4 + k]); tot++;
     }
     if (kinds.length < 2 || kinds.length > 6 || tot < 12) continue;
@@ -39,6 +47,7 @@ PX.flat = function (buf, night) {
   for (y = 0; y < h; y++) for (x = 0; x < w; x++) {
     i = y * w + x; c = ci[i]; var o = i * 4;
     if (c === 255) { out[o + 3] = 0; continue; }
+    if (c === 254) { out[o] = pre[i * 3]; out[o + 1] = pre[i * 3 + 1]; out[o + 2] = pre[i * 3 + 2]; out[o + 3] = 255; done[i] = 1; continue; }
     var rr = PX.RGB[c][0], gg = PX.RGB[c][1], bb = PX.RGB[c][2], own = (y >> 2) * bw + (x >> 2);
     if (fl[own] && (c === bX[own] || c === bY[own])) {
       var fx = (x - 1.5) / 4, fy = (y - 1.5) / 4, x0 = Math.floor(fx), y0 = Math.floor(fy), tx = fx - x0, ty = fy - y0, sr = 0, sg = 0, sb = 0, sw = 0, q;
@@ -51,11 +60,56 @@ PX.flat = function (buf, night) {
         sr += mr[nb * 3] * wt; sg += mr[nb * 3 + 1] * wt; sb += mr[nb * 3 + 2] * wt; sw += wt;
       }
       if (sw > 0) { rr = sr / sw; gg = sg / sw; bb = sb / sw; } else { rr = mr[own * 3]; gg = mr[own * 3 + 1]; bb = mr[own * 3 + 2]; }
+      done[i] = 1;
     }
     out[o] = rr; out[o + 1] = gg; out[o + 2] = bb; out[o + 3] = 255;
   }
-  if (PX.smooth) out = PX.bilateral(out, w, h);
+  if (PX.smooth) { PX.undither(ci, out, done, w, h); out = PX.bilateral(out, w, h); if (night) PX.bloom(buf, out, w, h); if (w >= 240 && h >= 90) PX.vignette(out, w, h); }
   return out;
+};
+/* v7: a second, pixel-by-pixel hunt for dither the block test misses (checkerboards and sparse dot screens laid over detail). A pixel belongs to a dither when it and its
+   like-coloured neighbours two pixels away are all lone dots, or sit in a checkerboard. Those pixels, and the background between them, become the local mix of the two colours.
+   Lone stars, window lights, the dot on an "i" and outlines do not repeat like that, so they are left alone. */
+PX.undither = function (ci, out, done, w, h) {
+  var n = w * h, lone = new Uint8Array(n), chk = new Uint8Array(n), pair = new Uint8Array(n), mark = new Uint8Array(n), x, y, i, a, b, k, j;
+  var N8 = [-w - 1, -w, -w + 1, -1, 1, w - 1, w, w + 1], D2 = [-2, 2, -2 * w, 2 * w, -2 * w - 2, -2 * w + 2, 2 * w - 2, 2 * w + 2];
+  for (y = 2; y < h - 2; y++) for (x = 2; x < w - 2; x++) {
+    i = y * w + x; a = ci[i]; if (a >= 254) continue;
+    b = ci[i - 1];
+    if (b !== a && b < 254 && ci[i + 1] === b && ci[i - w] === b && ci[i + w] === b) {
+      var dg = (ci[i - w - 1] === a) + (ci[i - w + 1] === a) + (ci[i + w - 1] === a) + (ci[i + w + 1] === a);
+      if (dg >= 3) { chk[i] = 1; pair[i] = b + 1; }
+      else if (dg === 0) { var cnt = {}, top = b, tc = 0, ok = true; for (k = 0; k < 8; k++) { var q = ci[i + N8[k]]; if (q === a) { ok = false; break; } cnt[q] = (cnt[q] || 0) + 1; if (cnt[q] > tc) { tc = cnt[q]; top = q; } } if (ok && tc >= 6 && top < 254) { lone[i] = 1; pair[i] = top + 1; } }
+    }
+  }
+  for (y = 2; y < h - 2; y++) for (x = 2; x < w - 2; x++) {
+    i = y * w + x; if (done[i]) continue; a = ci[i];
+    if (chk[i]) { for (k = 0; k < 4; k++) { j = i + D2[k]; if (j >= 0 && j < n && ci[j] === a && chk[j]) { mark[i] = 1; break; } } }
+    else if (lone[i]) { var c2 = 0; for (k = 0; k < 8; k++) { j = i + D2[k]; if (j >= 0 && j < n && ci[j] === a && lone[j]) c2++; } if (c2 >= 2) mark[i] = 1; }
+  }
+  /* the background between marked dots joins in */
+  var m2 = new Uint8Array(n), p2 = new Uint8Array(n);
+  for (y = 2; y < h - 2; y++) for (x = 2; x < w - 2; x++) {
+    i = y * w + x; if (done[i] || ci[i] >= 254) continue;
+    if (mark[i]) { m2[i] = 1; p2[i] = pair[i]; continue; }
+    var hits = 0, pc = 0; for (k = 0; k < 8; k++) { j = i + N8[k]; if (mark[j] && pair[j] - 1 === ci[i]) { hits++; pc = ci[j] + 1; } }
+    if (hits >= 1) { m2[i] = 1; p2[i] = pc; }
+  }
+  for (y = 2; y < h - 3; y++) for (x = 2; x < w - 3; x++) {
+    i = y * w + x; if (!m2[i]) continue; a = ci[i]; b = p2[i] - 1; var sr = 0, sg = 0, sb = 0, sn = 0, xx, yy;
+    for (yy = -1; yy <= 2; yy++) for (xx = -1; xx <= 2; xx++) { var cc = ci[i + yy * w + xx]; if (cc === a || cc === b) { sr += PX.RGB[cc][0]; sg += PX.RGB[cc][1]; sb += PX.RGB[cc][2]; sn++; } }
+    if (sn >= 6) { out[i * 4] = sr / sn; out[i * 4 + 1] = sg / sn; out[i * 4 + 2] = sb / sn; }
+  }
+};
+/* v7: things painted to glow at night (windows, signs, beacons) now spill a little light onto what is around them */
+PX.bloom = function (buf, out, w, h) {
+  var n = w * h, g = [new Float32Array(n), new Float32Array(n), new Float32Array(n)], any = false, i, c, ch;
+  for (i = 0; i < n; i++) { c = buf.d[i]; if (c >= 16 && c < 32) { any = true; for (ch = 0; ch < 3; ch++) g[ch][i] = PX.RGB[c - 16][ch]; } }
+  if (!any) return;
+  for (ch = 0; ch < 3; ch++) { var bl = PX.boxblur(PX.boxblur(g[ch], w, h, 2), w, h, 3); for (i = 0; i < n; i++) if (out[i * 4 + 3]) out[i * 4 + ch] = Math.min(255, out[i * 4 + ch] + bl[i] * 0.85); }
+};
+PX.vignette = function (out, w, h) {
+  for (var y = 0; y < h; y++) for (var x = 0; x < w; x++) { var dx = (x / w - 0.5) * 2, dy = (y / h - 0.5) * 2, v = 1 - 0.2 * Math.pow(Math.min(1, (dx * dx + dy * dy) / 1.6), 1.6), o = (y * w + x) * 4; if (!out[o + 3]) continue; out[o] *= v; out[o + 1] *= v; out[o + 2] *= v; }
 };
 /* an edge-keeping blur: neighbours that are close in colour are averaged together (so leftover stipple melts into paint), neighbours that are far away (outlines, text, sprites) are ignored */
 PX.bilateral = function (src, w, h) {

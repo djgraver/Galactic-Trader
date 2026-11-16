@@ -61,7 +61,7 @@ SC.SH.dome = function (f, t, o) {
   f.wall(2, 0, 98, H, t.a, t.b, 'plaster', 8);
   f.R(2, H, 96, 3 * uy, t.t); f.R(2, 0, 96, 4 * uy, SC.D(t.b));
   f.fill(0, H + 3 * uy, 100, 130, function (x, y) { var a = (x - 50) / 47, b = (y - (H + 3 * uy)) / 78; return a * a + b * b <= 1; }, function (lx, ly, X, Y) {
-    var tt = (lx - 5) / 90, band = Math.abs(((lx - 50) / 47)); var c = PX.BAYER[(Y & 3) * 4 + (X & 3)] < tt * 16 ? t.b : t.a;
+    var tt = (lx - 5) / 90, band = Math.abs(((lx - 50) / 47)); var c = PX.mix(t.a, t.b, tt * 16);
     if (Math.floor((lx - 5) / 15) !== Math.floor((lx - 5 + ux * 1.2) / 15)) c = t.t; else if (ly - H > 40 && PX.BAYER[(Y & 3) * 4 + (X & 3)] < 4) c = SC.LT[c];
     if (lx > 22 && lx < 34 && ly > H + 34 && ly < H + 44) c = PX.W; return c; });
   for (var i = 0; i < 3; i++) f.win(20 + i * 22, H + 10, 12, 10, t, { kind: 3, shut: false, lit: i !== 1 });
@@ -132,7 +132,7 @@ SC.SH.hex = function (f, t, o) {
   var ux = f.ux, uy = f.uy, i;
   f.P([8, 0, 92, 0, 98, 40, 92, 100, 8, 100, 2, 40], PX.K);
   f.P([10, 2, 90, 2, 96, 40, 90, 98, 10, 98, 4, 40], PX.D);
-  f.fill(4, 2, 96, 98, function (x, y) { var d = Math.abs(x - 50) / 46; return d <= 1 && y > 2 && y < 98 && (y > 8 || d < 0.9); }, function (lx, ly, X, Y) { return PX.BAYER[(Y & 3) * 4 + (X & 3)] < (lx - 4) / 92 * 14 ? t.b : t.a; });
+  f.fill(4, 2, 96, 98, function (x, y) { var d = Math.abs(x - 50) / 46; return d <= 1 && y > 2 && y < 98 && (y > 8 || d < 0.9); }, function (lx, ly, X, Y) { return PX.mix(t.a, t.b, (lx - 4) / 92 * 14); });
   f.R(4, 30, 92, 2 * uy, SC.D(t.a)); f.R(4, 66, 92, 2 * uy, SC.D(t.a));
   for (i = 0; i < 4; i++) f.R(8 + i * 22, 38, 8, 22, SC.D(t.b));
   for (i = 0; i < 4; i++) f.E(12 + i * 22, 49, 4 * ux, 4 * uy, f.night && i !== 2 ? PX.E + PX.Y : t.g);
@@ -166,7 +166,7 @@ SC.SH.arch = function (f, t, o) {
   f.R(2, 0, 96, 5 * uy, SC.D(t.b)); f.R(0, 92, 100, 5 * uy, t.t); f.R(2, 97 + 5 * uy, 96, 3 * uy, SC.D(t.a)); f.R(0, 92 + 4 * uy, 100, uy, SC.LT[t.t] === t.t ? PX.W : SC.LT[t.t]);
   [10, 22, 70, 82].forEach(function (x) { f.R(x, 5 * uy, 8, 82, f.gh(SC.LT[t.a] === t.a ? PX.W : SC.LT[t.a], t.a, x, x + 8)); f.R(x - 1.5 * ux, 87, 11 * ux, 5 * uy, t.t); f.R(x - 1.5 * ux, 0, 11 * ux, 4 * uy, t.t); });
   f.fill(34, 0, 66, 78, function (x, y) { return y < 56 || ((x - 50) / 16) * ((x - 50) / 16) + ((y - 56) / 22) * ((y - 56) / 22) <= 1; }, PX.K);
-  f.fill(37, 0, 63, 72, function (x, y) { return y < 54 || ((x - 50) / 13) * ((x - 50) / 13) + ((y - 54) / 18) * ((y - 54) / 18) <= 1; }, function (lx, ly, X, Y) { return f.night ? PX.E + PX.N : PX.BAYER[(Y & 3) * 4 + (X & 3)] < 7 ? PX.D : PX.K; });
+  f.fill(37, 0, 63, 72, function (x, y) { return y < 54 || ((x - 50) / 13) * ((x - 50) / 13) + ((y - 54) / 18) * ((y - 54) / 18) <= 1; }, function (lx, ly, X, Y) { return f.night ? PX.E + PX.N : PX.mix(PX.K, PX.D, 7); });
   for (i = 0; i < 3; i++) { f.R(18 + i * 26, 100, 8, 6, SC.D(t.a)); f.E(22 + i * 26, 108, 4, 3, t.t); }
   f.E(50, 82, 6, 5, t.t); f.R(48, 80, 4, 4, PX.R);
   return { door: { x: 36, w: 28, h: 56 }, sign: { x: 12, y: 90, w: 76, h: 11 } };
@@ -189,7 +189,7 @@ SC.SH.derrick = function (f, t, o) {
 /* ---------- balloon: a house slung under a patterned gas bag. Halcyra. ---------- */
 SC.SH.balloon = function (f, t, o) {
   var ux = f.ux, uy = f.uy, i, c1 = t.r, c2 = SC.D(t.r) === t.r ? PX.W : PX.W;
-  f.fill(8, 74, 92, 150, function (x, y) { var a = (x - 50) / 42, b = (y - 112) / 38; return a * a + b * b <= 1; }, function (lx, ly, X, Y) { var st = Math.floor((lx - 8) / 10) & 1, c = st ? c2 : c1; return PX.BAYER[(Y & 3) * 4 + (X & 3)] < (lx - 8) / 84 * 12 ? SC.D(c) : c; });
+  f.fill(8, 74, 92, 150, function (x, y) { var a = (x - 50) / 42, b = (y - 112) / 38; return a * a + b * b <= 1; }, function (lx, ly, X, Y) { var st = Math.floor((lx - 8) / 10) & 1, c = st ? c2 : c1; return PX.mix(c, SC.D(c), (lx - 8) / 84 * 12); });
   f.E(34, 130, 7, 4, SC.LT[c1] === c1 ? PX.W : SC.LT[c1]);
   for (i = 0; i < 4; i++) f.L(20 + i * 20, 80, 26 + i * 16, 54, 1, PX.D);
   f.wall(12, 0, 88, 52, t.a, t.b, 'plank', 9);
@@ -231,7 +231,7 @@ SC.SH.gap = function (f, t, o) {
   var ux = f.ux, uy = f.uy, i;
   f.wall(2, 0, 98, 100, SC.D(t.b), PX.K, 'brick', 11); f.R(2, 0, 96, 6 * uy, PX.K);
   f.fill(20, 0, 80, 84, function (x, y) { return y < 62 || ((x - 50) / 30) * ((x - 50) / 30) + ((y - 62) / 22) * ((y - 62) / 22) <= 1; }, PX.K);
-  f.fill(24, 0, 76, 76, function (x, y) { return y < 60 || ((x - 50) / 26) * ((x - 50) / 26) + ((y - 60) / 16) * ((y - 60) / 16) <= 1; }, function (lx, ly, X, Y) { return ly < 12 ? PX.D : (PX.BAYER[(Y & 3) * 4 + (X & 3)] < 3 ? PX.D : PX.K); });
+  f.fill(24, 0, 76, 76, function (x, y) { return y < 60 || ((x - 50) / 26) * ((x - 50) / 26) + ((y - 60) / 16) * ((y - 60) / 16) <= 1; }, function (lx, ly, X, Y) { return ly < 12 ? PX.D : PX.mix(PX.K, PX.D, 3); });
   f.E(34, 14, 7, 7, PX.G); f.R(27, 4, 14, 8, PX.G); f.R(27, 4, 14, 2, PX.LG); f.R(60, 0, 14, 22, PX.D); f.R(58, 22, 18, 2, PX.L);
   f.E(46, 70, 3 * ux, 3 * uy, f.night ? PX.E + PX.Y : PX.Y); f.E(54, 70, 3 * ux, 3 * uy, f.night ? PX.E + PX.Y : PX.Y); f.R(45, 69, 1, 1, PX.K);
   f.R(10, 20, 2 * ux, 80, PX.D); f.R(88, 30, 2 * ux, 70, PX.D); f.L(12, 70, 24, 78, 1, PX.D);

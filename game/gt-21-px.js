@@ -9,10 +9,27 @@ PX.K = 0; PX.B = 1; PX.G = 2; PX.C = 3; PX.R = 4; PX.M = 5; PX.N = 6; PX.L = 7; 
 PX.NIGHT = [0, 0, 1, 1, 0, 1, 0, 8, 0, 1, 2, 3, 4, 5, 6, 7];
 PX.BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
 /* a dither fill: level 0..16 mixes colour a into colour b */
-PX.dith = function (a, b, l) { return function (x, y) { return l > PX.BAYER[(y & 3) * 4 + (x & 3)] ? b : a; }; };
-PX.checker = function (a, b) { return function (x, y) { return (x + y) & 1 ? b : a; }; };
+/* v7: a "mix" is a true blend of two palette colours in sixteenths, stored in the buffer as one number (1024 and up), so shading is smooth paint and not a dot pattern.
+   The 16 roles times 16 roles times 15 steps make a few thousand colours, of which a scene uses a couple of hundred: the 256-colour VGA idea. */
+PX.mix = function (a, b, l) {
+  l = Math.round(l); if (l <= 0 || a === b) return a; if (l >= 16) return b;
+  if (a < 0 || b < 0 || a === 255 || b === 255) return function (x, y) { return l > PX.BAYER[(y & 3) * 4 + (x & 3)] ? b : a; };
+  if (a >= 16 || b >= 16) return l >= 8 ? b : a;
+  return 1024 + (a << 8 | b << 4 | (l - 1));
+};
+PX.isMix = function (c) { return c >= 1024; };
+PX.unmix = function (c) { c -= 1024; return [c >> 8, (c >> 4) & 15, (c & 15) + 1]; };
+/* push a colour (plain or mixed) through a 16-entry map such as "darker" or "lighter", by lv sixteenths */
+PX.remap = function (c, map, lv) {
+  if (lv === undefined) lv = 16;
+  if (c < 16) return PX.mix(c, map[c], lv);
+  if (c >= 1024) { if (lv < 5) return c; var m = PX.unmix(c); return PX.mix(map[m[0]], map[m[1]], m[2]); }
+  return c;
+};
+PX.dith = function (a, b, l) { return PX.mix(a, b, l); };
+PX.checker = function (a, b) { return PX.mix(a, b, 8); };
 
-PX.Buf = function (w, h, fill) { this.w = w; this.h = h; this.d = new Uint8Array(w * h); this.d.fill(fill === undefined ? 0 : fill); };
+PX.Buf = function (w, h, fill) { this.w = w; this.h = h; this.d = new Uint16Array(w * h); this.d.fill(fill === undefined ? 0 : fill); };
 (function (P) {
   P.px = function (x, y, c) { x = x | 0; y = y | 0; if (x < 0 || y < 0 || x >= this.w || y >= this.h) return; if (typeof c === 'function') c = c(x, y); if (c < 0 || c === 255) return; this.d[y * this.w + x] = c; };
   P.get = function (x, y) { return x < 0 || y < 0 || x >= this.w || y >= this.h ? 0 : this.d[y * this.w + x]; };
@@ -41,7 +58,7 @@ PX.Buf = function (w, h, fill) { this.w = w; this.h = h; this.d = new Uint8Array
   /* vertical sky: bands of colours blended by dither. cols = [c0, c1, c2...] from top to bottom */
   P.vgrad = function (x, y, w, h, cols) {
     var seg = cols.length - 1;
-    for (var j = 0; j < h; j++) { var t = j / Math.max(1, h - 1) * seg, k = Math.min(seg - 1, Math.floor(t)), l = (t - k) * 16; for (var i = 0; i < w; i++) this.px(x + i, y + j, PX.BAYER[((y + j) & 3) * 4 + ((x + i) & 3)] < l ? cols[k + 1] : cols[k]); }
+    for (var j = 0; j < h; j++) { var t = j / Math.max(1, h - 1) * seg, k = Math.min(seg - 1, Math.floor(t)), l = (t - k) * 16; for (var i = 0; i < w; i++) this.px(x + i, y + j, PX.mix(cols[k], cols[k + 1], l)); }
   };
   P.blit = function (src, x, y) { for (var j = 0; j < src.h; j++) for (var i = 0; i < src.w; i++) { var c = src.d[j * src.w + i]; if (c !== 255) this.px(x + i, y + j, c); } };
   P.text = function (x, y, s, c, sc) { sc = sc || 1; s = String(s).toUpperCase(); var cx = x; for (var k = 0; k < s.length; k++) { var g = PX.FONT[s[k]] || PX.FONT['?']; for (var col = 0; col < 5; col++) for (var row = 0; row < 7; row++) if ((g[col] >> row) & 1) this.rect(cx + col * sc, y + row * sc, sc, sc, c); cx += 6 * sc; } return cx - x; };

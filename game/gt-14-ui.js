@@ -52,7 +52,7 @@ function speak(role, text) { ui.say[role] = text; }
 function castOf(role) {
   var pid = plan().id;
   if (role === 'cantina') return NP.who2(pid);
-  if (role === 'jobs') { var k = 'foreman/' + pid; if (!NP.cache[k]) { var t = CH.fromSeed(k, { sp: 0, hair: 7, gen: 'm' }); t.name = 'Foreman Gruff'; t.job = 'Odd Jobs Boss'; NP.cache[k] = t; } return NP.cache[k]; }
+  if (role === 'jobs') { var k = 'foreman/' + pid; if (!NP.cache[k]) { var t = CH.fromSeed(k, { sp: 0, hair: 7, gen: 'm' }); t.name = 'Foreman Gruff'; t.job = 'Odd Jobs Boss'; t.role = 'jobs'; t.pid = pid; NP.cache[k] = t; } return NP.cache[k]; }
   if (role === 'alley') return null;
   return NP.char(pid, role);
 }
@@ -73,6 +73,7 @@ function hud() {
   h += '<span class="chip" title="' + esc(plainText(speedBlurb(es))) + '. Faster ships also move first in multiplayer.">Warp <b class="num">' + es.toFixed(1) + '</b></span>';
   h += '<span class="chip" title="Reputation cuts your tax and tilts luck">' + UI.icon('star') + '<b class="num">' + S.rep + '</b> <span class="dim">' + repLabel(S.rep) + '</span></span>';
   h += '<span class="chip" title="Jumps so far">' + (G.multi ? 'Round' : 'Turn') + ' <b class="num">' + (G.multi ? G.round : S.turn) + '</b></span>';
+  if (GT.wageDue && GT.wageDue(S)) h += '<span class="chip wagechip ' + (GT.onStrike(S) ? 'strike' : '') + '" title="Pay the crew at the Spaceport">' + (GT.onStrike(S) ? 'CREW ON STRIKE' : 'Wages due') + ' <b class="num">' + fmt(GT.wageDue(S)) + 'c</b></span>';
   h += '<span class="chip" title="Credits plus bank minus loan. Win at ' + fmt(GT.CFG.WIN) + 'c">Worth <b class="num">' + fmt(nw) + 'c</b>' + bar(nw / GT.CFG.WIN, 'w') + '<span class="dim">' + fmt(GT.CFG.WIN) + 'c</span></span>';
   $('stats').innerHTML = h;
 }

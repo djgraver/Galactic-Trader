@@ -55,6 +55,7 @@ function startGame() {
     GT.log(q, 'Welcome aboard, <b>' + esc(q.name) + '</b>, ' + esc(q.char.title) + '. You start at <b>' + GT.PLANETS[q.loc].name + '</b> with ' + fmt(q.credits) + 'c and a ' + esc(sh.name) + '. Reach ' + fmt(GT.CFG.WIN) + 'c to win.', 'info');
     GT.log(q, 'Tip: goods are cheap where they are made. Read each world\'s description, find a far world on the Launch Pad map, and sell where it is scarce.', 'info');
   });
+  MUSIC.stop();
   $('start').hidden = true; closeModal(); $('pass').hidden = true;
   if (G.multi) { passScreen(); render(); } else { render(); toast('Click a building to walk there and visit it.'); }
 }
@@ -77,7 +78,8 @@ function act(a, el) {
   if (a.indexOf('endp-') === 0) { endModal(+a.slice(5)); return; }
   if (a === 'close') { closeModal(); return; }
   if (a === 'info') { openModal(infoHTML(), true); return; }
-  if (a === 'sound') { SFX.on = !SFX.on; try { localStorage.setItem('gt-snd', SFX.on ? '1' : '0'); } catch (e) {} syncBar(); SFX.play('pop'); return; }
+  if (a === 'theme') { if (MUSIC.on) { MUSIC.stop(); MUSIC.muted = true; } else { MUSIC.muted = false; SFX.on = true; syncBar(); MUSIC.start(); } return; }
+  if (a === 'sound') { if (SFX.on) MUSIC.stop(); SFX.on = !SFX.on; try { localStorage.setItem('gt-snd', SFX.on ? '1' : '0'); } catch (e) {} syncBar(); SFX.play('pop'); return; }
   if (a === 'new') { if (!S || (G && G.over) || el.dataset.sure) { S = null; G = null; ui.tag = null; closeModal(); $('pass').hidden = true; $('flight').hidden = true; renderStart(); } else openModal('<h2>Abandon this voyage?</h2><p>Your current game will be lost.</p><div class="row" style="justify-content:flex-end"><button class="btn blue" data-act="close">Keep playing</button><button class="btn pink" data-act="new" data-sure="1">Abandon</button></div>'); return; }
   if (!S) return;
   if (a === 'log') { logModal(); return; }
@@ -156,12 +158,12 @@ document.addEventListener('input', function (e) {
 });
 
 /* ---------- boot ---------- */
-/* the fixed retro frame: scale the 1280 x 800 stage to fit the window; phones and other narrow windows get the fluid layout */
+/* the fixed retro frame: scale the 1440 x 810 stage (16:9, so it fills a 1080p screen exactly at 1.333x) to fit the window; phones and other narrow windows get the fluid layout */
 function fitFrame() {
   var f = $('frame'), w = window.innerWidth, h = window.innerHeight; if (!f) return;
   var fluid = w < 860 || h < 520 || w / h < 1.05;
   f.classList.toggle('fluid', fluid);
-  f.style.setProperty('--k', fluid ? 1 : (Math.min(w / 1280, h / 800)).toFixed(4));
+  f.style.setProperty('--k', fluid ? 1 : (Math.min(w / 1440, h / 810)).toFixed(4));
 }
 window.addEventListener('resize', fitFrame);
 

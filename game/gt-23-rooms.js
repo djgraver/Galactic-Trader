@@ -9,7 +9,7 @@ PX.ball = function (B, cx, cy, r, pid, type, ring) {
   B.ell(cx, cy, r, r, PX.K);
   for (y = -r + 1; y < r; y++) for (x = -r + 1; x < r; x++) {
     if (x * x + y * y > (r - 1) * (r - 1)) continue; var lit = (x * 0.7 + y * 0.7) / r, t = (lit + 1) * 8;
-    B.px(cx + x, cy + y, PX.BAYER[((cy + y) & 3) * 4 + ((cx + x) & 3)] < t ? c[1] : c[0]);
+    B.px(cx + x, cy + y, PX.mix(c[0], c[1], t));
     if (type === 'Gas Giant' && ((y + r) >> 2) % 2 === 1 && PX.BAYER[((cy + y) & 3) * 4 + ((cx + x) & 3)] < 10) B.px(cx + x, cy + y, c[2]);
     if (type === 'Agrarian' && ((x * 3 + y * 5 + r * 7) % 11) < 3 && PX.BAYER[((cy + y) & 3) * 4 + ((cx + x) & 3)] < 12) B.px(cx + x, cy + y, c[2]);
     if (type === 'Mining' && ((x * 5 + y * 3) % 13) === 0) B.px(cx + x, cy + y, c[2]);

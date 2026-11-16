@@ -13,7 +13,7 @@ PAGES.bank = function () {
   h += '<div class="dim bl">In your pocket: <b class="num">' + fmt(S.credits) + 'c</b>. Deposits count toward your net worth and are safe from rivals.</div></section>';
   h += '<section class="panel loan"><h2 class="hd">Loans</h2><div class="bal num ' + (S.loan ? 'bad' : '') + '">' + fmt(S.loan) + 'c</div>';
   h += '<div class="dim bl">Costs <b>' + pct(C.LOAN_RATE) + '</b> every jump. ' + (S.loan ? 'Next interest: <b class="bad">+' + fmt(nextLoan) + 'c</b> added to the debt.' : 'You owe nothing. Lucky you.') + '</div>';
-  h += '<div class="bk-row">' + btn('Take Loan ' + fmt(C.LOAN_STEP) + 'c', 'loan', GT.canLoan(S), 'pink') + '<span class="dim">Room under the cap: <b class="num">' + fmt(room) + 'c</b> of ' + fmt(C.LOAN_CAP) + 'c</span></div>';
+  h += '<div class="bk-row">' + btn('Take Loan ' + fmt(C.LOAN_STEP) + 'c', 'loan', GT.canLoan(S), 'pink') + btn('Borrow All', 'loan-all', GT.loanRoom(S) > 0, 'pink') + '<span class="dim">Room: <b class="num">' + fmt(room) + 'c</b> of ' + fmt(C.LOAN_CAP) + 'c</span></div>';
   h += '<div class="bk-row"><input class="val" id="in-rep" type="number" min="0" step="1" value="' + ui.rep + '" aria-label="Repay amount">' + btn('Repay', 'repay', ui.rep > 0 && S.loan > 0 && S.credits > 0, 'gold') + btn('Repay All', 'rep-all', S.loan > 0 && S.credits > 0, 'gold') + '</div>';
   h += '<div class="dim bl">Loans come in fixed ' + fmt(C.LOAN_STEP) + 'c chunks. The debt grows every jump, so pay it off when you can.</div></section></div>';
   return frame('bank', 'bank', '<div class="panel bankwrap"><h2 class="hd">' + esc(sg) + '</h2>' + h + receipt() + '</div>');

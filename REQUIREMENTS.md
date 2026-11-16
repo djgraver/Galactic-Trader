@@ -1,6 +1,6 @@
 # Galactic Trader: Requirements (living document)
 
-Status: v6 built (`game/galactic-trader-6.html`, title "Galactic Trader"). Keep this file updated with every change. All requirements below must be adhered to in every build. Read this file at the start of every session.
+Status: v7 built (`game/galactic-trader-7.html`, title "Galactic Trader"). Keep this file updated with every change. All requirements below must be adhered to in every build. Read this file at the start of every session.
 
 ## Change log
 - v1: Four-column browser game built from the original Google Doc. Published and approved ("plays well"). Frozen build: `game/galactic-trader.html` (source at commit `25fb5b5`).
@@ -29,9 +29,24 @@ Status: v6 built (`game/galactic-trader-6.html`, title "Galactic Trader"). Keep 
   - **Mini-games and warp** (`gt-29-mgvga.js`): 256-colour output, airbrushed highlights on balls, boxes and polygons, and a soft coloured nebula behind every starfield.
   - **Interface paint** (`gt-style6.css`, loaded last): deep-space backdrop with nebula glows and a faint cyan lattice; steel bevelled panels, gradient buttons, gunmetal picture frames with a glow, metallic menu bar and status strip, chrome title lettering. Layout is unchanged.
   - Street walls shade with a smooth side gradient instead of a banded checker; shop banners use a soft wall gradient with pilasters instead of speckle.
+- v7 (`game/galactic-trader-7.html`, build with `python3 game/gt-build7.py`; v6 is frozen as `galactic-trader-6.html`). Rules live in `gt-36-v7.js`, interface in `gt-37-v7ui.js`, NPC looks in `gt-38-npc.js`, styles in `gt-style7.css`.
+  - **End turn without flying** (`GT.wait`, button on the Spaceport). A day passes in port: markets tick, interest and dividends are paid, rivals trade on, day and night swap, crew wages advance. The alley, cantina and jobs board only refresh on landing somewhere new (so jobs cannot be farmed). In a shared game it passes the seat.
+  - **Crew wages** (`GT.WAGE`). Every 5 to 15 turns the crew ask for pay (0.45 to 0.7 of the stage scale, minimum 100c). Paid the same turn: +2 reputation ("delighted"); paid within 2 more turns: +1. After that they **strike** (-2 reputation): no jump and no tow, only End turn, until paid. A captain whose pocket plus bank cannot cover it may plead poverty: the crew take half the pocket, -5 reputation, strike over (so there is no dead end). Shown on the Spaceport, in the status strip and on the arrival card.
+  - **Money:** Odd Jobs pay 5x (`GT.JOB_PAY = [0, 0.4, 1.0, 2.0]` of the stage scale). Back-alley good outcomes pay 3x and smuggling runs pay 3x for 1.5x the stake. Shares drift up faster (0.9% a turn, was 0.55%) and pay a 0.6% dividend (was 0.25%). The Parlour returns about 96p per credit (was about 90p). Loan cap 15,000c with a **Borrow All** button.
+  - **Market:** big orders move the price much less (`ELASTICITY` 0.22, was 0.35), pricey goods have deeper stock (Circuitry 80, Dark Matter 46, Artifacts 24), and the market is livelier (price noise x1.5, shortages and gluts 8.5% a turn per world, was 5%). Rivals follow a little closer (`RIVAL_FOLLOW`) because everyone earns faster.
+  - **Cantina:** an encounter now happens 75% of the time (was 30%), and 4 in 10 of them are one of 14 new bar regulars shared by all worlds.
+  - **Spaceport** shows the cargo hold (all seven goods with counts) and the crew panel. Layout: map and pad picture 500px wide on the left with the hold below; trip plan, crew and standings on the right.
+  - **Warp screen:** three caption lines over 6.6 seconds (about 2.2 seconds each, typed faster) so they can be read; was five lines in 5.4 seconds.
+  - **16:9 stage:** 1440 x 810, which is exactly 1920 x 1080 at 1.333x (was 1280 x 800, 16:10).
+  - **Theme tune** "Trade Winds" (`MUSIC` in `gt-37-v7ui.js`): an original 8-bit march, two square voices, triangle bass and noise drum, synthesised with Web Audio (no files). It starts on the first click or key on the title screen (browsers block sound before that), has its own on/off button there, obeys SND, and stops at Launch.
+  - **Graphics, second pass:** true colour mixes in the pixel engine (`PX.mix`, buffers are 16-bit): gradients, shading and skies are smooth paint, not dot patterns; a per-pixel pass (`PX.undither`) cleans up leftover checker and dot screens; glowing things spill light at night (`PX.bloom`); scenes get a soft vignette. The warp screen has a nebula; the hangar has a nebula backdrop, steel read-outs and cyan pointer beams.
+  - **Ships redrawn** (`gt-28-ships.js`): each has its own silhouette. Wayfarer: lifting body with wing nacelles, dish and company stripe. Behemoth Barge: spine, eight containers, drive block, crane and bridge. Stargazer: needle hull, habitat ring, solar fields, big dish, blue ion drive. Cutlass Runner: blade hull, forward-swept wings, twin afterburners, shark teeth. Running lights, hull numbers and hazard paint on all.
+  - **NPCs** (`gt-38-npc.js`): every shopkeeper portrait has a workplace behind them tinted by their world (vault, shelves, hangar, fuel tank, office window, ticker board, bar, notice board, parlour curtains), the clothes of the job (banker's suit, apron, overalls, hi-vis, lanyard, braces, croupier's vest), a tool of the trade (eyeshade, goggles, headset, pencil) and one or two personal marks from their name (scar, freckles, mole, tattoo, war paint, earrings, toothpick, cigar, cyber eye, bandage). Captains get a cockpit and epaulettes; rivals a silver set.
+  - Balance (`gt-sim.js 40 220 human gt-5-travel.js gt-10-extras.js gt-36-v7.js`): a competent solo player now wins about 90% to 100% of games in about 53 to 64 turns without odd jobs and about 43 to 50 with them (v6: 77 to 99). The game is deliberately quicker and more generous.
+  - Tests: `gtd-v7t.js` covers end turn, wages, strike, plead, Borrow All, the tune, the caption timing, the Spaceport fit and the shared-game end turn.
 
 ## 1. Platform and delivery
-- Browser game in a single self-contained HTML file (`game/galactic-trader-4.html`). Locked to a 1280 x 800 (16:10) stage that is scaled to fit the window and centred on black, so an ultrawide monitor gets black side bars and never scrolls. Below about 700px wide the stage turns fluid for phones.
+- Browser game in a single self-contained HTML file (`game/galactic-trader-4.html`). Locked to a 1440 x 810 (16:9, 1080p at 1.333x; v7) stage that is scaled to fit the window and centred on black, so an ultrawide monitor gets black side bars and never scrolls. Below about 700px wide the stage turns fluid for phones.
 - Source is split into parts concatenated by `game/gt-build4.py` into one file. The engine (parts 1 to 7, 10) is Node-testable.
 - Fonts from Google Fonts (Press Start 2P for headings, VT323 for text) with monospace fallbacks. Sound via WebAudio, off until the player interacts, mutable (SND button).
 - One look only (EGA). There is no theme switch. Night or day is part of each planet visit (section 10).
@@ -71,7 +86,7 @@ Agrarian (Meridoa), Megacity (Kryndor Spire), Mining (Ferrox), Science (Quellin 
 - Value fields reset to 0 or 1 after each transaction or jump.
 
 ## 7. Bank
-- Two separate counters. Savings: deposit and withdraw with value fields plus Deposit All and Withdraw All; pays 0.75% every jump. Loans: Take Loan is 1,000c per click, cap 10,000c; repay with a value field or Repay All; costs 1.25% every jump.
+- Two separate counters. Savings: deposit and withdraw with value fields plus Deposit All and Withdraw All; pays 0.75% every jump. Loans: Take Loan is 1,000c per click or Borrow All, cap 15,000c (v7); repay with a value field or Repay All; costs 1.25% every jump.
 
 ## 8. Ships (4, named, with stats)
 Wayfarer, Behemoth Barge, Stargazer, Cutlass Runner. Each has cargo, warp speed, fuel capacity (PC), and a description. Chosen on the setup screen with name entry and a Launch button. (The Gnat was removed in v3.)
@@ -99,7 +114,7 @@ Each planet street has clickable buildings. The player's captain walks to the pl
 
 ## 11. Events and encounters
 - Explore (Back Alley): about 25% chance of an event, at least 10 outcomes per planet, once per visit.
-- Seek Encounter (Cantina): about 30%, a unique named character per planet, at least 10 outcomes, once per visit.
+- Seek Encounter (Cantina): about 75% (v7; was 30%), plus a shared pool of bar regulars, a unique named character per planet, at least 10 outcomes, once per visit.
 - Facilities offered about 20% on arrival (Broker, Depot, Factory, Warehouse, Hotel). Price about 20 times the benefit. Raises reputation. Can be bought after selling cargo. In a shared game only one captain can own the facility on a given world.
 - Rival events about 20% when a rival is docked: Sabotage, Assist or Ignore, with reputation effects. Auto-Ignore if assisting without funds. Shows "TraderName is currently docked here." plus mood. Sabotage is played as a sneaking mini-game.
 - Rivals (computer-run): Zara Vex, Old Brannock, Captain Ilyx Orro, Mox Tallow. In a shared game they are shared by all captains.

@@ -68,6 +68,7 @@ function runOne(shipId, seed, mode) {
   while (!s.over && turns < MAXT) {
     turns++; hist.push(Math.round(GT.networth(s)));
     if (s.pending) GT.compAction(s, 'ignore');
+    if (GT.wageDue && GT.wageDue(s)) { if (!GT.payWages(s) && GT.onStrike(s)) { sellSmart(true); if (!GT.payWages(s)) GT.pleadWages(s); } }
     if (process.env.JOBS && GT.jobFinish && GT.jobAvailable(s)) { const w = process.env.JOBS.split(',').map(Number); let r = GT.rand() * w.reduce((x, y) => x + y, 0), k = 0; while (k < 3 && r >= w[k]) { r -= w[k]; k++; } GT.jobFinish(s, k, 100); }
     if (mode === 'idle') { GT.jump(s, (s.loc + 1) % P.length, false) || GT.tow(s); continue; }
     if (mode === 'random') {

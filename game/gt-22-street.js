@@ -134,18 +134,18 @@ SC.Fac = function (B, slot, night, rnd, shaded) {
     }, c);
   };
   F.textFit = function (s, maxw, hgt) { return Math.floor(maxw / (hgt * 6 / 7 * this.ux / this.uy)); };
-  F.gh = function (a, b, x0, x1) { return function (lx, ly, X, Y) { var t = Math.max(0, Math.min(1, (lx - x0) / (x1 - x0))) * 16; return PX.BAYER[(Y & 3) * 4 + (X & 3)] < t ? b : a; }; };
-  F.gv = function (a, b, y0, y1) { return function (lx, ly, X, Y) { var t = Math.max(0, Math.min(1, (ly - y0) / (y1 - y0))) * 16; return PX.BAYER[(Y & 3) * 4 + (X & 3)] < t ? b : a; }; };
+  F.gh = function (a, b, x0, x1) { return function (lx, ly, X, Y) { var t = Math.max(0, Math.min(1, (lx - x0) / (x1 - x0))) * 16; return PX.mix(a, b, t); }; };
+  F.gv = function (a, b, y0, y1) { return function (lx, ly, X, Y) { var t = Math.max(0, Math.min(1, (ly - y0) / (y1 - y0))) * 16; return PX.mix(a, b, t); }; };
   /* darken (or lighten) what is already painted in a region, dithered. lv 0..16 */
   F.shade = function (x0, y0, x1, y1, lv, lighter) {
     var m = this.mask, w = this.B.w, B = this.B, map = lighter ? SC.LT : SC.DK;
-    this.fill(x0, y0, x1, y1, yes, function (lx, ly, X, Y) { var i = Y * w + X; if (!m[i]) return -1; var c = B.d[i]; return c < 16 && PX.BAYER[(Y & 3) * 4 + (X & 3)] < lv ? map[c] : c; });
+    this.fill(x0, y0, x1, y1, yes, function (lx, ly, X, Y) { var i = Y * w + X; if (!m[i]) return -1; return PX.remap(B.d[i], map, lv); });
   };
   /* wall with a gradient from a to b and a surface texture */
   F.wall = function (x0, y0, x1, y1, a, b, tex, lv) {
     var gb = lv === undefined ? 9 : lv, me = this, w = x1 - x0, ch = tex === 'stone' ? 6 : 4, jc = SC.DK[a] === a ? b : SC.DK[a];
     this.fill(x0, y0, x1, y1, yes, function (lx, ly, X, Y, uy, ux) {
-      var t = (lx - x0) / w * gb + (ly < 9 ? 3 : 0), fx = (lx - x0) / w, base = (ly - y0) < 5 * uy ? b : (PX.BAYER[(Y & 3) * 4 + (X & 3)] < Math.max(0, Math.min(1, (fx - 0.28) / 0.62)) * 16 ? b : a), cy = (ly - y0) / uy, cx = (lx - x0) / ux, hs = (X * 7 + Y * 13) % 23, row, c = base;
+      var t = (lx - x0) / w * gb + (ly < 9 ? 3 : 0), fx = (lx - x0) / w, base = (ly - y0) < 5 * uy ? b : PX.mix(a, b, Math.max(0, Math.min(1, (fx - 0.28) / 0.62)) * 16), cy = (ly - y0) / uy, cx = (lx - x0) / ux, hs = (X * 7 + Y * 13) % 23, row, c = base;
       if (tex === 'brick' || tex === 'stone') {
         row = Math.floor(cy / ch); var cwid = tex === 'stone' ? 11 : 6;
         if (cy - row * ch < 1) c = jc; else if (((cx + (row & 1) * cwid / 2) % cwid) < 1) c = jc; else if (hs === 0) c = SC.LT[a];
@@ -191,7 +191,7 @@ SC.Fac = function (B, slot, night, rnd, shaded) {
     this.R(x - 4 * ux, h + 1.5 * uy, w + 8 * ux, 2.5 * uy, SC.DK[t.a]);
     this.R(x - ux, 0, w + 2 * ux, h + uy, PX.K);
     this.R(x + ux * 1.5, 0, w - 3 * ux, h - uy, k);
-    this.fill(x + ux * 1.5, 0, x + w - ux * 1.5, h - uy, yes, function (lx, ly, X, Y) { return (lx > x + w * 0.5 && ((X + Y) & 1) && ly < h * 0.5) ? SC.DK[k] : lx < x + w * 0.2 && PX.BAYER[(Y & 3) * 4 + (X & 3)] < 5 ? SC.LT[k] : k; });
+    this.fill(x + ux * 1.5, 0, x + w - ux * 1.5, h - uy, yes, function (lx, ly, X, Y) { return (lx > x + w * 0.5 && ((X + Y) & 1) && ly < h * 0.5) ? SC.DK[k] : lx < x + w * 0.2 ? PX.mix(k, SC.LT[k], 5) : k; });
     this.R(x + w * 0.22, h * 0.45, w * 0.56, h * 0.38, this.night ? PX.E + PX.Y : t.g); this.R(x + w * 0.5 - ux * 0.5, h * 0.45, ux, h * 0.38, PX.K);
     this.R(x + w * 0.7, h * 0.3, ux * 1.6, uy * 1.8, PX.Y);
     this.R(x - ux, h - uy * 1.2, w + 2 * ux, uy * 1.5, PX.K);
@@ -218,10 +218,10 @@ SC.Fac = function (B, slot, night, rnd, shaded) {
     out.forEach(function (j) { B.d[j] = 0; });
     /* a bright rim just inside the left and top edges of buildings that face the light, so each one reads as a solid shape */
     if (!this.shaded) { var rim = []; for (y = 1; y < h - 1; y++) for (x = 1; x < w - 1; x++) { i = y * w + x; if (!m[i] || B.d[i] === 0) continue; if ((B.d[i - 1] === 0 && m[i - 1]) || (B.d[i - w] === 0 && m[i - w])) rim.push(i); }
-      rim.forEach(function (j) { var c = B.d[j]; if (c < 16) B.d[j] = SC.LT[c]; }); }
+      rim.forEach(function (j) { B.d[j] = PX.remap(B.d[j], SC.LT); }); }
     /* and a dark bevel just inside the right and bottom edges */
     var bev = []; for (y = 1; y < h - 1; y++) for (x = 1; x < w - 1; x++) { i = y * w + x; if (!m[i] || B.d[i] === 0) continue; if ((B.d[i + 1] === 0 && m[i + 1]) || (B.d[i + w] === 0 && m[i + w])) bev.push(i); }
-    bev.forEach(function (j) { var c = B.d[j]; if (c < 16 && SC.DK[c] !== 0) B.d[j] = SC.DK[c]; });
+    bev.forEach(function (j) { var c = B.d[j]; if (c >= 1024) B.d[j] = PX.remap(c, SC.DK); else if (c < 16 && SC.DK[c] !== 0) B.d[j] = SC.DK[c]; });
   };
   for (var k in F) SC.Fac.prototype[k] = F[k];
 })({});
@@ -255,7 +255,7 @@ SC.skyArt = function (B, pid, th, g, night, rnd) {
 
 SC.quad = function (B, g, s0, s1, l0, l1, c) { var a = SC.P(g, s0, l0), b = SC.P(g, s0, l1), c2 = SC.P(g, s1, l1), d = SC.P(g, s1, l0); B.poly([a[0], a[1], b[0], b[1], c2[0], c2[1], d[0], d[1]], c); };
 SC.gline = function (B, g, s0, l0, s1, l1, c) { var a = SC.P(g, s0, l0), b = SC.P(g, s1, l1); B.line(a[0], a[1], b[0], b[1], c); };
-SC.dith = function (a, b, lv) { return function (x, y) { return PX.BAYER[(y & 3) * 4 + (x & 3)] < lv ? b : a; }; };
+SC.dith = function (a, b, lv) { var m = PX.mix(a, b, lv); return typeof m === 'function' ? function (x, y) { return PX.BAYER[(y & 3) * 4 + (x & 3)] < lv ? b : a; } : function () { return m; }; };
 /* a grid of joints across a strip of ground: cross joints at even steps of depth, long joints at even steps across */
 SC.tiles = function (B, g, l0, l1, zstep, nl, c, c2) {
   var k, z, i;

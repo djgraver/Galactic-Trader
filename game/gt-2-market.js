@@ -165,12 +165,12 @@
         var mk = s.markets[p][i];
         mk.stock += (mk.target - mk.stock) * GT.CFG.REVERT + GT.gauss() * 0.03 * mk.target;
         mk.stock = Math.max(1, Math.round(mk.stock));
-        mk.shock = Math.exp(Math.log(mk.shock) * 0.8 + GT.gauss() * it.vol);
+        mk.shock = Math.exp(Math.log(mk.shock) * (GT.CFG.SHOCK_KEEP || 0.8) + GT.gauss() * it.vol * (GT.CFG.VOL_MULT || 1));
       });
       s.fuelMult[p] = clamp(Math.exp(Math.log(s.fuelMult[p]) * 0.85 + GT.gauss() * 0.06), 0.8, 1.3);
-      if (rng() < 0.05 && !s.mods.some(function (x) { return x.p === p; })) {
+      if (rng() < (GT.CFG.MOD_CHANCE || 0.05) && !s.mods.some(function (x) { return x.p === p; })) {
         var m = GT.pick(MODS), i2 = GT.RI(0, GT.ITEMS.length - 1);
-        s.mods.push({ p: p, i: i2, mult: m.mult, turns: GT.RI(4, 8), text: m.text.replace('{item}', GT.ITEMS[i2].name).replace('{planet}', pl.name) });
+        var mt = GT.RI(4, 8); s.mods.push({ p: p, i: i2, mult: m.mult, turns: mt, t0: mt, text: m.text.replace('{item}', GT.ITEMS[i2].name).replace('{planet}', pl.name) });
       }
     });
     s.mods.forEach(function (x) { x.turns--; });

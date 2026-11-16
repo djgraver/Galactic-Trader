@@ -1,0 +1,20 @@
+const L = require('./gtd-lib.js');
+const tag = process.argv[2] || 'v7', only = process.argv[3];
+(async () => {
+  const t = await L.open({ width: 1920, height: 1080 });
+  const p = t.p;
+  await p.waitForTimeout(1500); if (!only) await t.shot(tag + '-setup');
+  await t.boot('Mabel', 'wayfarer', 1);
+  const view = async (name, js) => { if (only && only.split(',').indexOf(name) < 0) return; await p.evaluate(js); await p.waitForTimeout(1500); await t.shot(tag + '-' + name); };
+  await view('hub', () => { S.visit.night = false; ui.page = 'hub'; render(); });
+  await view('hubn', () => { S.visit.night = true; ui.page = 'hub'; render(); });
+  await view('market', () => { GT.buy(S, 0, 20); GT.buy(S, 3, 5); ui.page = 'market'; render(); });
+  await view('bank', () => { ui.page = 'bank'; render(); });
+  await view('cantina', () => { ui.page = 'cantina'; render(); });
+  await view('jobs', () => { ui.page = 'jobs'; render(); });
+  await view('ship', () => { ui.page = 'ship'; render(); });
+  await view('pad', () => { ui.page = 'pad'; ui.dest = (S.loc + 2) % GT.PLANETS.length; render(); });
+  await view('paddue', () => { S.wage.next = S.turn; GT.wageTick(S); ui.page = 'pad'; ui.dest = null; render(); });
+  await view('strike', () => { S.wage.asked = S.turn - 5; GT.wageTick(S); ui.page = 'pad'; ui.dest = 1; render(); });
+  console.log(t.errs.join('\n') || 'no errors'); await t.close();
+})();

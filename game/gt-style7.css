@@ -1,0 +1,39 @@
+/* Galactic Trader 7. Loaded last. The 16:9 stage (1440 x 810, which is 1920 x 1080 at 1.333x), the new Spaceport panels, and the second graphics pass. */
+.holdmini .pocket { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: 4px; }
+.holdmini .slot { display: flex; align-items: center; justify-content: center; gap: 4px; padding: 2px 0; min-height: 34px; }
+.holdmini .slot.empty { opacity: .45; }
+.holdmini .slot img, .holdmini .slot canvas { width: 26px; height: 26px; }
+.holdmini .slot b { font-size: 20px; }
+.holdmini .row .dim, .crew .row span { font-size: 18px; }
+.crew.due { background: linear-gradient(#fff6c8, #f0d878 60%, #cfa93c); }
+.crew.strike { background: linear-gradient(#ffd8d0, #f09080 60%, #c85848); }
+.crew.strike .bad { color: #5a0a0a; }
+.crewacts { justify-content: flex-start; gap: 8px; margin-top: 4px; }
+.jumprow { display: flex; gap: 8px; justify-content: flex-end; align-items: center; }
+.themebtn { margin-left: 14px; vertical-align: middle; }
+.portL .holdmini { width: 500px; box-sizing: border-box; padding: 5px 8px; }
+.portR .crew { padding: 4px 10px; }
+.portR .crew:not(.due):not(.strike) h3 { font-size: 10px; }
+.portgrid { grid-template-columns: 500px minmax(0, 1fr); }
+.portL .mapwrap { width: 500px; }
+.padview { width: 500px; height: 182px; }
+.pax { padding: 4px 8px; } .pax .prow { margin: 2px 0; }
+.lead table { font-size: 19px; border-spacing: 0; } .lead td { padding: 0 4px; line-height: 1.02; }
+.portR .lead { padding: 5px 10px; } .portR .lead h3 { margin: 0 0 2px; }
+.pax .prow { flex-wrap: nowrap; } .pax .prow .dim { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wagechip { color: #f8dc60; } .wagechip.strike { color: #ff8a7a; animation: wageblink 1s steps(2) infinite; }
+@keyframes wageblink { 50% { opacity: .55; } }
+@media (prefers-reduced-motion: reduce) { .wagechip.strike { animation: none; } }
+/* the hangar: nebula backdrop, steel read-outs and cyan pointer beams */
+.hangar { border: 3px solid #8791ae; outline: 2px solid #05060e; background: radial-gradient(ellipse 50% 70% at 50% 50%, rgba(98, 130, 255, .28), transparent 70%), radial-gradient(ellipse 40% 60% at 78% 20%, rgba(180, 80, 220, .25), transparent 70%), radial-gradient(ellipse 40% 50% at 16% 84%, rgba(30, 150, 200, .22), transparent 70%), linear-gradient(#070b2c, #02040f); }
+.hstars { opacity: .55; }
+.hangar .tails polygon { fill: rgba(98, 228, 246, .16); stroke: #62e4f6; stroke-width: 1.5; }
+.hangar .tails .dot { fill: #f8dc60; stroke: #05060e; stroke-width: 2; }
+.co { background: linear-gradient(#e6ecf8, #b4bdd4 60%, #98a2c0); border: 2px solid #05060e; box-shadow: inset 1px 1px 0 #fff, inset -1px -1px 0 #5a6483, 0 0 12px rgba(98, 228, 246, .25); }
+.co .ct { color: #1c2c94; }
+.co .bar { border-color: #05060e; background: #05060e; } .co .bar i { background: linear-gradient(#a8ffb0, #3fb454); } .co .bar i.f { background: linear-gradient(#ffb0a4, #e24a3c); }
+.bigship { animation: shipbob 5s ease-in-out infinite; filter: drop-shadow(0 0 14px rgba(98, 228, 246, .28)); }
+@keyframes shipbob { 50% { transform: translateY(-5px); } }
+.padview .padship { filter: drop-shadow(0 3px 0 rgba(0, 0, 0, .35)); }
+.flight .fship { filter: drop-shadow(0 0 18px rgba(255, 170, 80, .45)); }
+@media (prefers-reduced-motion: reduce) { .bigship { animation: none; } }
