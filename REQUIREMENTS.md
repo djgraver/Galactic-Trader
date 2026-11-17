@@ -1,6 +1,6 @@
 # Galactic Trader: Requirements (living document)
 
-Status: v8 built (`game/galactic-trader-8.html`, title "Galactic Trader"). Keep this file updated with every change. All requirements below must be adhered to in every build. Read this file at the start of every session.
+Status: v9 built (`game/galactic-trader-9.html`, title "Galactic Trader"). Keep this file updated with every change. All requirements below must be adhered to in every build. Read this file at the start of every session.
 
 ## Change log
 - v1: Four-column browser game built from the original Google Doc. Published and approved ("plays well"). Frozen build: `game/galactic-trader.html` (source at commit `25fb5b5`).
@@ -52,6 +52,11 @@ Status: v8 built (`game/galactic-trader-8.html`, title "Galactic Trader"). Keep 
   - **Nav display** (`UI.mapSVG` in `gt-42-v8ui.js`): the star map is a vector targeting screen: nebula, grid and range rings, shaded planets with bands, glow and rings, corner brackets on the current and selected world, an animated route line.
   - **Mini-games and warp** draw at full resolution and full colour (the 320 x 200 step and palette snap are gone).
   - **Theme tune** "Deep Lanes" (`MUSIC` in `gt-42-v8ui.js`), replacing the 8-bit march: a tracker-style piece at 124 BPM in D minor with filtered saw pads and lead, octave bass, an arpeggio through an echo and a drum machine, 40 bars looping. Same controls as before (starts on the first click or key on the title screen, Theme button, SND, stops at Launch).
+
+- v9 (`game/galactic-trader-9.html`, build with `python3 game/gt-build9.py`; v8 is frozen as `galactic-trader-8.html`): **the streets are redone as a 3D town square, with its own architecture on every world**. No rule changes.
+  - **Town engine** (`TW` in `gt-43-town.js`): a small perspective renderer for low-polygon solids (boxes, tapered blocks, gable roofs, cylinders, domes, barrel vaults, lathed shapes), with flat sun shading, ground shadows by day, painted decals for windows, doors, wall textures and signs, and an emissive pass so windows, signs and lamps glow at night. The picture is drawn once per world and time of day at 1280x800 and cached (`SC.hubKey`).
+  - **Layout** (`SC.town` in `gt-44-worlds.js`): every building stands on its own with clear ground around it, in two staggered rows (five slots at the back, four lower ones at the front) so nothing in front hides a door behind. Each building carries its shop name on a sign; closed ones are grey and read CLOSED or NO FUEL. The Odd Jobs board is a kiosk at the front left, lamp posts stand between buildings, and a TO SPACEPORT sign at the foot of the picture is the way out. The click areas are the outline of each building; walking, the crowd and the hover labels work as before.
+  - **Seven kits** (`KIT` in `gt-44-worlds.js`): Meridoa has red barns, clapboard farmhouses with gable roofs, silos and a windmill among green fields; Karth-Osu has sandstone step pyramids, colonnades, mastabas and an obelisk in the dunes; Ferrox has a quonset shed, a saw-tooth workshop, tank farms, stacked cabins, a control tower and a pit-head on red rock; Kryndor Spire has glass towers with setbacks, a gold drum bank, neon shopfronts and a holo billboard on a neon grid; Nihil Station has hull pods, a hangar tube, a vault drum, cargo containers and the purple parlour dome on a deck in open space; Quellin Reach has white lab domes, an observatory, an igloo and a dish on pink snow; Halcyra has cone-roofed pavilions, towers and gas-bag balloons on round pads on a deck above the clouds.
 
 ## 1. Platform and delivery
 - Browser game in a single self-contained HTML file (`game/galactic-trader-4.html`). Locked to a 1440 x 810 (16:9, 1080p at 1.333x; v7) stage that is scaled to fit the window and centred on black, so an ultrawide monitor gets black side bars and never scrolls. Below about 700px wide the stage turns fluid for phones.
@@ -156,6 +161,8 @@ One planet, popup or page, odds shown qualitatively only. Four exotic, confusing
 - Scenes are still painted from 16 colour roles and true mixes in small buffers (`gt-21-px.js`, `gt-27-vga.js`), then scaled and smoothed by `gt-41-svga.js`. Night uses a darker palette, glowing windows and bloom.
 - Ships are 3D models (`gt-40-3d.js`); characters and goods are vector art rendered smooth; the star map is vector.
 - Jokes in every shop sign, line and event.
+
+- v9 streets: each world's town is a 3D-rendered square of free-standing buildings in that world's own architecture (see the v9 change log). New buildings must stay separate from their neighbours, carry a readable sign, and match the kit of their world.
 
 ## 17. Open ideas
 - Online multiplayer (each captain on their own device) with a shared game code and the same turn rules.
