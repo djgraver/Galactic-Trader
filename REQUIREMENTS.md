@@ -1,6 +1,6 @@
 # Galactic Trader: Requirements (living document)
 
-Status: v7 built (`game/galactic-trader-7.html`, title "Galactic Trader"). Keep this file updated with every change. All requirements below must be adhered to in every build. Read this file at the start of every session.
+Status: v8 built (`game/galactic-trader-8.html`, title "Galactic Trader"). Keep this file updated with every change. All requirements below must be adhered to in every build. Read this file at the start of every session.
 
 ## Change log
 - v1: Four-column browser game built from the original Google Doc. Published and approved ("plays well"). Frozen build: `game/galactic-trader.html` (source at commit `25fb5b5`).
@@ -44,6 +44,14 @@ Status: v7 built (`game/galactic-trader-7.html`, title "Galactic Trader"). Keep 
   - **NPCs** (`gt-38-npc.js`): every shopkeeper portrait has a workplace behind them tinted by their world (vault, shelves, hangar, fuel tank, office window, ticker board, bar, notice board, parlour curtains), the clothes of the job (banker's suit, apron, overalls, hi-vis, lanyard, braces, croupier's vest), a tool of the trade (eyeshade, goggles, headset, pencil) and one or two personal marks from their name (scar, freckles, mole, tattoo, war paint, earrings, toothpick, cigar, cyber eye, bandage). Captains get a cockpit and epaulettes; rivals a silver set.
   - Balance (`gt-sim.js 40 220 human gt-5-travel.js gt-10-extras.js gt-36-v7.js`): a competent solo player now wins about 90% to 100% of games in about 53 to 64 turns without odd jobs and about 43 to 50 with them (v6: 77 to 99). The game is deliberately quicker and more generous.
   - Tests: `gtd-v7t.js` covers end turn, wages, strike, plead, Borrow All, the tune, the caption timing, the Spaceport fit and the shared-game end turn.
+- v8 (`game/galactic-trader-8.html`, build with `python3 game/gt-build8.py`; v7 is frozen as `galactic-trader-7.html`): **full graphic overhaul to a late-90s space-sim look** (Descent, Wing Commander) and a **new theme tune**. No rule changes.
+  - **SVGA output** (`gt-41-svga.js`): no visible pixels. Every indexed picture (streets, banners, pad, planets) is scaled up 4x with an edge-following scaler (Scale2x with a colour tolerance, twice), softened slightly and given film grain on full scenes. Vector art (portraits, goods, crowd) is rasterised at three times the old size with the airbrushed light and no palette reduction. `image-rendering` is no longer pixelated anywhere.
+  - **3D ships** (`gt-40-3d.js`): a small flat-shaded, depth-sorted polygon engine (`G3`) with diffuse light, a specular glint, rim light, glowing faces and engine flames. The four ships are polygon models built from lathes, boxes and plates. They turn slowly in the hangar (live canvas; call-outs point at the projected part positions), bank through the warp screen, and appear as stills on the pad, in the pickers and in scenes. Respects reduced motion.
+  - **Cockpit interface** (`gt-style8.css`): dark titanium panels with a lit edge, glowing cyan headings and amber read-outs, machined buttons, inset green-on-black input fields, monitor frames with a glass sheen around pictures, instrument-style status strip. Text colours of the older sheets are remapped to the new read-out colours when the sheets are joined (`recolor` in the build script). `gtd-contrast.js` checks every page for text too close to its background.
+  - **Type**: Orbitron (headings) and Rajdhani (text), SIL Open Font License, embedded as base64 (`gt-fonts8.css`). The page no longer fetches anything from the network.
+  - **Nav display** (`UI.mapSVG` in `gt-42-v8ui.js`): the star map is a vector targeting screen: nebula, grid and range rings, shaded planets with bands, glow and rings, corner brackets on the current and selected world, an animated route line.
+  - **Mini-games and warp** draw at full resolution and full colour (the 320 x 200 step and palette snap are gone).
+  - **Theme tune** "Deep Lanes" (`MUSIC` in `gt-42-v8ui.js`), replacing the 8-bit march: a tracker-style piece at 124 BPM in D minor with filtered saw pads and lead, octave bass, an arpeggio through an echo and a drum machine, 40 bars looping. Same controls as before (starts on the first click or key on the title screen, Theme button, SND, stops at Launch).
 
 ## 1. Platform and delivery
 - Browser game in a single self-contained HTML file (`game/galactic-trader-4.html`). Locked to a 1440 x 810 (16:9, 1080p at 1.333x; v7) stage that is scaled to fit the window and centred on black, so an ultrawide monitor gets black side bars and never scrolls. Below about 700px wide the stage turns fluid for phones.
@@ -143,11 +151,10 @@ One planet, popup or page, odds shown qualitatively only. Four exotic, confusing
 - A captain who runs out of credits and cargo is ruined and sits out. The rest play on. If everyone is ruined, nobody wins.
 - Leaderboard on the Spaceport lists every captain and the computer rivals.
 
-## 16. Style (v6)
-- 90s adventure/space look in the vein of Solar Winds (airbrushed metal and lit portraits), Descent (gritty lit industrial metal) and Homeworld (bold livery against smooth space), with the 256-colour VGA feel: smooth gradients, soft light, no visible ordered dither. v3 to v5 used a 16-colour EGA look; v6 replaced it.
-- Scenes, shop banners, planets and the star map are still drawn from 16 colour roles in small pixel buffers (`gt-21-px.js`), but the output stage (`gt-27-vga.js`) paints them in a VGA palette and smooths the dither. Night uses the same art with a darker palette and glowing windows.
-- Interface: steel bevelled panels, gradient buttons, gunmetal monitor frames over a deep-space backdrop with a cyan lattice (`gt-style6.css`); pixel fonts kept.
-- Pages that use vector art (portraits, ships, icons) are rendered at runtime in 256 colours with an airbrushed light (`PX.svg`, `PX.quant`).
+## 16. Style (v8)
+- Late-90s space sim (Descent, Wing Commander): smooth SVGA pictures, real polygon ships, a dark cockpit interface with glowing read-outs, techno type. v3 to v5 were 16-colour EGA, v6 and v7 256-colour VGA pixel art.
+- Scenes are still painted from 16 colour roles and true mixes in small buffers (`gt-21-px.js`, `gt-27-vga.js`), then scaled and smoothed by `gt-41-svga.js`. Night uses a darker palette, glowing windows and bloom.
+- Ships are 3D models (`gt-40-3d.js`); characters and goods are vector art rendered smooth; the star map is vector.
 - Jokes in every shop sign, line and event.
 
 ## 17. Open ideas

@@ -5,7 +5,7 @@
 PX.svgImage = function (svg, x, y, w, h, cls, spread) {
   var key = PX.hash(svg) + 'x' + w + 'x' + h, url = PX.cache['s' + key];
   if (!url && !PX.pend[key]) { PX.pend[key] = 1; PX.sv[key] = [svg, w, h, spread === undefined ? 40 : spread]; PX.queue(key); }
-  return '<image class="' + (cls || '') + '" data-pk="' + key + '" x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" href="' + (url || PX.BLANK) + '" style="image-rendering:pixelated"/>';
+  return '<image class="' + (cls || '') + '" data-pk="' + key + '" x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" href="' + (url || PX.BLANK) + '"/>';
 };
 PX.shipSprite = function (hull, cls, x, y, w, h) { return PX.svgImage(UI.shipSVG(hull.id, hull.hue), x, y, w, h, cls, 40); };
 
