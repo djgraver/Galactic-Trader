@@ -2,9 +2,9 @@
 // node gt-mgsim.js [runs] [file...]   (default: the v10 games in gt-51-mg10.js)
 const fs = require('fs'), path = require('path');
 const RUNS = +process.argv[2] || 40, files = process.argv.slice(3);
-const stub = `var document={addEventListener(){},removeEventListener(){},getElementById(){return null},createElement(){return {getContext(){return null}}}};var window={addEventListener(){},removeEventListener(){}};var $=function(){return null};var SFX={play(){}};var PX={};var UI={};var G3={draw(){}};var esc=s=>s;var S={};
+const stub = `var window={matchMedia(){return {matches:false}}};var document={addEventListener(){},removeEventListener(){},getElementById(){return null},createElement(){return {getContext(){return null}}}};var $=function(){return null};var SFX={play(){}};var PX={};var UI={};var G3={draw(){}};var esc=s=>s;var S={};
 var GT={seeded:function(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;var t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};},RATINGS:['Flop','Bronze','Silver','Gold'],JOB_PAY:[0,1,2,3],scale(){return 1}};`;
-const list = files.length ? files : ['gt-18-mg.js', 'gt-19-mg2.js', 'gt-51-mg10.js'];
+const list = files.length ? files : ['gt-18-mg.js', 'gt-19-mg2.js', 'gt-51-mg10.js', 'gt-53-v11mg.js'];
 const src = stub + list.map(f => fs.readFileSync(path.join(__dirname, f), 'utf8')).join('\n') + '\nreturn MG;';
 const MG = new Function(src)();
 // a bot sees the game state with a reaction delay and makes mistakes now and then. skill: {react: seconds, err: chance of a wrong move, speed: hand speed}

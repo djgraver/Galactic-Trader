@@ -1,0 +1,88 @@
+/* ---------- Galactic Trader 11 ---------- */
+.cyan { color: var(--cy); }
+
+/* top bar: SHIP, QUESTS, PLANETS, LOG, SOUND, NEW/QUIT ... HELP on the far right */
+#bar .ibs { flex: 1; justify-content: flex-end; }
+#bar .ib.help { margin-left: 14px; }
+#bar .ib.off { color: var(--dim); }
+
+/* status strip: bank in green, the play-on badge */
+.chip.bankchip b.good { color: var(--gn); text-shadow: 0 0 8px rgba(93, 255, 143, .35); }
+.chip.bankchip b.bad { color: var(--rd); }
+.chip.playon { color: var(--am); font: 700 12px var(--display); letter-spacing: .1em; border-color: var(--am); }
+
+/* the back-alley offer card: dark, like every other panel */
+.offer { background: linear-gradient(160deg, #262d3c, #141922); color: var(--fg); border: 1px solid var(--am); outline: 1px solid #000; border-radius: 3px; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .16), 0 3px 10px rgba(0, 0, 0, .5); }
+.offer .ot { color: var(--am); }
+.offer .otx { color: #eef3ff; }
+.offer .dim { color: #a9b6cc; }
+.ofig { background: #0b0f18; color: var(--fg); border: 1px solid #4a5670; border-radius: 2px; }
+.ofig b { color: #fff; }
+
+/* cantina: the actions column on the left, like every other shop */
+#frame:not(.fluid) .barloc .main { grid-template-columns: 340px minmax(0, 1fr) !important; }
+#frame:not(.fluid) .barloc .barrow { order: -1; }
+
+/* keyboard-only mini-games: no pointer over the playfield */
+#mg.kbonly canvas { cursor: none; }
+#mg.kbonly .pads { display: none !important; }
+
+/* pop-ups that sit over the current screen: SHIP and PLANETS */
+#frame:not(.fluid) .modal.popmodal .sheet.wide { width: 1240px; max-height: 790px; }
+.modal.popmodal .sheet { gap: 8px; }
+.shipmodal .pad-pages.shippg { padding: 0; overflow: visible; display: flex; flex-direction: column; gap: 8px; }
+.shipmodal .ptop { margin: 0; }
+#frame:not(.fluid) .shipmodal .shiplow { grid-template-columns: 300px minmax(0, 1fr) 250px 270px; }
+.shipmodal .holdp .pocket { gap: 3px; }
+.shipmodal .holdp .slot .itemicon { width: 28px !important; height: 28px !important; }
+.shipmodal .holdp .slot b { font-size: 17px; }
+.voyage { display: flex; flex-wrap: wrap; gap: 6px 22px; align-items: center; padding: 6px 10px; background: #0b0f18; border: 1px solid #3a465e; border-radius: 3px; font-size: 18px; }
+.voyage .vw { display: inline-flex; align-items: center; gap: 8px; }
+.voyage .bar { display: inline-block; width: 180px; height: 10px; background: #04060a; border: 1px solid #6a7890; overflow: hidden; }
+.voyage .bar i { display: block; height: 100%; background: linear-gradient(#ffe6a0, #ffc24a 55%, #a87410); box-shadow: 0 0 6px rgba(255, 194, 74, .6); }
+.voyage .vr { font-weight: 700; }
+.raceline { margin: 0 0 6px; color: var(--am); }
+.playnote { margin: 0; font-size: 15px; }
+
+.ppgrid { display: grid; grid-template-columns: minmax(0, 1fr) 470px; gap: 12px; align-items: start; }
+#frame.fluid .ppgrid { grid-template-columns: minmax(0, 1fr); }
+.ppmap { position: relative; }
+.pplist { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+.ppbtn { display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px; background: #121826; color: var(--fg); border: 1px solid #3a465e; border-radius: 2px; font: 600 15px var(--ui); cursor: pointer; }
+.ppbtn:hover, .ppbtn:focus-visible { border-color: var(--cy); outline: none; }
+.ppbtn.here { color: var(--cy); }
+.ppbtn.on { border-color: var(--am); color: var(--am); box-shadow: 0 0 8px rgba(255, 194, 74, .35); }
+.ppdot { display: inline-block; width: 12px; height: 12px; clip-path: circle(50%); flex: none; box-shadow: inset -2px -2px 3px rgba(0, 0, 0, .6); }
+.pphead .ppdot { width: 26px; height: 26px; }
+.pphint { font-size: 13px; margin-top: 6px; }
+.ppR { padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; max-height: 700px; overflow-y: auto; }
+.pphead { display: flex; gap: 10px; align-items: center; }
+.pphead h3 { margin: 0; font-size: 16px !important; }
+.ppdesc { margin: 0; font-size: 17px; line-height: 1.25; }
+.ppfacts { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 14px; font-size: 15px; }
+.ppfacts div { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px solid #2a3346; padding: 2px 0; }
+.ppfacts div:last-child { grid-column: 1 / -1; }
+.ppfacts b { font-weight: 600; text-align: right; }
+.ppR h4 { margin: 4px 0 0; }
+.ppgoods { display: flex; flex-direction: column; gap: 2px; }
+.ppgood { display: grid; grid-template-columns: 24px 110px minmax(0, 1fr); align-items: center; gap: 8px; font-size: 15px; line-height: 1.1; padding: 1px 4px; }
+.ppgood .itemicon { width: 22px !important; height: 22px !important; display: block; }
+.ppgood .gr { color: var(--dim); }
+.ppgood.hi { background: rgba(93, 255, 143, .07); } .ppgood.hi .gr { color: var(--gn); }
+.ppgood.lo { background: rgba(111, 227, 255, .06); } .ppgood.lo .gr { color: var(--cy); }
+.ppnotes { margin: 0; padding-left: 18px; font-size: 15px; }
+.pprow { justify-content: flex-end; margin-top: 4px; }
+.endtop { justify-content: flex-start; gap: 10px; margin: 0 0 4px; }
+/* the risk tag on a smuggling offer: dark chip, coloured text */
+.offer .tax.low, .offer .tax.medium, .offer .tax.high { background: #0b0f18; }
+.offer .tax.low { color: var(--gn); border-color: var(--gn); }
+.offer .tax.medium { color: var(--am); border-color: var(--am); }
+.offer .tax.high { color: var(--rd); border-color: var(--rd); box-shadow: 0 0 8px rgba(255, 107, 94, .35); }
+/* phones: the seven bar buttons wrap onto a second line instead of running off the edge */
+#frame.fluid #bar { flex-wrap: wrap; height: auto; overflow: visible; row-gap: 4px; }
+#frame.fluid #bar .logo { flex: 1 1 auto; }
+#frame.fluid #bar .ibs { flex: 1 1 100%; flex-wrap: wrap; justify-content: center; gap: 4px; }
+#frame.fluid #bar .ib { padding: 0 7px; font-size: 10px; }
+#frame.fluid #bar .ib.help { margin-left: 0; }
+#frame.fluid #bar .logo::before { content: none; }
+#frame.fluid .voyage { font-size: 16px; } #frame.fluid .voyage .bar { width: 100px; }

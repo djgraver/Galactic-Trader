@@ -1,6 +1,6 @@
 // Engine test for v10 quests and economy. node gtq-test.js
 const fs = require('fs'), path = require('path');
-const ENGINE = ['gt-1-data.js', 'gt-2-market.js', 'gt-3-world.js', 'gt-3b-hooks.js', 'gt-4-social.js', 'gt-5-travel.js', 'gt-6-explore.js', 'gt-7a-encounter.js', 'gt-7b-encounter.js', 'gt-10-extras.js', 'gt-31-smuggle.js', 'gt-32-stocks.js', 'gt-33-pax.js', 'gt-36-v7.js', 'gt-45-v10.js', 'gt-46-quests.js'];
+const ENGINE = ['gt-1-data.js', 'gt-2-market.js', 'gt-3-world.js', 'gt-3b-hooks.js', 'gt-4-social.js', 'gt-5-travel.js', 'gt-6-explore.js', 'gt-7a-encounter.js', 'gt-7b-encounter.js', 'gt-10-extras.js', 'gt-31-smuggle.js', 'gt-32-stocks.js', 'gt-33-pax.js', 'gt-36-v7.js', 'gt-45-v10.js', 'gt-46-quests.js'].concat((process.env.EXTRA || '').split(',').filter(Boolean));
 const src = ENGINE.filter(f => fs.existsSync(path.join(__dirname, f))).map(f => fs.readFileSync(path.join(__dirname, f), 'utf8')).join('\n');
 const GT = new Function(src + '\nreturn GT;')();
 GT.setRng(GT.seeded(42)); GT.rivalAtTarget = () => null; GT.CFG.WIN = 1e12;

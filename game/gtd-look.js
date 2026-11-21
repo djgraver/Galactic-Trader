@@ -15,6 +15,10 @@ const tag = process.argv[2] || 'look', views = (process.argv[3] || 'market,canti
     yard: () => { ui.page = 'yard'; render(); },
     quests: () => { ui.page = 'quests'; render(); },
     hub: () => { ui.page = 'hub'; render(); },
+    alley: () => { ui.page = 'alley'; render(); },
+    alleyx: () => { ui.page = 'alley'; render(); const b = document.querySelector('[data-act=explore]'); if (b) b.click(); },
+    alleys: () => { S.visit.explored = true; S.visit.smuggle = GT.smuggleMake(S); ui.page = 'alley'; render(); },
+    sneak: () => { ui.page = 'alley'; render(); },
   };
   for (const v of views) { if (!V[v]) continue; await p.evaluate(V[v]); await p.waitForTimeout(900); await t.shot(tag + '-' + v); }
   console.log(t.errs.join('\n') || 'no errors'); await t.close();

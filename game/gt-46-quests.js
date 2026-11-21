@@ -10,7 +10,7 @@
   var IT = function (id) { for (var i = 0; i < GT.ITEMS.length; i++) if (GT.ITEMS[i].id === id) return i; return -1; };
   /* need([ok, reason], ...) gives true, or the first reason that fails */
   var need = function () { for (var i = 0; i < arguments.length; i++) if (!arguments[i][0]) return arguments[i][1]; return true; };
-  var amt = function (s, k, lo) { return Math.max(lo || 50, Math.round(GT.scale(s) * k / 10) * 10); };
+  var amt = function (s, k, lo) { var q = GT.QUEST_PAY || 1; return Math.max(Math.round((lo || 50) * Math.sqrt(q) / 10) * 10, Math.round(GT.scale(s) * k * q / 10) * 10); };  /* v11: GT.QUEST_PAY scales every quest fee and reward */
   GT.CONTRACT_MAX = 3;
 
   /* ---------- state ---------- */

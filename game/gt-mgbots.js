@@ -46,14 +46,14 @@ module.exports = {
     if (danger.length && R() > sk.err) { const d = danger[0]; tx = d.x > G.x ? d.x - d.r - 50 : d.x + d.r + 50; }
     else if (tgt) { tx = tgt.x + tgt.vx * ((365 - tgt.y) / 620); }
     jit += (R() - 0.5) * sk.aim * 0.6; jit *= 0.9;
-    inp.mouse = true; inp.x = Math.max(28, Math.min(612, tx + jit));
+    const T = Math.max(28, Math.min(612, tx + jit)); inp.mouse = false; inp.keys.left = T < G.x - 6; inp.keys.right = T > G.x + 6;
   }; },
   catch: sk => { let jit = 0; return (G, V, inp, dt) => {
     const spd = 460 * 1.7; let best = null, bs = -1e9;
     (V.ps || []).forEach(p => { if (p.dead) return; const eta = (350 - p.y) / p.vy; if (eta < 0 || eta > 1.6) return; const val = p.k === 'bad' ? -1 : p.k === 'gold' ? 3 : p.k === 'flick' ? 1.5 : 1; if (val < 0) return; const reach = Math.abs(p.x - G.x) / spd; if (reach > eta + 0.05) return; const sc = val * 2 - eta; if (sc > bs) { bs = sc; best = p; } });
     let tx = best ? best.x : G.x;
     (V.ps || []).forEach(p => { if (p.k !== 'bad') return; const eta = (350 - p.y) / p.vy; if (eta > 0 && eta < 0.35 && Math.abs(p.x - tx) < 58 && R() > sk.err) tx = p.x + (tx >= p.x ? 70 : -70); });
-    jit += (R() - 0.5) * sk.aim * 0.5; jit *= 0.9; inp.mouse = true; inp.x = Math.max(46, Math.min(594, tx + jit));
+    jit += (R() - 0.5) * sk.aim * 0.5; jit *= 0.9; const T = Math.max(46, Math.min(594, tx + jit)); inp.mouse = false; inp.keys.left = T < G.x - 6; inp.keys.right = T > G.x + 6;
   }; },
   cloud: sk => { let jit = 0; return (G, V, inp, dt) => {
     const sp = 220 + V.t * 4; let ring = null;
@@ -61,10 +61,28 @@ module.exports = {
     let ty = ring ? ring.y : 200;
     (V.obj || []).forEach(o => { if (o.k === 'storm' && o.x > 70 && o.x < 300 && Math.abs(o.y - ty) < 55) ty = o.y + (ty >= o.y ? 64 : -64); });
     jit += (R() - 0.5) * sk.aim; jit *= 0.9;
-    const err = (G.y - (ty + jit)) + G.vy * 0.2; inp.down = err > 0;
+    const err = (G.y - (ty + jit)) + G.vy * 0.2; inp.keys.space = err > 0;
   }; },
   sneak: sk => { let cool = 0; return (G, V, inp, dt) => {
     cool -= dt; if (cool > 0) return;
     if (!V.face && !V.warn || (R() < sk.err * 0.2)) { inp.hits.space = true; cool = 0.11 + sk.aim / 300; }
-  }; }
+  }; },
+  hack: sk => { let cool = 0.3; return (G, V, inp, dt) => {
+    cool -= dt; if (cool > 0 || !G.code) return;
+    let k = G.code[G.pos]; if (R() < sk.err * 0.5) k = ['up', 'down', 'left', 'right'][Math.floor(R() * 4)];
+    inp.hits[k] = true; cool = 0.13 + sk.react * 0.35 + sk.aim / 200 + (G.pos === 0 ? sk.react : 0);
+  }; },
+  vent: sk => (G, V, inp, dt) => {
+    const spd = 140 + G.runs * 15, fast = 1 + G.runs * 0.25; let go = true;
+    for (const b of V.beams) {
+      const d = b.x - G.x;
+      if (Math.abs(d) <= 40) { go = true; break; }            /* never stop under a light */
+      if (d < 0 || d > 75) continue;                           /* only the next light matters */
+      const need = (d + 42) / spd + 0.12 + sk.react * 0.4;     /* time to get clear past it */
+      const left = b.st === 'off' ? b.t / fast : b.st === 'warn' ? 0 : -1;
+      go = left >= need; break;
+    }
+    if (R() < sk.err * 0.02) go = !go;
+    inp.keys.right = go; inp.keys.left = false;
+  }
 };

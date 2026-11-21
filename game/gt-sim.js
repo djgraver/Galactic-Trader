@@ -85,6 +85,12 @@ function runOne(shipId, seed, mode) {
       if (process.env.FAC && s.visit.offer && s.visit.offer.price < s.credits * 0.3) GT.buyFacility(s);
       if (process.env.STK && GT.buyStock && s.stats.jumps > 3) { const k = s.stats.jumps % GT.STOCKS.length, n = Math.floor(s.credits * +process.env.STK / s.stockMkt.px[k]); if (n > 0) GT.buyStock(s, k, n); }
       if (process.env.STK && GT.stockShares(s) && s.credits < 1500) { GT.STOCKS.forEach((c, k) => { if (s.stocks[k].qty) GT.sellStock(s, k, s.stocks[k].qty); }); }
+      if (process.env.QUEST && s.quests) {
+        /* a quest-doing captain: take the story choice that is open, every guild quest, and the easy contracts */
+        if (s.questPrompt && GT.mainHere(s)) { const ch = GT.MAIN[s.quests.main.ch]; for (const c of ch.choices) { if (c.id === 'steal' || c.id === 'cut' || c.id === 'forge') continue; if (GT.choiceReq(s, c) === true) { GT.mainChoose(s, c.id); break; } } }
+        GT.REPQ.forEach(q => { if (GT.repQuestState(s, q) === 'open') GT.acceptRepQuest(s, q.id); });
+        GT.contractOffers(s).forEach(c => { if (GT.canAccept(s, c) !== true) return; if (c.kind === 'haul') { if (GT.maxBuy(s, c.item) < c.qty) return; GT.acceptContract(s, c); GT.buy(s, c.item, c.qty); } else if (c.kind === 'shares') { if (s.credits < c.n * s.stockMkt.px[c.stock] * 2) return; GT.acceptContract(s, c); GT.buyStock(s, c.stock, c.n); } else if (c.kind === 'fuel') return; else GT.acceptContract(s, c); });
+      }
       if (s.stats.jumps > 4) upgrades();
       if (GT.canRefuel(s) && s.credits > 400) GT.refuel(s, s.ship.fuelMax - s.ship.fuel);
       let best = null;
@@ -103,7 +109,8 @@ function runOne(shipId, seed, mode) {
           if (bk < 0 || bm <= (mode === 'human' ? 0.07 : 0.03) * bc) break;
           bi[bk]++; space--; money -= bc; profit += bm;
         }
-        const score = profit - fc * (P[s.loc].fuelSold ? GT.fuelPrice(s, s.loc) : 10);
+        let score = profit - fc * (P[s.loc].fuelSold ? GT.fuelPrice(s, s.loc) : 10);
+        if (process.env.QUEST && s.quests) { const g = GT.mainChapter(s); if (g && g.where === d && !process.env.NOROUTE) score += 300; s.quests.active.forEach(c => { if (c.to === d) score += 150; }); }
         if (!best || score > best.score) best = { d, bi, score };
       }
       if (!best || best.score <= 0) { let d = -1; for (let k = 0; k < P.length; k++) if (k !== s.loc && GT.canJump(s, k)) { d = k; break; } if (d < 0 ? !GT.tow(s) : !GT.jump(s, d)) break; continue; }
@@ -134,6 +141,7 @@ function stats(arr) { arr.sort((a, b) => a - b); const q = p => arr[Math.min(arr
 const ships = ['wayfarer', 'barge', 'stargazer', 'cutlass'];
 for (const sh of (process.env.SHIP ? [process.env.SHIP] : ships)) {
   const rs = []; for (let k = 1; k <= SEEDS; k++) rs.push(runOne(sh, k * 7919, MODE));
+  if (process.env.DEBUG) { const m = f => Math.round(rs.reduce((a, r) => a + f(r.s.stats), 0) / rs.length); console.log('  avg questGain', m(t => t.questGain || 0), 'jobGain', m(t => t.jobGain || 0), 'fees', m(t => t.feeIncome || 0), 'contracts', m(t => t.contracts || 0), 'chapters', m(t => t.chapters || 0), 'repq', m(t => t.repQuests || 0)); }
   const w = rs.filter(r => r.won), l = rs.filter(r => r.lost);
   const wt = stats(w.map(r => r.turn)), nw = stats(rs.map(r => Math.round(r.nw)));
   console.log(sh.padEnd(10), 'win', (w.length / rs.length * 100).toFixed(0) + '%', 'lose', (l.length / rs.length * 100).toFixed(0) + '%',

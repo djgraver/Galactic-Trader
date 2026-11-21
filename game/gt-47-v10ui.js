@@ -39,7 +39,7 @@ closeModal = function () { $('modal').classList.remove('qmodal'); baseClose(); }
 /* ---------- the quest log ---------- */
 function questLog() {
   var Q = S.quests, t = V10.qtab, h = '<div class="row"><h2>Quests</h2><button class="btn" data-act="close">Close</button></div><div class="tabs">';
-  [['story', 'The Ninth Lane'], ['jobs', 'Jobs (' + Q.active.length + '/' + GT.CONTRACT_MAX + ')'], ['guild', 'Guild notices'], ['done', 'Finished (' + Q.done.length + ')']].forEach(function (x) { h += '<button class="tab' + (t === x[0] ? ' on' : '') + '" data-act="qtab-' + x[0] + '">' + x[1] + '</button>'; });
+  [['story', 'The Ninth Lane'], ['jobs', 'Jobs (' + (GT.contractsActive ? GT.contractsActive(S).length : Q.active.length) + '/' + GT.CONTRACT_MAX + (GT.guildActive && GT.guildActive(S) ? ' + guild' : '') + ')'], ['guild', 'Guild notices'], ['done', 'Finished (' + Q.done.length + ')']].forEach(function (x) { h += '<button class="tab' + (t === x[0] ? ' on' : '') + '" data-act="qtab-' + x[0] + '">' + x[1] + '</button>'; });
   h += '</div><div class="tabbody">';
   if (t === 'story') {
     var M = Q.main, goal = GT.mainGoal(S);
@@ -82,7 +82,7 @@ V10.jobCard = function (c, mine) {
 V10.repCard = function (q, board) {
   var st = GT.repQuestState(S, q), lock = st === 'locked', need = q.min !== undefined ? 'Needs ' + q.min + '+ reputation' : 'Needs ' + q.max + ' or lower reputation';
   var h = '<div class="qjob rq ' + st + '"><div class="row"><b class="qk">' + (q.max !== undefined ? 'Syndicate' : 'Guild') + '</b><b class="qj">' + esc(q.title) + '</b><span class="tax">' + ({ locked: '&#128274; ' + need, open: 'Open', active: 'In progress', done: '&#10003; Done', failed: 'Failed' }[st]) + '</span></div><div class="qtx"><b>' + esc(q.who) + ':</b> ' + esc(q.blurb) + '</div>';
-  if (board && st === 'open') h += '<div class="row qmeta"><span class="dim">A one-time job with a lasting reward.</span>' + btn('Accept', 'qrep-' + q.id, GT.Q(S).active.length < GT.CONTRACT_MAX, 'green') + '</div>';
+  if (board && st === 'open') { var gq = GT.guildActive ? GT.guildActive(S) : null; h += '<div class="row qmeta"><span class="dim">' + (gq ? 'Finish <b>' + esc(gq.title) + '</b> first: one guild quest at a time.' : 'A one-time job with a lasting reward. It has its own slot and does not use a contract slot.') + '</span>' + btn('Accept', 'qrep-' + q.id, !gq, 'green') + '</div>'; }
   return h + '</div>';
 };
 
@@ -104,7 +104,7 @@ PAGES.hub = function () { return baseHub().replace('<div class="panel lg">', V10
 var baseJobs = PAGES.jobs;
 PAGES.jobs = function () {
   var h = baseJobs(), offers = GT.contractOffers(S), Q = S.quests;
-  var x = '<div class="panel qboard"><div class="qcol"><div class="row"><h2 class="hd">Contracts</h2><span class="dim">' + Q.active.length + ' of ' + GT.CONTRACT_MAX + ' jobs on the go</span></div>';
+  var x = '<div class="panel qboard"><div class="qcol"><div class="row"><h2 class="hd">Contracts</h2><span class="dim">' + (GT.contractsActive ? GT.contractsActive(S).length : Q.active.length) + ' of ' + GT.CONTRACT_MAX + ' contracts on the go</span></div>';
   if (!offers.some(function (c) { return !c.taken; })) x += '<p class="dim">No more contracts posted today. New ones go up whenever you land.</p>';
   offers.forEach(function (c) { if (!c.taken) x += V10.jobCard(c, false); });
   var open = GT.REPQ.filter(function (q) { var st = GT.repQuestState(S, q); return st !== 'done' && st !== 'failed'; });
