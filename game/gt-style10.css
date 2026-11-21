@@ -1,0 +1,129 @@
+/* Galactic Trader 10: quests, the straightened market table, the Defence Grid, tabbed reports, and the bar interiors. Loaded last. */
+
+/* ---------- the story dialog ---------- */
+#frame:not(.fluid) .modal.qmodal .sheet.wide { width: 1180px; max-height: 780px; }
+.qdlg { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 18px; align-items: start; }
+.qport { text-align: center; }
+.qport .qpic { background: #05060e; border: 1px solid #000; box-shadow: 0 0 0 1px #8fa0bd, 0 0 0 4px #2c3446, 0 0 24px rgba(111, 227, 255, .25); border-radius: 3px; overflow: hidden; }
+.qport .qpic svg, .qport .qpic img { display: block; width: 100% !important; height: auto !important; }
+.qport .cn { font: 700 15px/1.2 var(--display); color: var(--cy); margin-top: 8px; letter-spacing: .04em; }
+.qport .cj { font-size: 18px; color: var(--dim); }
+.qkick { font: 700 12px var(--display); letter-spacing: .2em; color: var(--am); }
+.qbody h2.qt { font: 900 30px/1.1 var(--display) !important; color: #fff !important; text-shadow: 0 0 14px rgba(111, 227, 255, .55), 0 2px 0 #000 !important; margin: 4px 0 10px !important; letter-spacing: .03em; }
+.qscene { font-size: 22px; line-height: 1.28; margin: 0 0 14px !important; color: #e4ecfb; }
+.qscene i { color: var(--am); }
+.qch { display: flex; flex-direction: column; gap: 8px; }
+.qc { all: unset; box-sizing: border-box; cursor: pointer; display: flex; flex-direction: column; gap: 2px; padding: 10px 14px; border-radius: 3px; border: 1px solid #000;
+  background: linear-gradient(#2d4470, #1b2a4a 60%, #131d33); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .3), 0 0 0 1px #6a86b8; color: #fff; }
+.qc b { font: 700 19px var(--display); letter-spacing: .03em; color: #fff; }
+.qc span { font-size: 18px; color: #bfd0ee; }
+.qc i { font-style: normal; font-size: 17px; color: var(--rd); }
+.qc:hover:not([disabled]), .qc:focus-visible { background: linear-gradient(#3f63a8, #24427a 60%, #182c52); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .45), 0 0 0 1px #9fc4ff, 0 0 16px rgba(111, 227, 255, .5); }
+.qc[disabled] { cursor: not-allowed; background: linear-gradient(#2a303c, #1a1f28); box-shadow: 0 0 0 1px #3c4658; }
+.qc[disabled] b { color: #8e9bb4; }
+.qfoot { margin-top: 12px; gap: 12px; } .qfoot .dim { font-size: 16px; }
+.qres .qkick { margin-bottom: 6px; } .qres .qnext { margin-top: 10px !important; font-size: 18px; color: var(--cy); }
+
+/* ---------- tabs (quest log and the end report) ---------- */
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; border-bottom: 1px solid #6a7890; margin: 6px 0 0; }
+.tab { all: unset; cursor: pointer; padding: 7px 14px; font: 700 12px var(--display); letter-spacing: .06em; color: #aab8d4; background: linear-gradient(#2a3141, #1c212d); border: 1px solid #000; border-bottom: 0; border-radius: 3px 3px 0 0; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .2); }
+.tab.on { color: #05070d; background: linear-gradient(#bff4ff, #6fe3ff 60%, #2fa8c8); text-shadow: none; }
+.tab:hover:not(.on), .tab:focus-visible { color: #fff; }
+.tabbody { padding-top: 8px; display: flex; flex-direction: column; gap: 6px; }
+.qchap { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 6px; }
+.qchap li { font-size: 19px; } .qchap li.future { color: #5a6680; } .qchap li.cur b { color: var(--am); }
+.qgoal { margin: 4px 0 2px; padding: 8px 10px; background: #0a0f1a; border: 1px solid #3a4458; border-radius: 3px; font-size: 18px; color: #dfe8f8; }
+.qgoal .btn { margin-top: 6px; }
+.qdone { list-style: none; padding: 0 !important; } .qdone li { font-size: 18px; }
+
+/* ---------- job cards (board, log) ---------- */
+.qjob { padding: 8px 10px; background: linear-gradient(#202838, #151b26); border: 1px solid #3a4458; border-radius: 3px; margin-top: 6px; }
+.qjob.rq { border-color: #7a6a2a; background: linear-gradient(#2a2618, #18160f); }
+.qjob.locked { opacity: .62; } .qjob.done { opacity: .7; }
+.qjob .row { gap: 10px; align-items: center; flex-wrap: nowrap; }
+.qjob .qk { font: 700 10px var(--display); letter-spacing: .12em; color: #05070d; background: var(--cy); padding: 3px 6px; border-radius: 2px; flex: none; }
+.qjob.rq .qk { background: var(--am); }
+.qjob .qj { font: 700 14px var(--display); color: #fff; flex: 1; min-width: 0; letter-spacing: .02em; }
+.qjob .tax { flex: none; }
+.qjob .qtx { font-size: 18px; line-height: 1.15; color: #cfd9ec; margin: 3px 0; }
+.qjob .qmeta { font-size: 17px; justify-content: space-between; } .qjob .qmeta .btn { flex: none; }
+.qboard { margin-top: 10px; }
+
+/* ---------- hub tracker ---------- */
+.qtrack { padding: 8px 10px !important; }
+.qtrack .hd { margin: 0; }
+.qline { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 17px; line-height: 1.1; margin-top: 4px; }
+.qline span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qline.main b { color: var(--am); font: 700 12px var(--display); letter-spacing: .03em; }
+.qline .btn { height: 24px; padding: 0 10px; font-size: 10px; flex: none; }
+
+/* ---------- the market table ---------- */
+#frame .mk10 .mkt { display: flex; flex-direction: column; }
+#frame .mk10 .mk-row, #frame:not(.fluid) .mk10 .mk-row { display: grid; grid-template-columns: 40px minmax(0, 1fr) 92px 70px 104px 152px 74px 152px; gap: 4px 10px; align-items: center; padding: 3px 8px; }
+#frame .mk10 .mk-head { font: 700 11px var(--display); letter-spacing: .1em; padding-top: 2px; padding-bottom: 4px; }
+#frame .mk10 .mk-head span { color: var(--cy) !important; }
+#frame .mk10 .r { text-align: right; justify-self: end; } #frame .mk10 .c { text-align: center; justify-self: center; }
+#frame .mk10 .bb { display: flex; gap: 5px; } #frame .mk10 .bb .btn { min-width: 0; width: 70px; padding: 0 4px; }
+#frame .mk10 .tr { white-space: nowrap; } #frame .mk10 .tr span { white-space: nowrap; }
+#frame .mk10 input.qty { width: 70px; }
+#frame .mk10 .mk-row .num b { font-size: 24px; }
+.mtag { font: 700 9px var(--display); letter-spacing: .08em; font-style: normal; margin-left: 8px; padding: 2px 5px; border-radius: 2px; vertical-align: 2px; }
+.mtag.imp { color: #05070d; background: var(--gn); } .mtag.prod { color: #05070d; background: #8fb4ff; }
+#frame.fluid .mk10 .mk-row { grid-template-columns: 36px minmax(0, 1fr) auto auto; grid-template-rows: auto auto; }
+#frame.fluid .mk10 .mk-head { display: none; }
+#frame.fluid .mk10 .mk-row > :nth-child(1) { grid-row: 1 / span 2; } #frame.fluid .mk10 .mk-row > :nth-child(2) { grid-column: 2; grid-row: 1; }
+#frame.fluid .mk10 .mk-row > :nth-child(3) { grid-column: 3; grid-row: 1; } #frame.fluid .mk10 .mk-row > :nth-child(4) { grid-column: 4; grid-row: 1; }
+#frame.fluid .mk10 .mk-row > :nth-child(5) { grid-column: 2; grid-row: 2; justify-self: start; }
+#frame.fluid .mk10 .mk-row > :nth-child(6), #frame.fluid .mk10 .mk-row > :nth-child(7), #frame.fluid .mk10 .mk-row > :nth-child(8) { grid-row: 3; }
+#frame.fluid .mk10 .mk-row > :nth-child(6) { grid-column: 1 / span 2; justify-self: start; } #frame.fluid .mk10 .mk-row > :nth-child(7) { grid-column: 3; } #frame.fluid .mk10 .mk-row > :nth-child(8) { grid-column: 4; }
+
+/* ---------- ship page and yard ---------- */
+.defp .bar { display: block; margin: 4px 0; }
+.relics { margin: 6px 0 0 !important; padding-left: 18px !important; font-size: 17px; }
+.shieldrow { border-top: 1px solid #3a4458; }
+
+/* ---------- end report ---------- */
+.endtabs { margin-top: 10px; }
+
+/* ---------- the bar interior (cantina) ---------- */
+.barloc .in { grid-template-columns: minmax(0, 1fr) !important; }
+.barview { position: relative; width: 100%; aspect-ratio: 1280 / 690; border: 1px solid #000; box-shadow: 0 0 0 1px #8fa0bd, 0 0 0 5px #2c3446, 0 0 0 6px #000; border-radius: 4px; overflow: hidden; background: #000; }
+.barview > img.barbg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.barview .barnpc { position: absolute; filter: drop-shadow(0 0 12px rgba(0, 0, 0, .7)); }
+.barview .barnpc svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.barview .barnpc.pat { filter: brightness(.82) drop-shadow(0 0 8px rgba(0, 0, 0, .7)); }
+.barview .barsay { position: absolute; left: 3%; top: 5%; max-width: 46%; padding: 10px 14px; background: rgba(6, 9, 16, .86); border: 1px solid var(--edge); border-radius: 3px; box-shadow: 0 0 18px rgba(0, 0, 0, .7); }
+.barview .barsay .nm { display: block; font: 700 13px var(--display); color: var(--cy); letter-spacing: .05em; }
+.barview .barsay span { font-size: 21px; line-height: 1.15; }
+.barview .barsign { position: absolute; left: 50%; top: 2%; transform: translateX(-50%); }
+.barrow { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 12px; margin-top: 10px; align-items: start; }
+.barrow .le { font-size: 19px; }
+.qboard { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 12px; align-items: start; }
+#frame.fluid .qboard { grid-template-columns: minmax(0, 1fr); }
+.qboard .qcol > .row:first-child, .qboard .qcol > .hd:first-child { margin-bottom: 2px; }
+.qboard .qjob .qtx { font-size: 17px; }
+.yardship > div:first-child { width: 200px !important; height: 112px; overflow: hidden; flex: none; display: grid; place-items: center; }
+.yardship > div:first-child img, .yardship > div:first-child canvas { max-width: 100%; max-height: 100%; }
+#frame:not(.fluid) .shiplow { grid-template-columns: 380px minmax(0, 1fr) 300px 290px; }
+#frame.fluid .shiplow { grid-template-columns: minmax(0, 1fr); }
+.defp { font-size: 17px; } .defp .relics { font-size: 16px; }
+/* ---------- the warp ---------- */
+.flight .fship { position: absolute; }
+.flight .fshield { position: absolute; left: 50%; top: 50%; width: 118%; aspect-ratio: 1.6; transform: translate(-50%, -50%) scale(.6); border-radius: 50%; opacity: 0; pointer-events: none;
+  background: radial-gradient(ellipse at center, rgba(111, 227, 255, 0) 52%, rgba(111, 227, 255, .28) 66%, rgba(190, 245, 255, .85) 71%, rgba(111, 227, 255, 0) 76%),
+    repeating-conic-gradient(from 0deg, rgba(160, 240, 255, .22) 0 4deg, transparent 4deg 30deg); mix-blend-mode: screen; }
+.flight .fshield.on { animation: fl-shield 2.2s ease-out 1 forwards; }
+@keyframes fl-shield { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.6); } 12% { opacity: 1; transform: translate(-50%, -50%) scale(1.04); } 30% { opacity: .75; transform: translate(-50%, -50%) scale(1); } 60% { opacity: .9; } 100% { opacity: 0; transform: translate(-50%, -50%) scale(1.1); } }
+.flight .heading { position: absolute; right: 3%; top: 12%; text-align: center; font: 700 14px var(--display); letter-spacing: .12em; color: var(--cy); text-shadow: 0 0 8px rgba(111, 227, 255, .7); }
+.flight .heading svg { display: block; margin: 0 auto 4px; }
+.le.shieldle { border-left-color: var(--cy) !important; background: linear-gradient(90deg, rgba(111, 227, 255, .18), rgba(111, 227, 255, .04)) !important; }
+.fcard.shieldcard { box-shadow: 0 0 0 1px #6fe3ff, 0 0 30px rgba(111, 227, 255, .45) !important; }
+
+.barloc { overflow-y: auto; }
+.barloc .in { display: block !important; padding: 10px 16px; }
+.barloc .main { display: flex; flex-direction: column; gap: 0; }
+.barrow .talk { display: flex; flex-direction: column; gap: 8px; }
+.barrow .talk .btn { width: 100%; }
+#frame:not(.fluid) .barloc .main { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 12px; align-items: start; }
+#frame:not(.fluid) .barrow { grid-template-columns: minmax(0, 1fr); margin-top: 0; }
+.barrow .panel .le { font-size: 18px !important; max-height: 300px; overflow-y: auto; }

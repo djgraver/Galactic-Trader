@@ -19,6 +19,7 @@ function runOne(shipId, seed, mode) {
   if (T.fuelK) GT.CFG.FUEL_K = T.fuelK;
   if (T.start) GT.CFG.START_CREDITS = T.start;
   if (process.env.NORIVAL) GT.rivalAtTarget = () => null;
+  if (process.env.JS) new Function('GT', process.env.JS)(GT);
   GT.setRng(GT.seeded(seed));
   const s = GT.newState(shipId, 'Bot');
   const P = GT.PLANETS, I = GT.ITEMS;
@@ -81,6 +82,9 @@ function runOne(shipId, seed, mode) {
 
     if (mode === 'oracle' || mode === 'human') {
       sellSmart(true);
+      if (process.env.FAC && s.visit.offer && s.visit.offer.price < s.credits * 0.3) GT.buyFacility(s);
+      if (process.env.STK && GT.buyStock && s.stats.jumps > 3) { const k = s.stats.jumps % GT.STOCKS.length, n = Math.floor(s.credits * +process.env.STK / s.stockMkt.px[k]); if (n > 0) GT.buyStock(s, k, n); }
+      if (process.env.STK && GT.stockShares(s) && s.credits < 1500) { GT.STOCKS.forEach((c, k) => { if (s.stocks[k].qty) GT.sellStock(s, k, s.stocks[k].qty); }); }
       if (s.stats.jumps > 4) upgrades();
       if (GT.canRefuel(s) && s.credits > 400) GT.refuel(s, s.ship.fuelMax - s.ship.fuel);
       let best = null;

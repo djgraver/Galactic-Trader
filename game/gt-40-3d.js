@@ -166,7 +166,7 @@ var G3 = { L: (function () { var l = [-0.45, 0.72, 0.53], n = Math.hypot(l[0], l
       var W = Math.round(cv.clientWidth * 2) || 2, H = Math.round(cv.clientHeight * 2) || 2; if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
       var cx = cv.getContext('2d'), mode = cv.dataset.mode, o = { x: W / 2, y: H * 0.51, s: Math.min(W / 2.8, H / 1.7) }, still = G3.reduced;
       cx.clearRect(0, 0, W, H);
-      if (mode === 'flight') { o.s = Math.min(W / 3.4, H / 2.1); o.yaw = -0.34 + Math.sin(t / 1900) * 0.1; o.pitch = 0.5 + Math.sin(t / 1300) * 0.05; o.roll = Math.sin(t / 900) * 0.22; o.flame = 1.15 + Math.sin(t / 50) * 0.12 + Math.sin(t / 23) * 0.06; o.y = H * 0.5 + Math.sin(t / 700) * H * 0.012; }
+      if (mode === 'flight') { o.s = Math.min(W / 3.4, H / 2.1); o.yaw = (cv.dataset.yaw ? +cv.dataset.yaw : -0.34) + Math.sin(t / 1900) * 0.1; o.pitch = 0.5 + Math.sin(t / 1300) * 0.05; o.roll = Math.sin(t / 900) * 0.22; o.flame = 1.15 + Math.sin(t / 50) * 0.12 + Math.sin(t / 23) * 0.06; o.y = H * 0.5 + Math.sin(t / 700) * H * 0.012; }
       else { o.yaw = G3.POSE.yaw + (still ? 0 : Math.sin(t / 2600) * 0.16); o.pitch = G3.POSE.pitch + (still ? 0 : Math.sin(t / 3700) * 0.04); o.roll = still ? 0 : Math.sin(t / 3100) * 0.05; o.flame = 0.55 + (still ? 0 : Math.sin(t / 60) * 0.06); }
       G3.draw(cx, G3.ship(cv.dataset.ship, cv.dataset.hue), o);
     }

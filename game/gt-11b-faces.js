@@ -102,7 +102,7 @@ CH.head = function (t) {
     if (a === 'eyepatch') acc0 = '<ellipse cx="-20" cy="-8" rx="17" ry="14" fill="#15101f" ' + sw + ' stroke-width="3"/>';
     if (a === 'glasses') acc0 = '<rect x="-36" y="-22" width="30" height="26" rx="8" fill="rgba(180,230,255,.3)" ' + sw + ' stroke-width="3.5"/><rect x="6" y="-22" width="30" height="26" rx="8" fill="rgba(180,230,255,.3)" ' + sw + ' stroke-width="3.5"/>';
     if (a === 'bandaid') acc0 = '<rect x="14" y="14" width="22" height="9" rx="4" transform="rotate(-24 25 18)" fill="#ffd6a5" ' + sw + ' stroke-width="2.5"/>';
-    return neck0 + A.back + A.shape + A.face + acc0 + top0;
+    return neck0 + A.back + '<!--SH-->' + A.shape + '<!--FE-->' + A.face + acc0 + '<!--TP-->' + top0;
   }
   /* ---- species extras that sit behind the head ---- */
   if (sp.stalk) h += '<path d="M0,-44 Q-6,-72 10,-84" fill="none" ' + sw + ' stroke-width="9"/><path d="M0,-44 Q-6,-72 10,-84" fill="none" stroke="' + skin + '" stroke-width="4" stroke-linecap="round"/><circle cx="10" cy="-88" r="11" fill="#fff" ' + sw + '/><circle cx="12" cy="-87" r="4.5" fill="' + O + '"/>';
@@ -112,13 +112,13 @@ CH.head = function (t) {
   if (bot) h += '<line x1="0" y1="-46" x2="0" y2="-72" ' + sw + '/><circle cx="0" cy="-76" r="6" fill="#ff5a4f" ' + sw + '/>';
   if (!bot && !sp.stalk) { var nw = M ? 17 : F ? 11 : 13; h += '<rect x="' + -nw + '" y="36" width="' + nw * 2 + '" height="34" rx="6" fill="' + sk2 + '" ' + sw + '/>'; }
   h += CH.hairBack(hat, hc, t.hatCol, sw);
-  if (sp.id === 'human') h += '<circle cx="-44" cy="0" r="9" fill="' + skin + '" ' + sw + ' stroke-width="3.5"/><circle cx="44" cy="0" r="9" fill="' + skin + '" ' + sw + ' stroke-width="3.5"/>';
+  if (sp.id === 'human') h += '<circle data-ear="-1" cx="-44" cy="0" r="9" fill="' + skin + '" ' + sw + ' stroke-width="3.5"/><circle data-ear="1" cx="44" cy="0" r="9" fill="' + skin + '" ' + sw + ' stroke-width="3.5"/>';
   /* ---- the head itself ---- */
   var jaw = gen === 'n' ? null : CH.JAW[gen][t.fshape % 3], skinFill = 'fill="' + skin + '" ' + sw;
   var shape = { human: jaw ? '<path d="' + jaw + '" ' + skinFill + '/>' : '<ellipse cx="0" cy="0" rx="46" ry="50" ' + skinFill + '/>', ellipse: '<ellipse cx="0" cy="0" rx="46" ry="50" ' + skinFill + '/>', pear: '<path d="M-36,-30 Q-38,-52 0,-52 Q38,-52 36,-30 Q58,30 0,52 Q-58,30 -36,-30Z" ' + skinFill + '/>', blob: '<path d="M-48,2 Q-54,-46 0,-50 Q54,-46 48,2 Q52,48 0,50 Q-52,48 -48,2Z" ' + skinFill + '/>', box: '<rect x="-44" y="-46" width="88" height="94" rx="14" ' + skinFill + '/>' }[sp.head];
   if (!jaw && sp.id === 'human') shape = '<ellipse cx="0" cy="0" rx="46" ry="50" ' + skinFill + '/>';
   /* masculine and feminine versions of the round-ish species get a stronger or softer jaw on top of their own shape */
-  h += shape;
+  h += '<!--SH-->' + shape;
   if (M && sp.id !== 'human' && !bot) h += '<path d="M-38,22 Q-30,46 -10,50 M38,22 Q30,46 10,50" fill="none" stroke="' + sk2 + '" stroke-width="4" stroke-linecap="round"/>';
   if (sp.fuzz) h += '<path d="M-46,10 Q-60,24 -42,36 M46,10 Q60,24 42,36" fill="none" stroke="#fff8e0" stroke-width="9" stroke-linecap="round"/>';
   if (bot) h += '<circle cx="-36" cy="-36" r="3" fill="' + sk2 + '"/><circle cx="36" cy="-36" r="3" fill="' + sk2 + '"/><circle cx="-36" cy="40" r="3" fill="' + sk2 + '"/><circle cx="36" cy="40" r="3" fill="' + sk2 + '"/>';
@@ -128,6 +128,7 @@ CH.head = function (t) {
   if (M && bd === 'beard') h += '<path d="M-45,8 Q-48,58 0,62 Q48,58 45,8 Q36,24 22,24 Q0,34 -22,24 Q-36,24 -45,8Z" fill="' + hc + '" ' + sw + '/>';
   if (M && bd === 'goatee') h += '<path d="M-12,34 Q0,30 12,34 L10,54 Q0,62 -10,54Z" fill="' + hc + '" ' + sw + '/>';
   /* eyes */
+  h += '<!--FE-->';
   var er = F ? 14 : M ? 12 : 13, eyes = '';
   var eye = function (x, y, r, big) { return '<circle cx="' + x + '" cy="' + y + '" r="' + r + '" fill="#fff" ' + sw + ' stroke-width="3.5"/>' + (sp.id === 'lizard' ? '<ellipse cx="' + (x + px * 0.4) + '" cy="' + y + '" rx="2.6" ry="' + (r * 0.7) + '" fill="' + O + '"/>' : '<circle cx="' + (x + px) + '" cy="' + (y + py) + '" r="' + (big ? 6.5 : 5) + '" fill="' + O + '"/><circle cx="' + (x + px + 1.8) + '" cy="' + (y + py - 2) + '" r="1.6" fill="#fff"/>'); };
   if (bot) eyes = '<rect x="-30" y="-20" width="24" height="18" rx="4" fill="#0e2a1a" ' + sw + ' stroke-width="3"/><rect x="6" y="-20" width="24" height="18" rx="4" fill="#0e2a1a" ' + sw + ' stroke-width="3"/><circle cx="' + (-18 + px) + '" cy="-11" r="4" fill="#58ff9a"/><circle cx="' + (18 + px) + '" cy="-11" r="4" fill="#58ff9a"/>';
@@ -157,9 +158,11 @@ CH.head = function (t) {
     h += '<ellipse cx="-30" cy="16" rx="9" ry="6" fill="#ff8ab0"/><ellipse cx="30" cy="16" rx="9" ry="6" fill="#ff8ab0"/>';
   }
   /* nose */
+  h += '<!--NO-->';
   var nz = F ? [0, 2, 2, 0][t.nose] : t.nose;
   h += ['<circle cx="0" cy="8" r="8" fill="' + sk2 + '" ' + sw + ' stroke-width="3"/>', '<path d="M-3,-2 Q14,14 -2,22 Q-10,20 -8,14Z" fill="' + sk2 + '" ' + sw + ' stroke-width="3"/>', '<ellipse cx="0" cy="10" rx="4.5" ry="3.5" fill="' + sk2 + '" ' + sw + ' stroke-width="3"/>', '<ellipse cx="0" cy="12" rx="13" ry="9" fill="' + sk2 + '" ' + sw + ' stroke-width="3"/><circle cx="-4" cy="12" r="2" fill="' + O + '"/><circle cx="4" cy="12" r="2" fill="' + O + '"/>'][nz];
   /* mouth */
+  h += '<!--MO-->';
   var lip = t.lip || '#ff3d6e', lp = function (d, fill) { return '<path d="' + d + '" fill="' + fill + '" stroke="' + lip + '" stroke-width="9" stroke-linejoin="round" stroke-linecap="round"/><path d="' + d + '" fill="none" stroke="' + O + '" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>'; };
   var mm = F ? [
     lp('M-17,27 Q0,46 17,27 Q0,22 -17,27Z', '#fff'),
@@ -182,5 +185,5 @@ CH.head = function (t) {
   if (a === 'eyepatch') h += '<path d="M-46,-18 L30,-26" stroke="' + O + '" stroke-width="4"/><ellipse cx="-18" cy="-8" rx="17" ry="14" fill="#15101f" ' + sw + ' stroke-width="3"/>';
   if (a === 'glasses') h += '<rect x="-36" y="-22" width="30" height="26" rx="8" fill="rgba(180,230,255,.3)" ' + sw + ' stroke-width="3.5"/><rect x="6" y="-22" width="30" height="26" rx="8" fill="rgba(180,230,255,.3)" ' + sw + ' stroke-width="3.5"/><line x1="-6" y1="-10" x2="6" y2="-10" stroke="' + O + '" stroke-width="3.5"/>';
   if (a === 'bandaid') h += '<rect x="14" y="14" width="22" height="9" rx="4" transform="rotate(-24 25 18)" fill="#ffd6a5" ' + sw + ' stroke-width="2.5"/>';
-  return h + CH.hairTop(t, hat, hc, sw, a);
+  return h + '<!--TP-->' + CH.hairTop(t, hat, hc, sw, a);
 };

@@ -1,14 +1,16 @@
-// Renders a contact sheet of generated captains (portraits as they appear in the game) and a street cast sheet.
-const { chromium } = require('playwright'); const path = require('path');
+const L = require('./gtd-lib.js');
 (async () => {
-  const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 1400, height: 900 }, deviceScaleFactor: +(process.env.DPR || 1) });
-  const errs = []; p.on('pageerror', e => errs.push(e.message));
-  await p.route(/fonts\./, r => r.abort());
-  await p.goto('file://' + path.resolve(__dirname, 'gtd-test.html'));
-  const names = (process.argv[2] || 'Gus,Zara,Mabel,Orion,Bex,Nyx,Tobias,Lyra,Quill,Marlowe,Pip,Dante,Ines,Kaz,Odette,Rufus,Sol,Willa,Yuri,Hector,Fern,Jax,Cleo,Boris').split(',');
-  const out = process.argv[3] || 'shots/faces.png';
-  await p.evaluate(([names]) => { document.body.innerHTML = '<div id="sheet" style="position:fixed;inset:0;z-index:99999;background:#2a2a40;display:flex;flex-wrap:wrap;gap:6px;padding:8px;overflow:auto"></div>';
-    document.getElementById('sheet').innerHTML = names.map(n => { const c = CH.fromName(n, 0); return '<div style="width:130px;text-align:center;font:12px monospace;color:#fff">' + UI.portrait(c) + '<br>' + n + '<br>' + CH.SPECIES[c.sp].id + ' ' + c.gen + '</div>'; }).join(''); }, [names]);
-  await p.waitForTimeout(1500);
-  await p.screenshot({ path: out }); console.log(errs.join('\n') || 'no errors'); await b.close();
+  const t = await L.open({ width: 1800, height: 1000 }); const p = t.p;
+  await p.waitForTimeout(500);
+  await p.evaluate(() => {
+    const names = ['Mabel', 'Gus', 'Odile', 'Zara Vex', 'Brakka', 'Hesper', 'Ama', 'Toby', 'Quinn', 'Rook', 'Sol', 'Vera'];
+    let h = '<div style="display:grid;grid-template-columns:repeat(12,140px);gap:6px;background:#123;padding:8px">';
+    names.forEach(n => { const c = CH.fromName(n, 0); c.yaw = 0; h += '<div>' + CH.portrait(c) + '</div>'; });
+    names.forEach(n => { const c = CH.fromName(n, 0); h += '<div>' + CH.portrait(c) + '</div>'; });
+    names.forEach(n => { const c = CH.fromName(n, 0); c.yaw = -c.yaw || 0.45; h += '<div>' + CH.portrait(c) + '</div>'; });
+    h += '</div>';
+    document.body.innerHTML = h; document.querySelectorAll('svg').forEach(s => { s.style.width = '140px'; s.style.height = 'auto'; });
+  });
+  await p.waitForTimeout(500); await t.shot('faces');
+  console.log(t.errs.join('\n') || 'no errors'); await t.close();
 })();

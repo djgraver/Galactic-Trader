@@ -10,7 +10,11 @@ var TW = { W: 1280, H: 800, F: 900, CY: 0.6, cam: [0, 12, 22.5], look: [0, 1.5, 
   function cen(v) { var c = [0, 0, 0]; v.forEach(function (p) { c[0] += p[0]; c[1] += p[1]; c[2] += p[2]; }); return [c[0] / v.length, c[1] / v.length, c[2] / v.length]; }
   function rgb(h) { var n = parseInt(h.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; }
   TW.rgb = rgb; TW.norm = norm;
-  var fw = norm(sub(TW.look, TW.cam)), rt = norm(cross(fw, [0, 1, 0])), up = cross(rt, fw);
+  var fw, rt, up;
+  function basis() { fw = norm(sub(TW.look, TW.cam)); rt = norm(cross(fw, [0, 1, 0])); up = cross(rt, fw); }
+  basis();
+  /* v10: point the camera somewhere else (the bar interiors use this); returns the old settings so they can be put back */
+  TW.setCam = function (o) { var old = { cam: TW.cam, look: TW.look, F: TW.F, W: TW.W, H: TW.H, CY: TW.CY }; ['cam', 'look', 'F', 'W', 'H', 'CY'].forEach(function (k) { if (o[k] !== undefined) TW[k] = o[k]; }); basis(); return old; };
   /* world point to picture point: [x, y, depth] */
   TW.P = function (p) { var d = sub(p, TW.cam), z = dot(d, fw); if (z < 0.5) z = 0.5; return [TW.W / 2 + TW.F * dot(d, rt) / z, TW.H * TW.CY - TW.F * dot(d, up) / z, z]; };
 

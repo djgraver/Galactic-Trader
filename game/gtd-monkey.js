@@ -20,7 +20,7 @@ const { chromium } = require('playwright');
       if (st.fl) { await p.mouse.click(640, 300); await p.waitForTimeout(80); const nx = await p.$('[data-act="fl-next"]'); if (nx) await nx.click(); const dk = await p.$('[data-act="fl-dock"]'); if (dk) await dk.click(); await p.waitForTimeout(60); continue; }
       if (st.mg) { await p.evaluate(() => { if (MG.state === 'intro') MG.begin(); else MG.quit(); }); await p.waitForTimeout(60); continue; }
       if (st.over) { ends++; break; }
-      if (st.modal) { const c = await p.$$('#modal [data-act]'); if (c.length) { const el = c[Math.floor(Math.random() * c.length)]; const a = await el.getAttribute('data-act'); if (a !== 'new') await el.click(); else await c[0].click(); } await p.waitForTimeout(40); continue; }
+      if (st.modal) { const c = await p.$$('#modal [data-act]:not([disabled])'); if (c.length) { const el = c[Math.floor(Math.random() * c.length)]; const a = await el.getAttribute('data-act'); if (a !== 'new') await el.click(); else await c[0].click(); } await p.waitForTimeout(40); continue; }
       if (Math.random() < 0.35) { await p.evaluate(pg => go(pg), pages[Math.floor(Math.random() * pages.length)]); }
       const onPad = await p.evaluate(() => ui.page === 'pad');
       if (onPad && Math.random() < 0.5) {

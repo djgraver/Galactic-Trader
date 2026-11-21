@@ -21,7 +21,7 @@ async function open(o = {}) {
     b, p, errs,
     // start a game through the real UI: name, ship, launch
     async boot(name = 'Gus', ship = 'wayfarer', n = 1) {
-      await p.evaluate(([nm, sh, n]) => { ui.setup.n = n; ui.setup.p[0].name = nm; ui.setup.p[0].ship = sh; startGame(); }, [name, ship, n]);
+      await p.evaluate(([nm, sh, n, quiet]) => { ui.setup.n = n; ui.setup.p[0].name = nm; ui.setup.p[0].ship = sh; startGame(); if (quiet && G) G.players.forEach(q => { if (q.quests) q.quests.main.state = 'done'; }); }, [name, ship, n, !!o.quiet]);
       await p.waitForTimeout(250);
     },
     async shot(name, sel) { const f = path.join(shotDir, name + '.png'); if (sel) { const el = await p.$(sel); await el.screenshot({ path: f }); } else await p.screenshot({ path: f }); return f; },

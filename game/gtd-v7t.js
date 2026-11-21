@@ -1,7 +1,7 @@
 // v7 feature test: end turn, crew wages and strike, borrow all, theme tune, multiplayer end turn, spaceport fit.
 const L = require('./gtd-lib.js');
 (async () => {
-  const t = await L.open({ width: 1920, height: 1080 });
+  const t = await L.open({ width: 1920, height: 1080, quiet: 1 });
   const p = t.p, out = {};
   out.frame = await p.evaluate(() => { const r = document.getElementById('frame').getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; });
   out.music = await p.evaluate(() => { MUSIC.start(); const on = MUSIC.on; return { on, label: document.getElementById('btnTheme').textContent }; });
@@ -51,7 +51,7 @@ const L = require('./gtd-lib.js');
   await p.waitForTimeout(3600); const nx = await p.$('[data-act="fl-next"]'); if (nx) { await nx.click(); await p.waitForTimeout(300); } await p.click('[data-act="fl-dock"]'); await p.waitForTimeout(400);
   if (await p.$('[data-act="comp-ignore"]')) { await p.click('[data-act="comp-ignore"]'); await p.waitForTimeout(300); if (await p.$('[data-act="close"]')) await p.click('[data-act="close"]'); }
   // multiplayer: end turn passes the seat
-  await p.evaluate(() => { S = null; G = null; renderStart(); ui.setup.n = 2; ui.setup.p[0].name = 'Ada'; ui.setup.p[1].name = 'Bix'; startGame(); });
+  await p.evaluate(() => { S = null; G = null; renderStart(); ui.setup.n = 2; ui.setup.p[0].name = 'Ada'; ui.setup.p[1].name = 'Bix'; startGame(); G.players.forEach(q => { if (q.quests) q.quests.main.state = 'done'; }); });
   await p.waitForTimeout(300); await p.click('[data-act="pass-ok"]'); await p.waitForTimeout(200);
   out.m0 = await p.evaluate(() => ({ cur: G.cur, who: S.name, round: G.round }));
   await p.evaluate(() => go('pad')); await p.waitForTimeout(200); await p.click('[data-act="wait"]'); await p.waitForTimeout(300);
